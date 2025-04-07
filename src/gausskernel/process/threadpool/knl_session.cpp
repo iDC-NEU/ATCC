@@ -16,7 +16,7 @@
  * knl_session.cpp
  *    Initial functions for session level global variables.
  *
- * IDENTIFICATION
+ * IDENTIFICATIONu_sess
  *    src/gausskernel/process/threadpool/knl_session.cpp
  *
  * ---------------------------------------------------------------------------------------
@@ -839,10 +839,22 @@ static void knl_u_storage_init(knl_u_storage_context* storage_cxt)
     storage_cxt->total_bufs_allocated = 0;
     storage_cxt->LocalBufferContext = NULL;
 
+    // wzy: 设置为交互式事务
+    storage_cxt->interactiveTxn = 0;
+
     //ADDBY NEU HW
     storage_cxt->execPhase = 0;
     storage_cxt->startQuery = storage_cxt->startExec = 0;
     storage_cxt->startCommit = storage_cxt->finishCommit = storage_cxt->finishQuery = 0;
+}
+
+// wzy
+int GetSessTxnState(knl_session_context* sess) {
+    return sess->storage_cxt.interactiveTxn;
+}
+
+void SetSessTxnState(knl_session_context* sess, int interactiveTxn) {
+    sess->storage_cxt.interactiveTxn = interactiveTxn;
 }
 
 static void knl_u_libpq_init(knl_u_libpq_context* libpq_cxt)
@@ -1343,7 +1355,6 @@ void use_fake_session()
 void free_session_context(knl_session_context* session)
 {
     Assert(u_sess == session);
-
     /* free the locale cache */
     freeLocaleCache(false);
 

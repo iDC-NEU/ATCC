@@ -677,7 +677,7 @@ static int ReadCommand(StringInfo inBuf)
         ereport(FATAL, (errcode(ERRCODE_SYSTEM_ERROR), errmsg("could not set timer for session timeout")));
 
     if (t_thrd.postgres_cxt.whereToSendOutput == DestRemote)
-        result = SocketBackend(inBuf);
+        result = SocketBackend(inBuf);                          // client输入从这儿进
     else if (t_thrd.postgres_cxt.whereToSendOutput == DestDebug)
         result = InteractiveBackend(inBuf);
     else
@@ -7720,7 +7720,7 @@ int PostgresMain(int argc, char* argv[], const char* dbname, const char* usernam
         if (saved_whereToSendOutput != DestNone)
             t_thrd.postgres_cxt.whereToSendOutput = saved_whereToSendOutput;
 
-        firstchar = ReadCommand(&input_message);
+        firstchar = ReadCommand(&input_message);            // wzy
         /* update our elapsed time statistics. */
         timeInfoRecordStart();
 
@@ -7798,7 +7798,7 @@ int PostgresMain(int argc, char* argv[], const char* dbname, const char* usernam
                 u_sess->proc_cxt.MyProcPort->gs_sock.sid,
                 firstchar);
 
-        switch (firstchar) {
+        switch (firstchar) {            // wzy
 #ifdef ENABLE_MULTIPLE_NODES
             case 'Z':  // exeute plan directly.
             {
@@ -7891,7 +7891,9 @@ int PostgresMain(int argc, char* argv[], const char* dbname, const char* usernam
             {
                 const char* query_string = NULL;
 
-                query_string = pq_getmsgstring(&input_message);
+//                query_string = pq_getmsgstring(&input_message);
+                query_string = pq_getmsgstring_interactive(&input_message);     // wzy: 解析带有标识的begin语句
+
                 if (query_string == NULL) {
                     ereport(ERROR, (errcode(ERRCODE_UNEXPECTED_NULL_VALUE),
                                     errmsg("query_string is NULL.")));
@@ -7900,6 +7902,7 @@ int PostgresMain(int argc, char* argv[], const char* dbname, const char* usernam
                     ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                                     errmsg("Too long query_string.")));
                 }
+
 
                 t_thrd.postgres_cxt.clobber_qstr = query_string;
 
@@ -8201,8 +8204,13 @@ int PostgresMain(int argc, char* argv[], const char* dbname, const char* usernam
                 if (IS_PGXC_DATANODE && IsConnFromCoord())
                     u_sess->pgxc_cxt.PGXCNodeId = pq_getmsgint(&input_message, 4);
 
-                stmt_name = pq_getmsgstring(&input_message);
-                query_string = pq_getmsgstring(&input_message);
+//                stmt_name = pq_getmsgstring(&input_message);
+//                query_string = pq_getmsgstring(&input_message);
+
+                // wzy: 解析交互性事务开启begin
+                stmt_name = pq_getmsgstring_interactive(&input_message);
+                query_string = pq_getmsgstring_interactive(&input_message);
+
                 if (strlen(query_string) > SECUREC_MEM_MAX_LEN) {
                     ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                                     errmsg("Too long query_string.")));

@@ -26,9 +26,14 @@
 #define ROW_HEADER_H
 
 #include <cstdint>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <functional>
 #include "global.h"
 #include "mot_atomic_ops.h"
 #include "debug_utils.h"
+#include <algorithm>
 
 namespace MOT {
 // forward declarations
@@ -65,6 +70,7 @@ class Access;
  * @class RowHeader
  * @brief Helper class for managing a single row in Optimistic concurrency control.
  */
+
 class __attribute__((__packed__)) RowHeader {
 public:
     /**
@@ -77,6 +83,18 @@ public:
     inline RowHeader(const RowHeader& src)
     {
         stable_csnWord = m_csnWord = src.m_csnWord;
+
+        // wzy: 拷贝构造，但不添加version 和active list
+        commitEpoch = src.commitEpoch;
+        startEpoch = src.startEpoch;
+        server_id = src.server_id;
+        csn = src.csn;
+        stable_commitEpoch = src.stable_commitEpoch;
+        stable_startEpoch = src.stable_startEpoch;
+        stable_server_id = src.stable_server_id;
+
+        t_xmin_csn = src.t_xmin_csn;
+        t_xmax_csn = src.t_xmax_csn;
     }
 
     // class non-copy-able, non-assignable, non-movable
@@ -118,7 +136,10 @@ private:
      * @param access Container for the row
      * @param csn Commit Serial Number
      */
-    void WriteChangesToRow(const Access* access, uint64_t csn);
+    void WriteChangesToRow(const Access* access, uint64_t csn, uint64_t server_id);
+
+    // wzy:
+    void WriteChangesToRow(const Access* access, TxnManager* txMan, TxnAccess* tx, uint64_t csn, uint64_t server_id);
 
 public:
     /** @brief Locks the row. */
@@ -127,6 +148,8 @@ public:
     /** @brief Unlocks the row. */
     void Release()
     {
+        // COMPILER_BARRIER       // wzy: 测试屏障
+        asm volatile("mfence" ::: "memory");
         MOT_ASSERT(m_csnWord & LOCK_BIT);
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
         m_csnWord = m_csnWord & (~LOCK_BIT);
@@ -198,6 +221,7 @@ public:
      */
     bool IsRowDeleted() const
     {
+
         return (m_csnWord & (ABSENT_BIT | LATEST_VER_BIT)) == (ABSENT_BIT | LATEST_VER_BIT);
     }
 
@@ -244,17 +268,72 @@ public:
 
 
 public:
-///ADDBY NEU
+    ///ADDBY NEU
     bool ValidateAndSetWriteForCommit(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id);
+    bool InteractiveSetWriteForCommit(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id);
+    bool ValidateAndSetWriteForCommitInteractive(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id, bool interactive);
+    bool SetWriteForCommitPCC(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id, bool interactive);
+
+
+    // ============ wzy: MVCC相关
+    enum VisibleType : uint32_t { RowIsVisible = 0, RowIsDeleted = 1, RowNotExist = 2 };
+
+    bool RowSatisfiesPack(TransactionId tid, uint64_t csn, uint32_t server_id);
+
+    // wzy: 判断当前事务对行是否可见
+    VisibleType RowSatisfiesNow(TransactionId tid, uint64_t csn, uint32_t server_id);
+
+    // wzy: 向版本链首中添加version
+    void AddNewVersion(TxnAccess* tx, Row* newVersion, uint64_t xmin, uint64_t xmax);  // -1 为无效标识位
+
+    // wzy: 找到符合的row，不符合则返回空
+    Row* FindVisibleVersion(TransactionId tid, uint64_t csn, uint32_t server_id,  RowHeader*& resRowHeader);
+
+    // wzy: 添加到事务链表
+    void AddActiveTxnList(TransactionId tid, uint32_t server_id)
+    {
+        std::lock_guard<std::mutex> lock(active_tid_mutex);
+        for (auto temp : active_tid_) {
+            if (temp == tid)
+                return;
+        }
+        active_tid_.push_back(tid);
+    }
+
+    // wzy: 从正在访问的事务链表中删除
+    void RemoveActiveTxn(TransactionId tid, uint32_t server_id);
+
+    // wzy: 将txnlist从b移动到a
+    void MoveActiveTxnList(RowHeader* a, RowHeader* b) {
+        std::lock_guard<std::mutex> lock(b->active_tid_mutex);
+        a->active_tid_ = b->active_tid_;
+        b->active_tid_.clear();
+    }
+
+    bool isInteractive() {return is_interactive;}
+    void setInteractive(bool interactive) { is_interactive = interactive;}
+
+    void setPCCWriteSet(bool pcc) { is_pcc_write_set = pcc;}
+
+    // wzy: 清除多余版本，当前Row并不清除
+    void CleanupVersions(TransactionId min_active_txn_id);
+
+    ///////////////////////////////////////////////////
 
     bool IsStableLocked() const
     {
         return (stable_csnWord & LOCK_BIT) == LOCK_BIT;
     }
 
+    uint64_t GetStableCSN() {
+        return stable_csnWord;
+    }
+
     void LockStable();
 
     void ReleaseStable(){
+        // COMPILER_BARRIER       // wzy: 测试屏障
+        asm volatile("mfence" ::: "memory");
         MOT_ASSERT(stable_csnWord & LOCK_BIT);
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
         stable_csnWord = stable_csnWord & (~LOCK_BIT);
@@ -329,6 +408,10 @@ public:
         stable_commitEpoch = commitEpoch;
         stable_csnWord = m_csnWord;
         stable_server_id = server_id;
+        // TODO: 需要设置interactive吗?
+        interactive_flag = false;
+        is_pcc_write_set = false;
+        in_commit_phase_ = false;
     }
 
     void SetServerId(uint32_t id){
@@ -360,20 +443,49 @@ public:
         return csn;
     }
 
+    void SetInteractiveFlag(bool interactive) {
+        interactive_flag = interactive;
+    }
+
+    void SetPCCFlag(bool pcc) {
+        is_pcc_write_set = pcc;
+    }
+
     bool ValidateReadI(TransactionId tid, uint32_t server_id) const;
     bool ValidateReadForSnap(TransactionId tid, uint64_t start_epoch, uint32_t server_id) const;
+    bool ValidateReadI_Switching(TransactionId tid, uint32_t server_id) const;
+    bool ValidateReadForSnap_Switching(TransactionId tid, uint64_t start_epoch, uint32_t server_id) const;
+    bool ValidateWriteForMVCC(TransactionId tid, uint64_t start_epoch, uint32_t server_id) const;
+    bool ValidateWriteI(TransactionId tid, uint32_t server_id) const;
+
 private:
     volatile uint64_t commitEpoch = 0;//ADDBY NEU
     volatile uint64_t startEpoch = 0;
     volatile uint32_t server_id = 0;
+    volatile bool interactive_flag = false;     // 是否需要设置为false? 是否需要设置为stable?
+    volatile bool is_pcc_write_set = false;
+    volatile bool in_commit_phase_ = false;
 
-    volatile uint64_t stable_csnWord;
-    volatile uint64_t csn;
+    volatile uint64_t stable_csnWord = 0;
+    volatile uint64_t csn = 0;
     volatile uint64_t stable_commitEpoch = 0;
     volatile uint64_t stable_startEpoch = 0;
     volatile uint32_t stable_server_id = 0;
 
     friend TxnAccess;//ADDBY NEU
+
+    // wzy: 判断可见性，根据可见性返回scan的结果，一个版本可见范围[xmin, xmax]
+     volatile uint64_t t_xmin_csn;  // csn insert this row
+     volatile uint64_t t_xmax_csn;  // csn delete this row， -1是无效值
+
+     // 版本链，指向上一个版本，update操作会产生新版本
+     std::list<Row*> version_;
+     std::mutex version_mutex;
+
+     std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+     std::mutex active_tid_mutex;
+
+     bool is_interactive;
 };
 }  // namespace MOT
 

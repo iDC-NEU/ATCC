@@ -15,6 +15,7 @@
 
 #include "lib/stringinfo.h"
 #include "mb/pg_wchar.h"
+#include <atomic>
 
 extern void pq_beginmessage(StringInfo buf, char msgtype);
 extern void pq_beginmessage_reuse(StringInfo buf, char msgtype);
@@ -47,6 +48,8 @@ extern void pq_copymsgbytes(StringInfo msg, char* buf, int datalen);
 extern char* pq_getmsgtext(StringInfo msg, int rawbytes, int* nbytes);
 extern const char* pq_getmsgstring(StringInfo msg);
 extern void pq_getmsgend(StringInfo msg);
+
+extern const char* pq_getmsgstring_interactive(StringInfo msg);     // wzy: 设置交互式事务
 
 /*
  * Append a [u]int8 to a StringInfo buffer, which already has enough space

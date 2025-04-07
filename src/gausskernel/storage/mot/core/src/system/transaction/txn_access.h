@@ -15,7 +15,7 @@
  *
  * txn_access.h
  *    Cache manager for current transaction.
- *
+ *m_rowCnt
  * IDENTIFICATION
  *    src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h
  *
@@ -108,6 +108,8 @@ public:
      */
     RC AccessLookup(const AccessType type, Sentinel* const originalSentinel, Row*& r_local_Row);
 
+    RC AccessLookupMVCC(const AccessType type, Sentinel* const originalSentinel, Row*& r_local_Row);
+
     /**
      * @brief Stores row access entry in the local cache.
      * @param table The table to which the row belongs.
@@ -116,6 +118,12 @@ public:
      * @return The row as it is stored in the cache.
      */
     Row* MapRowtoLocalTable(const AccessType type, Sentinel* const& originalSentinel, RC& rc);
+
+    // wzy: 对scan操作特化返回Row
+    Row* MapRowtoLocalTableMVCC(const AccessType upper_type, const AccessType type, Sentinel* const& originalSentinel, RC& rc, const bool interactive);
+
+    // wzy:
+    Row* GetReadCommitedRowMVCC(const AccessType type, Sentinel* sentinel, bool interactive);
 
     /**
      * @brief Applies row state changes according to state machine rules.
@@ -340,6 +348,12 @@ private:
     } m_initPhase;
 
     DECLARE_CLASS_LOGGER();
+
+// wzy: 测试
+public:
+    DummyTable* GetDummyTable(){
+        return &(this->m_dummyTable);
+    }
 };
 }  // namespace MOT
 

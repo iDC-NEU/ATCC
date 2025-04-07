@@ -70,6 +70,7 @@
 
 #include "postgres.h"
 #include "knl/knl_variable.h"
+#include "storage/mot/mot_fdw.h"
 
 #include <sys/param.h>
 #include <netinet/in.h>
@@ -582,6 +583,7 @@ char* pq_getmsgtext(StringInfo msg, int rawbytes, int* nbytes)
     return p;
 }
 
+static std::atomic<uint64_t> interactive_count{1};   // wzy
 /* --------------------------------
  *		pq_getmsgstring - get a null-terminated text string (with conversion)
  *
@@ -607,6 +609,65 @@ const char* pq_getmsgstring(StringInfo msg)
     }
     msg->cursor += slen + 1;
 
+    if (strcmp("1egin;", str) == 0 || strcmp("1egin", str) == 0) {
+        str[0] = 'b';
+        int cur_cnt = interactive_count.fetch_add(1);
+        u_sess->storage_cxt.interactiveTxn = cur_cnt;
+        t_thrd.storage_cxt.thrd_interactiveTxn = cur_cnt;
+        if(slen != 0) ereport(LOG, (errmsg("pq_getmsgstring msg str = %s, interactive count = %d", str, cur_cnt)));
+    }
+//    if(u_sess->storage_cxt.interactiveTxn == 1) {
+//        FDWSetInteravtiveTxn(u_sess);
+//    }
+    return pg_client_to_server(str, slen);
+}
+
+// wzy: 设置交互式事务
+const char* pq_getmsgstring_interactive(StringInfo msg)
+{
+    char* str = NULL;
+    int slen;
+
+    str = &msg->data[msg->cursor];
+
+    /*
+     * It's safe to use strlen() here because a StringInfo is guaranteed to
+     * have a trailing null byte.  But check we found a null inside the
+     * message.
+     */
+    slen = strlen(str);
+    if (msg->cursor + slen >= msg->len) {
+        ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION), errmsg("invalid string in message")));
+    }
+
+    // wzy: 1be作为开头，存储重做次数
+    if (strncmp("1be", str, 3) == 0) {
+        int retry_val = 0;
+        if (strlen(str) >= 5 && isdigit(str[3]) && isdigit(str[4])) {
+            // 将后两个数字转换为整数
+            retry_val = (str[3] - '0') * 10 + (str[4] - '0');
+        }
+        u_sess->storage_cxt.retryCnt = retry_val; // 存储数字到 retryCnt
+
+        // 将 "1eg" 替换为 "begin"
+        str[0] = 'b'; // 将 '1' 替换为 'b'
+        str[1] = 'e'; // 将 'e' 保持不变
+        str[2] = 'g'; // 将 'g' 保持不变
+        str[3] = 'i'; // 加入 'i'
+        str[4] = 'n'; // 加入 'n'
+
+        // 更新 interactiveTxn
+        int cur_cnt = interactive_count.fetch_add(1);
+        u_sess->storage_cxt.interactiveTxn = cur_cnt;
+        t_thrd.storage_cxt.thrd_interactiveTxn = cur_cnt;
+
+        // 输出日志，如果字符串长度不为0
+        if (slen != 0) ereport(LOG, (errmsg("pq_getmsgstring msg str = %s, interactive count = %d", str, cur_cnt)));
+
+    }
+
+
+    msg->cursor += slen + 1;
     return pg_client_to_server(str, slen);
 }
 

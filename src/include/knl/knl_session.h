@@ -1527,6 +1527,10 @@ typedef struct knl_u_storage_context {
     int32 dumpHashbucketIdNum;
     int2 *dumpHashbucketIds;
 
+    // wzy: 设置为交互式事务，buffer未释放?
+    int interactiveTxn;
+    int retryCnt;             // 重试次数
+
     // 注意：只适用于单条语句的事务 //ADDBY NEU HW
     int execPhase; // 现在取到了第几个时间，啥也没取是 0，打完日志回到 0
     TimestampTz startQuery;    // 拿到语句的时候
@@ -2395,6 +2399,10 @@ extern knl_session_context* create_session_context(MemoryContext parent, uint64 
 extern void free_session_context(knl_session_context* session);
 extern void use_fake_session();
 extern bool stp_set_commit_rollback_err_msg(stp_xact_err_type type);
+
+// wzy
+extern int GetSessTxnState(knl_session_context* sess);
+extern void SetSessTxnState(knl_session_context* sess, int interactiveTxn);
 
 extern THR_LOCAL knl_session_context* u_sess;
 

@@ -81,7 +81,12 @@ public:
      */
     RC ValidateOcc(TxnManager* tx);
 
+    RC ValidateOccPlor(TxnManager* tx);     // 不用sentinel锁，只是做读写检测
+
     RC LockHeaders(TxnManager* txMan, uint32_t& numSentinelsLock);
+
+    // wzy
+    RC LockHeadersPlor(TxnManager* txMan, uint32_t& numSentinelsLock);
 
     RC LockRows(TxnManager* txMan, uint32_t& numRowsLock);
 
@@ -91,6 +96,7 @@ public:
      * @param txMan The committing transaction.
      */
     void WriteChanges(TxnManager* txMan);
+    void WriteChanges(TxnManager* txMan, uint64_t server_id);
 
     /** @brief remove all deleted keys from the global indices   */
     void CleanRowsFromIndexes(TxnManager* txMan);
@@ -103,6 +109,14 @@ public:
         if (m_rowsLocked) {
             ReleaseHeaderLocks(txMan, m_writeSetSize);
             ReleaseRowsLocks(txMan, m_rowsSetSize);
+            m_rowsLocked = false;
+        }
+    }
+
+    void ReleaseLocksSentinel(TxnManager* txMan)
+    {
+        if (m_rowsLocked) {
+            ReleaseHeaderLocks(txMan, m_writeSetSize);
             m_rowsLocked = false;
         }
     }
@@ -160,6 +174,15 @@ private:
 
     void ReleaseHeaderLocks(TxnManager* txMan, uint32_t numOfLocks);
 
+    // wzy:
+    bool QuickHeaderInsertValidation(const Access* access);
+
+    // wzy:
+    bool LockHeadersNoWaitPlor(TxnManager* txMan, uint32_t& numSentinelsLock);
+
+    // wzy
+    void ReleaseHeaderLocksPlor(TxnManager* txMan, uint32_t numOfLocks);
+
     /** @brief Release all the locked rows */
     void ReleaseRowsLocks(TxnManager* txMan, uint32_t numOfLocks);
 
@@ -215,11 +238,71 @@ public:
     bool ValidateWriteSetForCommit(TxnManager *txMan, uint32_t server_id);
     bool ValidateWriteSet(TxnManager *txMan, uint32_t server_id);
     void updateInsertSetSize(TxnManager * txMan);
+    bool ValidateLockWriteSet(TxnManager *txMan, uint32_t server_id);
+
+    bool ValidateWriteSetForMVCC(TxnManager * txMan, uint32_t server_id);
 
     RC CommitPhase(TxnManager *txMan, uint32_t server_id);
     RC CommitCheck(TxnManager *txMan, uint32_t server_id);
-    ///
+    RC CommitLockCheck(TxnManager *txMan, uint32_t server_id);      // 发送写集前检查写集是否被上锁
 
+    // wzy: 给本地交互型事务上锁
+    bool LockWriteSet(TxnManager* txMan, uint32_t server_id, void* currRow);
+    // wzy: 检查当前事务是否上锁成功
+    bool CheckForLockSet(TxnManager* txMan, uint32_t server_id, void* currRow);
+    // wzy: 给本地交互型事务解锁
+    bool UnlockWriteSet(TxnManager* txMan, uint32_t server_id, uint64_t csn);
+    // wzy: 单行为交互性
+    bool UnlockWriteSetRow(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+
+    bool ValidateWriteSetPlor(TxnManager* txMan);
+
+    RC LockPhase(TxnManager* txMan, uint32_t server_id, void* currRow);
+    RC LockCheck(TxnManager* txMan, uint32_t server_id, void* currRow);
+    RC UnlockPhase(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+
+    /////////////////////// Plor /////////////////////
+    RC CommitUpdate(TxnManager *txMan, uint32_t server_id);
+    RC UnlockCommitUpdate(TxnManager *txMan, uint32_t server_id);
+    bool UpdateWriteHeaderForPCC(TxnManager *txMan, uint32_t server_id);
+    bool LockWriteHeaderForPCC(TxnManager *txMan, uint32_t server_id);
+    bool UnlockWriteHeaderForPCC(TxnManager *txMan, uint32_t server_id);
+
+
+    RC WritePhasePlor(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetWriteLockPlor(TxnManager* txMan, uint32_t server_id, void* currRow);
+    RC ReadPhasePlor(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetReadLockPlor(TxnManager* txMan, uint32_t server_id, void* currRow);
+
+    RC SwitchReadPhasePlor(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchReadLockPlor(TxnManager* txMan, uint32_t server_id);
+    bool GetSwitchReadLockPlorPrevRLock(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+
+    RC SwitchWritePhasePlor(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchWriteLockPlor(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+
+    RC ValidationPhasePlor(TxnManager *txMan, uint32_t server_id);      // 读写冲突检测
+    bool ValidateReadWriteConflict(TxnManager *txMan, uint32_t server_id);
+    RC UnlockReadWriteLockPlor(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+    bool UnlockReadWriteRowPlor(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+
+    /////////////////////// Wound-wait ///////////////////////////
+    RC WritePhaseWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetWriteLockWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
+    RC ReadPhaseWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetReadLockWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
+
+    RC SwitchReadPhaseWoundWait(TxnManager* txMan, uint32_t server_id);
+    bool GetSwitchReadLockWoundWait(TxnManager* txMan, uint32_t server_id);
+    RC SwitchWritePhaseWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchWriteLockWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+
+    RC ValidationPhaseWoundWait(TxnManager *txMan, uint32_t server_id);      // 读写冲突检测
+    bool ValidateReadWriteConflictWoundWait(TxnManager *txMan, uint32_t server_id);
+    RC UnlockReadWriteLockWoundWait(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+    bool UnlockReadWriteRowWoundWait(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+
+    //////////////////////////////////////////////////
 };
 }  // namespace MOT
 

@@ -50,6 +50,7 @@
 namespace MOT {
 DECLARE_LOGGER(TxnManager, System);
 
+
 void TxnManager::RemoveTableFromStat(Table* t)
 {
     m_accessMgr->RemoveTableFromStat(t);
@@ -104,34 +105,201 @@ RC TxnManager::InsertRow(Row* row)
 
 Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSentinel, RC& rc)
 {
+    // wzy: 应对后置设置交互性事务
+    // 为什么segment fault?
+    uint32_t s_id = u_sess->mot_cxt.session_id;
+    if (u_sess->storage_cxt.interactiveTxn > 0 && !IsInteractive()) {
+        SetInteractive(true);
+        retry_cnt = u_sess->storage_cxt.retryCnt;
+        SetCommitSequenceNumber(start_time);
+        pre_csn = start_time;       // 用于释放锁
+        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+        if (is_debug_print_enable) {
+            MOT_LOG_INFO("[First time] TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
+            MOT_LOG_INFO("[First time] TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
+        }
+    }
+
+    if (is_debug_print_enable) {
+        MOT_LOG_INFO("TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
+        MOT_LOG_INFO("TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
+    }
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+
     TryRecordTimestamp(1, startExec);//ADDBY NEU HW
+
+    // wzy: 检验是否切换
+    uint64_t cur_time = now_to_us();
+    if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+        if (first_time_pessimistic) {
+            rc = SwitchToPCC();
+            if (rc != MOT::RC_OK)
+                return nullptr;
+        }
+    }
 
     rc = RC_OK;
     // Look for the Sentinel in the cache
     Row* local_row = nullptr;
-    // error handling
+    // error handlingDeleteLastRow
     if (unlikely(originalSentinel == nullptr)) {
         return nullptr;
     }
     // if txn not started, tag as started and take global epoch
     GcSessionStart();
 
-    RC res = AccessLookup(type, originalSentinel, local_row);
+    // wzy: 添加统计
+    AddReadCnt();
+
+    // wzy: 先查找cache
+    if(isMVCC_Active && type == AccessType::RD && read_cache.GetReadCache(originalSentinel, local_row)){
+        MOTAdaptor::AddActiveTxnRow(GetInternalTransactionId(), local_row);
+        return local_row;
+    }
+    RC res = RC_OK;
+
+    if (!isMVCC_Active) {
+        res = AccessLookup(type, originalSentinel, local_row);
+    } else {
+        res = AccessLookupMVCC(type, originalSentinel, local_row);
+    }
+
+    // wzy: 插入全局活跃事务表
+    Row* r_local_row = nullptr;
+    if (type == AccessType::RD && local_row) MOTAdaptor::AddActiveTxnRow(GetInternalTransactionId(), local_row);
 
     switch (res) {
         case RC::RC_LOCAL_ROW_DELETED:
+            // wzy: 插入全局活跃事务表
+            // wzy: 获取到的row找到合适发版本
+            if (type == AccessType::RD && local_row && isMVCC_Active) {
+                uint64_t csn = start_time;       // wzy : 测试
+                auto curr_header = local_row->GetRowHeader();
+                if (curr_header->RowSatisfiesPack(GetInternalTransactionId(), csn, 0)) {
+                    curr_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                } else {
+                    auto temp_header = curr_header;
+                    r_local_row = curr_header->FindVisibleVersion(GetInternalTransactionId(), csn, 0, temp_header);
+                    if (r_local_row) local_row = r_local_row;
+                    temp_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                }
+                read_cache.AddReadCache(originalSentinel, local_row);
+                return local_row;
+            }
             return nullptr;
-        case RC::RC_LOCAL_ROW_FOUND:
+        case RC::RC_LOCAL_ROW_FOUND: {
+            // wzy: 插入全局活跃事务表
+            // wzy: 获取到的row找到合适发版本，仅在多版本下支持
+            if (type == AccessType::RD && local_row && isMVCC_Active) {
+                uint64_t csn = start_time;       // wzy : 测试
+                auto curr_header = local_row->GetRowHeader();
+                if (curr_header->RowSatisfiesPack(GetInternalTransactionId(), csn, 0)) {
+                    curr_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                }
+                else {
+                    auto temp_header = curr_header;
+                    r_local_row = curr_header->FindVisibleVersion(GetInternalTransactionId(), csn, 0, temp_header);
+                    if (r_local_row) local_row = r_local_row;
+                    temp_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                }
+                read_cache.AddReadCache(originalSentinel, local_row);
+            }
+
+            if (local_row) {
+                std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+                    AddHotRowCnt();      // wzy: 添加统计
+                    // 设置row header是hot，用于仅对热数据加锁
+                    if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
+                }
+            }
+
+            if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
+                if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+                if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+                if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+            }
             return local_row;
+        }
         case RC::RC_LOCAL_ROW_NOT_FOUND:
             if (likely(originalSentinel->IsCommited() == true)) {
                 // For Read-Only Txn return the Commited row
-                if (GetTxnIsoLevel() == READ_COMMITED and type == AccessType::RD) {
-                    return m_accessMgr->GetReadCommitedRow(originalSentinel);
-                } else {
+                // if (GetTxnIsoLevel() == READ_COMMITED and type == AccessType::RD) {      // original with no RD set
+                if (GetTxnIsoLevel() == READ_COMMITED and type == AccessType::RD and false) {
+                    if (!isMVCC_Active) {
+                        local_row = m_accessMgr->GetReadCommitedRow(originalSentinel);
+                    }
+                    else {
+                        local_row = m_accessMgr->GetReadCommitedRowMVCC(type, originalSentinel, true);
+                        // wzy: 插入全局活跃事务表 获取到的row找到合适发版本
+                        if (type == AccessType::RD && local_row) {
+                            uint64_t csn = start_time;       // wzy : 测试
+                            auto curr_header = local_row->GetRowHeader();
+                            if (curr_header->RowSatisfiesPack(GetInternalTransactionId(), csn, 0)) {
+                                curr_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                            } else {
+                                auto temp_header = curr_header;
+                                r_local_row = curr_header->FindVisibleVersion(GetInternalTransactionId(), csn, 0, temp_header);
+                                if (r_local_row) local_row = r_local_row;
+                                temp_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                            }
+                            read_cache.AddReadCache(originalSentinel, local_row);
+                        }
+                    }
+                    if (local_row) {
+                        std::string tmp_rowid =
+                            local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                        if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+                            AddHotRowCnt();                                       // wzy: 添加统计
+                            if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
+                        }
+                    }
+                    if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
+                        if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+                        if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+                        if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+                    }
+                    return local_row;
+                }
+                else {
                     // Row is not in the cache,map it and return the local row
                     AccessType rd_type = (type != RD_FOR_UPDATE) ? RD : RD_FOR_UPDATE;
-                    return m_accessMgr->MapRowtoLocalTable(rd_type, originalSentinel, rc);
+                    if (!isMVCC_Active) {
+                        local_row = m_accessMgr->MapRowtoLocalTable(rd_type, originalSentinel, rc);
+                    } else {
+                        // wzy：update这里type为RD
+                        local_row = m_accessMgr->MapRowtoLocalTableMVCC(type, rd_type, originalSentinel, rc, true);
+
+                        // wzy: 插入全局活跃事务表 获取到的row找到合适发版本
+                        if (type == AccessType::RD && local_row) {
+                            uint64_t csn = start_time;       // wzy : 测试
+                            auto curr_header = local_row->GetRowHeader();
+                            if (curr_header->RowSatisfiesPack(GetInternalTransactionId(), csn, 0)) {
+                                curr_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                            } else {
+                                auto temp_header = curr_header;
+                                r_local_row = curr_header->FindVisibleVersion(GetInternalTransactionId(), csn, 0, temp_header);
+                                if (r_local_row) local_row = r_local_row;
+                                temp_header->AddActiveTxnList(GetInternalTransactionId(), 0);
+                            }
+                            read_cache.AddReadCache(originalSentinel, local_row);
+                        }
+                    }
+                    if (local_row) {
+                        std::string tmp_rowid =
+                            local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                        if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+                            AddHotRowCnt();                                       // wzy: 添加统计
+                            if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
+                        }
+                    }
+                    if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
+                        if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+                        if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+                        if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+                    }
+                    return local_row;
                 }
             } else
                 return nullptr;
@@ -146,6 +314,11 @@ Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSenti
 RC TxnManager::AccessLookup(const AccessType type, Sentinel* const& originalSentinel, Row*& localRow)
 {
     return m_accessMgr->AccessLookup(type, originalSentinel, localRow);
+}
+
+RC TxnManager::AccessLookupMVCC(const AccessType type, Sentinel* const& originalSentinel, Row*& localRow)
+{
+    return m_accessMgr->AccessLookupMVCC(type, originalSentinel, localRow);
 }
 
 RC TxnManager::DeleteLastRow()
@@ -200,7 +373,7 @@ RC TxnManager::StartTransaction(uint64_t transactionId, int isolationLevel)
             // MOT_LOG_INFO("==Start Transaction 1 %llu %llu", GetStartEpoch(), MOTAdaptor::GetLogicalEpoch());
             // uint64_t cnt = 0;
             while(GetStartEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()) {
-                usleep(100);
+                usleep(200);
                 // cnt ++;
                 // if(cnt % 100 == 0) {
                 //     MOT_LOG_INFO("Start Transaction 1 %llu %llu", GetStartEpoch(), MOTAdaptor::GetLogicalEpoch());
@@ -210,9 +383,61 @@ RC TxnManager::StartTransaction(uint64_t transactionId, int isolationLevel)
         SetCommitEpoch(GetStartEpoch());
         SetStartLogicalEpoch(MOTAdaptor::GetLogicalEpoch());
     }
-    
     return RC_OK;
 }
+
+RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolationLevel, bool interactive_)
+{
+    m_transactionId = transactionId;
+    m_isolationLevel = isolationLevel;
+    m_state = TxnState::TXN_START;
+    GcSessionStart();
+
+    if(GetStartEpoch() == 0) {
+        SetIndexPack(GetThreadID() % kPackageNum);
+    add_num:
+        SetStartEpoch(MOTAdaptor::GetPhysicalEpoch());//ADDBY NEU
+        // MOT_LOG_INFO("Start Transaction 1 %llu %llu", GetStartEpoch(), MOTAdaptor::GetLogicalEpoch());
+        if(is_sync_exec) {
+            if(!MOTAdaptor::TryIncLocalChangeSetNum(GetStartEpoch(), GetIndexPack(), 1)) goto add_num;
+            // MOT_LOG_INFO("==Start Transaction 1 %llu %llu", GetStartEpoch(), MOTAdaptor::GetLogicalEpoch());
+            // uint64_t cnt = 0;
+            while(GetStartEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()) {
+                usleep(200);
+            }
+        }
+        SetCommitEpoch(GetStartEpoch());
+        SetStartLogicalEpoch(MOTAdaptor::GetLogicalEpoch());
+    }
+
+    // wzy: 记为交互型事务
+    SetInteractive(interactive_);
+    MOTAdaptor::start_num_start_txn.fetch_add(1);
+    start_time = now_to_us();       // wzy: 访问多版本用
+    txnId = MOTAdaptor::start_txn_num.fetch_add(1);
+    write_cnt = read_cnt = 0;
+    retry_cnt = 0;
+    hot_cnt = 0;
+    // wzy: 记录访问过的热点数据row id
+    hot_rowid_records.clear();
+
+    if (u_sess->storage_cxt.interactiveTxn > 0) {
+        SetInteractive(true);
+        retry_cnt = u_sess->storage_cxt.retryCnt;
+        SetCommitSequenceNumber(start_time);
+        pre_csn = start_time;
+        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+//        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
+    } else {
+//        MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
+    }
+
+    int state = 0;
+    MOTAdaptor::txn_state_map_plor_.insert(start_time, state);
+    MOTAdaptor::AddActiveTxn(m_internalTransactionId);
+    return RC_OK;
+}
+
 
 void TxnManager::LiteRollback()
 {
@@ -289,16 +514,42 @@ void TxnManager::CommitInternal()
 
     // first write to redo log, then write changes
     m_redoLog.Commit();
-    m_occManager.WriteChanges(this);
+    m_occManager.WriteChanges(this, 0);
 
     if (GetGlobalConfiguration().m_enableCheckpoint) {
         GetCheckpointManager()->EndCommit(this);
     }
 
+    // 释放锁
     if (!GetGlobalConfiguration().m_enableRedoLog) {
         m_occManager.ReleaseLocks(this);
     }
 }
+
+void TxnManager::CommitInternalPlor(uint64_t& pre_csn)
+{
+    if (m_csn == CSNManager::INVALID_CSN) {
+        SetCommitSequenceNumber(GetCSNManager().GetNextCSN());
+    }
+
+    // first write to redo log, then write changes
+    m_redoLog.Commit();
+    m_occManager.WriteChanges(this, 0);
+
+    if (GetGlobalConfiguration().m_enableCheckpoint) {
+        GetCheckpointManager()->EndCommit(this);
+    }
+
+    // 释放锁
+    if (!GetGlobalConfiguration().m_enableRedoLog) {
+        m_occManager.ReleaseLocks(this);        // header 和 sentinel 解锁?
+    }
+
+    // wzy: 释放WRLock
+    // TODO: 移动到Lock释放后，避免死锁，乐观和悲观Plor执行的同步提交，释放锁
+    // if (pessimistic_flag) m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+}
+
 
 RC TxnManager::ValidateCommit()
 {
@@ -308,8 +559,16 @@ RC TxnManager::ValidateCommit()
 void TxnManager::RecordCommit()
 {
     //ADDBY NEU
-    // CommitInternal();
-    CommitInternalII();//原来为CommitInternal
+    if(cc_mode == 4) CommitInternal();            // Silo record commit
+    else CommitInternalII();// 原来为CommitInternal
+    MOT::DbSessionStatisticsProvider::GetInstance().AddCommitTxn();
+}
+
+void TxnManager::RecordCommit(uint64_t &pre_csn)
+{
+    //ADDBY NEU
+    if(cc_mode == 4) CommitInternalPlor(pre_csn);            // Silo record commit
+    else CommitInternalII();        //原来为CommitInternal
     MOT::DbSessionStatisticsProvider::GetInstance().AddCommitTxn();
 }
 
@@ -343,7 +602,7 @@ void TxnManager::CommitPrepared()
 
     // first write to redo log, then write changes
     m_redoLog.CommitPrepared();
-    m_occManager.WriteChanges(this);
+    m_occManager.WriteChanges(this, 0);
 
     if (GetGlobalConfiguration().m_enableCheckpoint) {
         GetCheckpointManager()->EndCommit(this);
@@ -369,7 +628,19 @@ void TxnManager::LiteCommitPrepared()
 void TxnManager::EndTransaction()
 {
     if (GetGlobalConfiguration().m_enableRedoLog) {
-        m_occManager.ReleaseLocks(this);
+        // m_occManager.ReleaseLocks(this);            // header 和 sentinel 解锁?
+        // TODO: 只对sentinel解锁
+        if (cc_mode == 4) {
+            m_occManager.ReleaseLocksSentinel(this);
+            if (pessimistic_flag) m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+        } else {
+            m_occManager.ReleaseLocks(this);
+        }
+    } else {
+        if (cc_mode == 4) {
+            m_occManager.ReleaseLocksSentinel(this);
+            if (pessimistic_flag) m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+        }
     }
     CleanDDLChanges();
     Cleanup();
@@ -403,6 +674,7 @@ void TxnManager::Cleanup()
     ClearErrorStack();
     m_accessMgr->ClearTableCache();
     m_queryState.clear();
+    read_cache.ClearState();        // wzy: 清空cache
 }
 
 void TxnManager::UndoInserts()
@@ -674,6 +946,9 @@ Row* TxnManager::RowLookupByKey(Table* const& table, const AccessType type, Key*
     }
 }
 
+std::atomic<uint64_t> TxnManager::start_txn_num{0};
+std::atomic<uint64_t> TxnManager::start_interactive_txn_num{0};
+
 TxnManager::TxnManager(SessionContext* session_context)
     : m_latestEpoch(~uint64_t(0)),
       m_threadId((uint64_t)-1),
@@ -698,10 +973,32 @@ TxnManager::TxnManager(SessionContext* session_context)
 {
     m_key = nullptr;
     m_state = TxnState::TXN_START;
+
+    // wzy: 测试
+    MOTAdaptor::start_num_txn_construct.fetch_add(1);
+    start_time = now_to_us();       // wzy: 访问多版本用
+    txnId = MOTAdaptor::start_txn_num.fetch_add(1);
+    write_cnt = read_cnt = 0;
+
+    if (u_sess->storage_cxt.interactiveTxn > 0) {
+        SetInteractive(true);
+        retry_cnt = u_sess->storage_cxt.retryCnt;
+        SetCommitSequenceNumber(start_time);
+        pre_csn = start_time;
+        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+//        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
+    } else {
+//        MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
+    }
+
+    MOTAdaptor::AddActiveTxn(m_internalTransactionId);
 }
 
 TxnManager::~TxnManager()
 {
+    // wzy: 从活跃事务列表移除，得在end transaction之前不然internal tid会改变
+    MOTAdaptor::RemoveActiveTxn(m_internalTransactionId);
+
     if (GetGlobalConfiguration().m_enableCheckpoint) {
         GetCheckpointManager()->EndCommit(this);
     }
@@ -771,17 +1068,295 @@ bool TxnManager::Init(uint64_t _thread_id, uint64_t connection_id, bool isLightT
     return true;
 }
 
+// wzy: 检测当前事务是否符合切换策略
+bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
+    if (first_time_pessimistic) first_time_pessimistic = false;
+    if (pessimistic_flag) return true;
+    // TODO: 开启RL模型
+
+    // TODO: 全悲观测试
+    if (kAllPessimisticLock) {
+        first_time_pessimistic = true;
+        pessimistic_flag = true;
+        return true;
+    }
+
+    // 根据权重计算边界值
+    double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
+    if(MOTAdaptor::commit_txn_num.load() != 0) {
+        txn_avg_time = MOTAdaptor::txn_total_time.load() / MOTAdaptor::commit_txn_num.load();
+        txn_avg_epoch = MOTAdaptor::txn_total_epoch.load() / MOTAdaptor::commit_txn_num.load();
+        txn_avg_readCnt = MOTAdaptor::txn_total_readCnt.load() / MOTAdaptor::commit_txn_num.load();
+        txn_avg_writeCnt = MOTAdaptor::txn_total_writeCnt.load() / MOTAdaptor::commit_txn_num.load();
+        txn_avg_hotCnt = MOTAdaptor::txn_total_hotCnt.load() / MOTAdaptor::commit_txn_num.load();
+    }
+
+    // TODO: 对近期事务的统计
+    double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
+    uint64_t temp_commit_txn_num1 = MOTAdaptor::temp_commit_txn_num.load();
+    if(temp_commit_txn_num1 != 0) {
+        txn_temp_avg_time = MOTAdaptor::txn_temp_total_time.load() / temp_commit_txn_num1;
+        txn_temp_avg_epoch = MOTAdaptor::txn_temp_total_epoch.load() / temp_commit_txn_num1;
+        txn_temp_avg_readCnt = MOTAdaptor::txn_temp_total_readCnt.load() / temp_commit_txn_num1;
+        txn_temp_avg_writeCnt = MOTAdaptor::txn_temp_total_writeCnt.load() / temp_commit_txn_num1;
+        txn_temp_avg_hotCnt = MOTAdaptor::txn_temp_total_hotCnt.load() / temp_commit_txn_num1;
+    }
+
+    if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
+        pessimistic_flag = true;
+        first_time_pessimistic = true;
+        std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+        if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic1], csn : %s, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu", csn_temp.c_str(), retry_cnt, read_cnt, write_cnt);
+        return true;
+    }
+
+    if (kHotCntLimit > 0) {
+        if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+                                                                      && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
+            pessimistic_flag = true;
+            first_time_pessimistic = true;
+            std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+            if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic2], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+            return true;
+        }
+    }
+    else if (kHotCntLimit == 0) {
+        if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+            && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt) {
+            pessimistic_flag = true;
+            first_time_pessimistic = true;
+            std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+            if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic3], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+            return true;
+        }
+    }
+    return false;
+}
+
+
 RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
 {
-    if (updatedRow == nullptr)
-        return RC_ERROR;
+    MOT::RC rc = MOT::RC_OK;
+    if (updatedRow == nullptr) return RC_ERROR;
 
     Access* access = m_accessMgr->GetLastAccess();
+    if (access == nullptr) return rc;           // wzy debug
     if (access->m_type == AccessType::WR) {
         access->m_modifiedColumns |= modifiedColumns;
         access->m_stmtCount = GetStmtCount();
     }
-    return RC_OK;
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return MOT::RC_ABORT;         // wzy: 被死锁检测abort
+
+    AddWriteCnt();      // 统计
+
+//    std::string tmp_rowid = updatedRow->GetTable()->GetTableName() + ":" + to_string(updatedRow->GetRowId());
+    std::string tmp_rowid = updatedRow->GetTable()->GetLongTableName() + ":" + to_string(updatedRow->GetRowId());
+    // wzy: INS操作没有现存的row id
+    MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
+
+
+    if (cc_mode == 1) {             // hybrid 只对热数据项上锁
+        // wzy: 交互性事务从OCC切换为2PL，判断事务执行时长（是否为长事务），操作数和开始epoch距离现在的时间
+        uint64_t cur_time = now_to_us();
+        if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+            // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+            // TODO：先上读锁再读集检验
+
+            if (!isMVCC_Active) {
+                if (is_snap_isolation) {
+                    if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                        return RC_ABORT;
+                    }
+                } else if (is_read_repeatable) {
+                    if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                        return RC_ABORT;
+                    }
+                }
+            }
+
+            // wzy: 应对update，epoch内的混合型事务row不能作为修改位写进row header
+            // wzy: 只对交互型事务的hot row上锁
+            if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
+                if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                updatedRow->SetRowInteractive(true);
+                rc = MOTAdaptor::SendInteractiveLockInfo(updatedRow);
+            } else if(!kHotRow_Active) {
+                // 未启用热行上锁策略则全部行上锁
+                if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                updatedRow->SetRowInteractive(true);
+                rc = MOTAdaptor::SendInteractiveLockInfo(updatedRow);
+            }
+        }
+
+        // wzy: 应对update，epoch内的混合型事务row不能作为修改位写进row header
+        if (kInteractive_Active && IsInteractive() && !is_CC_Switch_enable) {          // wzy: 只对交互型事务的hot row上锁
+            pessimistic_flag = true;
+            if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
+                if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                updatedRow->SetRowInteractive(true);
+                rc = MOTAdaptor::SendInteractiveLockInfo(updatedRow);
+            } else if(!kHotRow_Active) {
+                // 未启用热行上锁策略则全部行上锁
+                if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                updatedRow->SetRowInteractive(true);
+                rc = MOTAdaptor::SendInteractiveLockInfo(updatedRow);
+            }
+        }
+    }
+    else if (cc_mode == 2) {
+        // 单机，Plor 对所有事务写操作上锁
+        uint64_t cur_time = now_to_us();
+        if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+            // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+            MOT_LOG_INFO("OCC switching to Plor!!!");
+            if (first_time_pessimistic) {
+                // wzy：第一次切换为悲观，先上读锁再读集检验
+                MOTAdaptor::pessimisitic_txn_num.fetch_add(1);
+                MOT_LOG_INFO("First time OCC switching to Plor!!!");
+                first_time_pessimistic = false;
+                rc = ReadLockForSwitch_Plor();          // lock read-set and validation
+                if (rc != MOT::RC_OK) return rc;
+
+                if (kHotRow_Active) rc = WriteLockForSwitchHotRows_Plor();
+                else rc = WriteLockForSwitch_Plor();
+                if (rc != MOT::RC_OK) return rc;
+            } else {
+                // wzy: 只对交互型事务的hot row上写锁
+                if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
+                    if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
+                } else if(!kHotRow_Active) {
+                    // 未启用热行上锁策略则全部行上锁
+                    if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
+                }
+            }
+        }
+    }
+    else if (cc_mode == 3) {
+        // 单机，2PL, wound-wait
+        MOT_LOG_INFO("OCC check to Wound-wait!!!");
+        uint64_t cur_time = now_to_us();
+        if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+            // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+            MOT_LOG_INFO("OCC switching to Wound-wait!!!");
+            if (first_time_pessimistic) {
+                // wzy：第一次切换为悲观，先上读锁再读集检验
+                MOT_LOG_INFO("First time OCC switching to Wound-wait!!!");
+                first_time_pessimistic = false;
+                rc = ReadLockForSwitch_WoundWait();
+                if (rc != MOT::RC_OK) return rc;
+                if (!isMVCC_Active) {
+                    if (is_snap_isolation) {
+                        if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                            return RC_ABORT;
+                        }
+                    } else if (is_read_repeatable) {
+                        if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                            return RC_ABORT;
+                        }
+                    }
+                }
+                if (kHotRow_Active) rc = WriteLockForSwitchHotRows_WoundWait();
+                else rc = WriteLockForSwitch_WoundWait();
+                if (rc != MOT::RC_OK) return rc;
+            } else {
+                // wzy: 只对交互型事务的hot row上写锁
+                if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
+                    if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
+                } else if(!kHotRow_Active) {
+                    // 未启用热行上锁策略则全部行上锁
+                    if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
+                }
+            }
+        }
+    }
+    else if (cc_mode == 4) {
+        // 单机，Plor 对所有事务写操作上锁
+        uint64_t cur_time = now_to_us();
+        if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+            // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+            if (first_time_pessimistic) {
+                // TODO: 切换
+                rc = SwitchToPCC();
+                if (rc != MOT::RC_OK) return rc;
+                // wzy：第一次切换为悲观，先上读锁再读集检验
+//                MOTAdaptor::pessimisitic_txn_num.fetch_add(1);
+//                MOT_LOG_INFO("First time OCC switching to Plor!!!");
+//                first_time_pessimistic = false;
+//                if (kHotRow_Active) rc = ReadLockForSwitchHotRows_Plor();          // lock read-set and validation
+//                else rc = ReadLockForSwitch_Plor();
+//
+//                if (rc != MOT::RC_OK) return rc;
+//                // 只对热数据项上锁
+//                if (kHotRow_Active) rc = WriteLockForSwitchHotRows_Plor();
+//                else rc = WriteLockForSwitch_Plor();
+//                if (rc != MOT::RC_OK) return rc;
+            } else {
+                // wzy: 只对交互型事务的hot row上写锁
+                if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
+                    if (GetCommitSequenceNumber() == 0) {
+                        SetCommitSequenceNumber(now_to_us());
+                        pre_csn = GetCommitSequenceNumber();
+                    }
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
+                } else if(!kHotRow_Active) {
+                    // 未启用热行上锁策略则全部行上锁
+                    if (GetCommitSequenceNumber() == 0) {
+                        SetCommitSequenceNumber(now_to_us());
+                        pre_csn = GetCommitSequenceNumber();
+                    }
+                    updatedRow->SetRowInteractive(true);
+                    rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
+                }
+            }
+        }
+    }
+
+    return rc;
+}
+
+MOT::RC TxnManager::SwitchToPCC() {
+    MOT::RC rc = MOT::RC_OK;
+    if (first_time_pessimistic) {
+        // wzy：第一次切换为悲观，先上读锁再读集检验
+        auto time1 = now_to_us();
+        MOTAdaptor::pessimisitic_txn_num.fetch_add(1);
+        MOT_LOG_INFO("First time OCC switching to Plor!!! csn : %llu", pre_csn);
+        first_time_pessimistic = false;
+        if (kHotRow_Active)
+            rc = ReadLockForSwitchHotRows_Plor();  // lock read-set and validation
+        else
+            rc = ReadLockForSwitch_Plor();
+
+        if (rc != MOT::RC_OK) return rc;
+        // 只对热数据项上锁
+        if (kHotRow_Active)
+            rc = WriteLockForSwitchHotRows_Plor();
+        else
+            rc = WriteLockForSwitch_Plor();
+        auto time2 = now_to_us();
+
+        // 统计切换耗时
+        MOTAdaptor::txn_total_switchTime.fetch_add(time2 - time1);
+        MOTAdaptor::txn_total_switchCnt.fetch_add(1);
+
+        MOTAdaptor::txn_temp_total_switchTime.fetch_add(time2 - time1);
+        MOTAdaptor::txn_temp_total_switchCnt.fetch_add(1);
+
+        if (rc != MOT::RC_OK)
+            return rc;
+    }
+    return rc;
 }
 
 void TxnManager::SetTxnState(TxnState envelopeState)
@@ -1338,10 +1913,9 @@ bool TxnManager::isOnlyRead()
 void TxnManager::CommitInternalII()
 {
     // first write to redo log, then write changes
-    
     //不写log
     m_redoLog.Commit();
-    m_occManager.WriteChanges(this);
+    m_occManager.WriteChanges(this, 0);
     
     if (GetGlobalConfiguration().m_enableCheckpoint) {
         GetCheckpointManager()->EndCommit(this);
@@ -1355,19 +1929,19 @@ void TxnManager::CommitInternalII()
         auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
         MOTAdaptor::IncRecordCommittedTxnCounters(epoch_mod, GetIndexPack());
         // MOTAdaptor::Commit(this, GetIndexPack());
-        while(!MOTAdaptor::IsRemoteRecordCommitted()) usleep(100);
+        while(!MOTAdaptor::IsRemoteRecordCommitted()) usleep(200);
     }
     // ClearEpochState();
 }
 
-void TxnManager::CommitForRemote()
+void TxnManager::CommitForRemote(uint64_t server_id)
 {
     m_occManager.updateInsertSetSize(this);
     // MOT_LOG_INFO("m_occManager.IsReadOnly(this) %u", m_occManager.IsReadOnly(this));
     // 对远端事务的update无法进行统计 未添加进入txnmanager中
     // CommitInternalII();
-    m_redoLog.Commit();
-    m_occManager.WriteChanges(this);
+//    m_redoLog.Commit();           // wzy: 可以不写redolog
+    m_occManager.WriteChanges(this, server_id);
 
     if (GetGlobalConfiguration().m_enableCheckpoint) {
         GetCheckpointManager()->EndCommit(this);
@@ -1391,10 +1965,18 @@ void TxnManager::CommitForRemote()
 std::atomic<int> wait_count(0);
 std::atomic<int> wait_count_commit(0);
 RC TxnManager::Commit(){
+    if(is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 && MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while(MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch) usleep(kSleepTime);
+    }
     
     m_occManager.updateInsertSetSize(this);
     bool result = m_occManager.IsReadOnly(this);
     uint64_t index_pack = GetIndexPack();
+
+    // wzy: recovery debug
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
     uint64_t index_notify = index_pack % kNotifyNum;
     uint64_t index_unique =  MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
     uint64_t cnt = 0;
@@ -1413,19 +1995,31 @@ RC TxnManager::Commit(){
             if(is_snap_isolation){
                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
             else if(is_read_repeatable){
                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
-            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
-                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+//                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+//                    return RC_ABORT;
+//            }
+            if(!MOTAdaptor::InsertTxntoLocalChangeSet2(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+                (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                if (IsInteractive()) MOTAdaptor::InsertTxntoLocalChangeSet_abort_interactive_num.fetch_add(1);
                 return RC_ABORT;
             }
+
             auto time1 = now_to_us();
             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
             m_occManager.CommitPhase(this, local_ip_index);
@@ -1447,12 +2041,16 @@ RC TxnManager::Commit(){
             if(is_snap_isolation){
                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
             else if(is_read_repeatable){
                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
@@ -1473,36 +2071,65 @@ RC TxnManager::Commit(){
             if(is_snap_isolation){
                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
             else if(is_read_repeatable){
                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
-            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
-                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+//                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+//                    return RC_ABORT;
+//            }
+            if(!MOTAdaptor::InsertTxntoLocalChangeSet2(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+                (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                if (IsInteractive()) MOTAdaptor::InsertTxntoLocalChangeSet_abort_interactive_num.fetch_add(1);
                 return RC_ABORT;
             }
+
             auto time1 = now_to_us();
             cnt = 0;
             while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
-                usleep(100);
+                usleep(200);
             }
             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
             MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
             MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
             rc = m_occManager.CommitPhase(this, local_ip_index);
-            MOTAdaptor::DecExeCounters(epoch_mod, index_pack);
+            MOTAdaptor::IncLocalExecedCounters(epoch_mod, index_pack);
+
+            if (rc == RC_ABORT){
+//                MOT_LOG_INFO("CommitPhase error RC_ABORT");
+                if (IsInteractive()) MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+                MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+            }
+
             if (rc != RC_ABORT){    
                 while(!MOTAdaptor::IsRemoteExeced()) {
-                    usleep(100);
+                    usleep(200);
                 }
                 auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
                 if(MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)){
+                    if (IsInteractive()) {
+                        MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.fetch_add(1);
+//                        MOT_LOG_INFO("[Abort] abort_transcation_csn_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                    }
+                    MOTAdaptor::abort_transcation_csn_set.remove(csn_temp);
                     rc = RC_ABORT;
+                }
+                // wzy:
+                if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                    if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                    rc = RC_ABORT;     // 被死锁检测abort
                 }
             }
             
@@ -1519,7 +2146,7 @@ RC TxnManager::Commit(){
                 (*MOTAdaptor::write_abort_after_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
             }
 
-            MOTAdaptor::DecComCounters(epoch_mod, index_pack);
+            MOTAdaptor::IncLocalCommittedCounters(epoch_mod, index_pack);
             return rc;
         }
         else{
@@ -1528,12 +2155,16 @@ RC TxnManager::Commit(){
             if(is_snap_isolation){
                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
             else if(is_read_repeatable){
                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                    if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
@@ -1548,54 +2179,121 @@ RC TxnManager::Commit(){
     }
     else {
         if (this->m_accessMgr->m_rowCnt > 0 && !result){
-            (*MOTAdaptor::write_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-            if(is_snap_isolation){
-                if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                    return RC_ABORT;
-                }
+
+            if (!isMVCC_Active) {        // 乐观单版本则读集检验
+                 if(is_snap_isolation){
+                     if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
+                         MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
+                         if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 }
+                 else if(is_read_repeatable){
+                     if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
+                         MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
+                         if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 }
+            } else {
+                // wzy MVCC需要检测写集是否被修改?
+                // do nothing
             }
-            else if(is_read_repeatable){
-                if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                    (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                    return RC_ABORT;
-                }
+
+
+//            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){
+//                (*MOTAdaptor::write_abort_before_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+//                return RC_ABORT;
+//            }
+
+            // wzy: 检查事务是否被死锁检测abort
+            auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+            if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
             }
-            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){
-                (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+
+            // wzy: 对非交互型事务检查写集是否被上锁
+            if (!IsInteractive() && kPreLockCheck_Active) {
+                if (RC_ABORT == m_occManager.CommitLockCheck(this, local_ip_index)) return RC_ABORT;
+            }
+
+            if(!MOTAdaptor::InsertTxntoLocalChangeSet2(this, index_pack, index_unique)){
+                (*MOTAdaptor::write_abort_before_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+//                MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                if (IsInteractive()) MOTAdaptor::InsertTxntoLocalChangeSet_abort_interactive_num.fetch_add(1);
                 return RC_ABORT;
             }
+
             auto time1 = now_to_us();
             cnt = 0;
-            while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
-                usleep(100);
-            }
             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
-            auto time3 = now_to_us();
-            this->SetBlockTime(time3 - time1);
             MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
             MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
 
+            // 等待上一個epoch結束
+            while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
+                usleep(200);
+            }
+//            auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+            auto time3 = now_to_us();
+            this->SetBlockTime(time3 - time1);
+//            MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
+//            MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
+
             // rc = m_occManager.ExecutionPhase(this, local_ip_index);
             rc = m_occManager.CommitPhase(this, local_ip_index);
-            MOTAdaptor::DecExeCounters(epoch_mod, index_pack);
-            
-            if(rc != RC_ABORT){    
-                while(!MOTAdaptor::IsRemoteExeced()) {
-                    usleep(100);
+            MOTAdaptor::IncLocalExecedCounters(epoch_mod, index_pack);
+
+            if (IsInteractive() && pessimistic_flag) {
+                // wzy: 在epoch commit check前解锁/abort
+                uint64_t pre_csn = GetCommitSequenceNumber();
+                MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, rc != RC_OK);
+            }
+
+            if (rc == RC_ABORT){
+                if (IsInteractive()) {
+//                    MOT_LOG_INFO("[Abort] CommitPhase() local failed tmp_csn : %s ", csn_temp.c_str());
+                    MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
                 }
-                auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+                MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+            }
+
+            if(rc != RC_ABORT){
+                while(!MOTAdaptor::IsRemoteExeced()) {
+                    usleep(200);
+                }
+                csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
                 if(MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)){
+                    if (IsInteractive()) {
+                        MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.fetch_add(1);
+//                        MOT_LOG_INFO("[Abort] abort_transcation_csn_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                    }
+                    MOTAdaptor::Abort_transcation_csn_set_abort_num.fetch_add(1);
                     rc = RC_ABORT;
                 }
+                // wzy:
+                if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                    if (IsInteractive()) {
+                        MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+//                        MOT_LOG_INFO("[Abort] deadlock_abort_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                    }
+                    rc = RC_ABORT;     // 被死锁检测abort
+                }
                 if(m_occManager.CommitCheck(this, local_ip_index) == RC_ABORT) {
+                    MOTAdaptor::CommitCheck_abort_num.fetch_add(1);
+                    if (IsInteractive()) {
+//                        MOT_LOG_INFO("[Abort] CommitCheck() local failed tmp_csn : %s ", csn_temp.c_str());
+                        MOTAdaptor::CommitCheck_abort_interactive_num.fetch_add(1);
+                    }
                     rc = RC_ABORT;
                 }
             }
             
             if(rc == RC_OK){
                 MOTAdaptor::IncRecordCommitTxnCounters(epoch_mod, index_pack);
-                (*MOTAdaptor::write_committed_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                (*MOTAdaptor::write_committed_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
                 if(is_breakdown) {
                     auto time2 = now_to_us();
                     MOT_LOG_INFO("async 事务提交 读写 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
@@ -1603,27 +2301,36 @@ RC TxnManager::Commit(){
                 }
             }
             else {
-                (*MOTAdaptor::write_abort_after_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+                (*MOTAdaptor::write_abort_after_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
             }
-            MOTAdaptor::DecComCounters(epoch_mod, index_pack);
+
+//            if (IsInteractive()) {
+//                // wzy: 在epoch结束前解锁/abort
+//                uint64_t pre_csn = GetCommitSequenceNumber();
+//                MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, rc != RC_OK);
+//            }
+
+            MOTAdaptor::IncLocalCommittedCounters(epoch_mod, index_pack);
             return rc;
         }
         else{
             auto time1 = now_to_us();
-            (*MOTAdaptor::read_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-            if(is_snap_isolation){
-                if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                    (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+            if (is_snap_isolation) {
+                if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+//                    MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
+                    if (IsInteractive())
+                        MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                    return RC_ABORT;
+                }
+            } else if (is_read_repeatable) {
+                if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+//                    MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
+                    if (IsInteractive())
+                        MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                     return RC_ABORT;
                 }
             }
-            else if(is_read_repeatable){
-                if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                    (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                    return RC_ABORT;
-                }
-            }
-            (*MOTAdaptor::read_committed_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+
             if(is_breakdown) {
                 auto time2 = now_to_us();
                 MOT_LOG_INFO("async 事务提交 只读 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
@@ -1633,5 +2340,801 @@ RC TxnManager::Commit(){
         }
     }
 }
+
+/////////////// PLOR /////////////////////
+RC TxnManager::ReadLockForSwitch_Plor() {
+    return m_occManager.SwitchReadPhasePlor(this, local_ip_index, false);
+}
+
+RC TxnManager::ReadLockForSwitchHotRows_Plor() {
+    return m_occManager.SwitchReadPhasePlor(this, local_ip_index, true);
+}
+
+RC TxnManager::WriteLockForSwitch_Plor() {
+    return m_occManager.SwitchWritePhasePlor(this, local_ip_index, false);
+}
+
+RC TxnManager::WriteLockForSwitchHotRows_Plor() {
+    return m_occManager.SwitchWritePhasePlor(this, local_ip_index, true);
+}
+
+RC TxnManager::GetReadLock_Plor(MOT::Row* currRow) {
+    return m_occManager.ReadPhasePlor(this, local_ip_index, currRow);
+}
+
+RC TxnManager::GetWriteLock_Plor(MOT::Row* currRow) {
+    return m_occManager.WritePhasePlor(this, local_ip_index, currRow);
+}
+
+
+// wzy: 单机不需要
+RC TxnManager::SendLockInfo_Plor(MOT::Row* currRow)
+{
+    if (is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 &&
+        MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while (MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch)
+            usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+    auto temp = kNotifyNum;
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique = MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    RC rc = RC_OK;
+    if (kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if (random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+
+    // wzy: 对于交互型事务发送lock info并设置为lock
+    if (kServerNum > 1) {         // 单机无需发送
+        if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
+                index_pack,
+                index_unique,
+                true, currRow)) {  // 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+            (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                ->fetch_add(1);
+            return RC_ABORT;
+        }
+    }
+
+    // wzy: 在阻塞前就更新计数器
+    auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+    MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+
+    // ============================ 等待事务当前epoch合并 ============================
+
+    while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+        usleep(200);
+    }
+
+    MOTAdaptor::IncLocalLockinfoExecedCounters(epoch_mod, index_pack);
+
+    // 插入plor 写锁，循环等待
+//    rc = m_occManager.LockPhasePlor(this, local_ip_index, currRow);
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+    // 获得锁则直接return
+    return rc;
+}
+
+// wzy: 单机不需要
+RC TxnManager::SendReadLockInfo_Plor(MOT::Row* currRow)
+{
+    if (is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 &&
+        MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while (MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch)
+            usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+    auto temp = kNotifyNum;
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique = MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    RC rc = RC_OK;
+    if (kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if (random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+
+    // wzy: 对于交互型事务发送lock info并设置为lock
+    if (kServerNum > 1) {         // 单机无需发送
+        if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
+                index_pack,
+                index_unique,
+                true, currRow)) {  // 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+            (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                ->fetch_add(1);
+            return RC_ABORT;
+        }
+    }
+
+    // wzy: 在阻塞前就更新计数器
+    auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+    MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+
+    // ============================ 等待事务当前epoch合并 ============================
+
+    while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+        usleep(200);
+    }
+
+    MOTAdaptor::IncLocalLockinfoExecedCounters(epoch_mod, index_pack);
+
+    // 插入plor 写锁，循环等待
+//    rc = m_occManager.ReadLockPhasePlor(this, local_ip_index, currRow);
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+    // 获得锁则直接return
+    return rc;
+}
+
+// wzy: plor with no Epoch and CRDT
+RC TxnManager::Commit_Plor(){
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+
+    // wzy: recovery debug
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique =  MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    uint64_t cnt = 0;
+    RC rc = RC_OK;
+
+    SetStartMOTCommitTime(now_to_us());
+
+    if (this->m_accessMgr->m_rowCnt > 0 && !result){
+        // wzy: 检查事务是否被abort
+        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+            return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
+        }
+
+        // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式，貌似没有Lock
+        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) {
+                if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+            return RC_ABORT;
+        }
+
+        SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
+        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
+
+        // No wait for epochs
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
+        // uint64_t pre_csn = GetCommitSequenceNumber();
+
+        // 更新到row header，对写集sentinel上锁
+        rc = m_occManager.CommitUpdate(this, local_ip_index);       // 如果失败会自动释放锁
+
+        if (rc == RC_ABORT){
+            // header锁已经释放
+            MOTAdaptor::Switch_validation_pcc_abort_num.fetch_add(1);
+            if (IsInteractive()) {
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+        }
+
+        if(rc != RC_ABORT){
+            // 移动到Lock释放后，避免死锁，乐观和悲观Plor执行的同步提交，释放锁
+            // rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+
+            // TODO: 对热点数据进行读写检验，复用silo代码，失败则释放锁
+            if (kHotRow_Active) {
+                auto time1 = now_to_us();
+                rc = m_occManager.ValidateOccPlor(this);
+                auto time2 = now_to_us();
+                MOTAdaptor::txn_total_validate_hotOccTime.fetch_add(time2 - time1);
+                MOTAdaptor::txn_total_validate_hotOccCnt.fetch_add(1);
+                MOTAdaptor::txn_temp_total_validate_hotOccTime.fetch_add(time2 - time1);
+                MOTAdaptor::txn_temp_total_validate_hotOccCnt.fetch_add(1);
+            }
+        }
+
+        if(rc == RC_OK){
+            (*MOTAdaptor::write_committed_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+            if(is_breakdown) {
+                auto time2 = now_to_us();
+                MOT_LOG_INFO("async 事务提交 读写 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                    GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+            }
+        }
+        else {
+            (*MOTAdaptor::write_abort_after_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+        }
+
+        return rc;
+    }
+    else{       // 只读
+        auto time1 = now_to_us();
+        if (is_snap_isolation) {
+            if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                if (is_debug_print_enable) MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        } else if (is_read_repeatable) {
+            if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                if (is_debug_print_enable) MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        }
+        // 只读事务解锁
+        rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+
+        if(is_breakdown) {
+            auto time2 = now_to_us();
+            MOT_LOG_INFO("async 事务提交 只读 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+        }
+        return RC_OK;
+    }
+
+}
+
+
+// wzy: plor 提交，单机
+RC TxnManager::Commit_Plor_Epoch(){
+
+    if(is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 && MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while(MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch) usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+
+    // wzy: recovery debug
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique =  MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    uint64_t cnt = 0;
+    RC rc = RC_OK;
+    if(kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if(random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+    SetStartMOTCommitTime(now_to_us());
+
+    if (this->m_accessMgr->m_rowCnt > 0 && !result){
+        // wzy: 检查事务是否被abort
+        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+            return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
+        }
+
+        // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式
+        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) {
+//                MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+            return RC_ABORT;
+        }
+        SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
+        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
+
+        auto time1 = now_to_us();
+        cnt = 0;
+        auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+        MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
+        MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
+
+        // TODO: 需要epoch吗? 等待上一個epoch結束
+        while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
+            usleep(200);
+        }
+
+        auto time3 = now_to_us();
+        this->SetBlockTime(time3 - time1);
+
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
+        uint64_t pre_csn = GetCommitSequenceNumber();
+
+        // 更新到row header
+        rc = m_occManager.CommitUpdate(this, local_ip_index);
+        MOTAdaptor::IncLocalExecedCounters(epoch_mod, index_pack);
+
+        if (rc == RC_ABORT){
+            if (IsInteractive()) {
+//                MOT_LOG_INFO("[Abort] CommitPhase() local failed tmp_csn : %s ", csn_temp.c_str());
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+        }
+
+        if(rc != RC_ABORT){
+            while(!MOTAdaptor::IsRemoteExeced()) {
+                usleep(200);
+            }
+
+            // 乐观和悲观Plor执行的同步提交
+            rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+
+            csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+
+            if(MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)){
+                if (IsInteractive()) {
+                    MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.fetch_add(1);
+                    MOT_LOG_INFO("[Abort] abort_transcation_csn_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                }
+                MOTAdaptor::Abort_transcation_csn_set_abort_num.fetch_add(1);
+                MOTAdaptor::abort_transcation_csn_set.remove(csn_temp);
+                rc = RC_ABORT;
+            }
+            // wzy:
+            if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                if (IsInteractive()) {
+                    MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+//                    MOT_LOG_INFO("[Abort] deadlock_abort_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                }
+                rc = RC_ABORT;     // 被死锁检测abort
+            }
+        }
+
+        if(rc == RC_OK){
+            MOTAdaptor::IncRecordCommitTxnCounters(epoch_mod, index_pack);
+            (*MOTAdaptor::write_committed_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+            if(is_breakdown) {
+                auto time2 = now_to_us();
+                MOT_LOG_INFO("async 事务提交 读写 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                    GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+            }
+        }
+        else {
+            (*MOTAdaptor::write_abort_after_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+        }
+
+        MOTAdaptor::IncLocalCommittedCounters(epoch_mod, index_pack);
+        return rc;
+    }
+    else{       // 只读
+        auto time1 = now_to_us();
+        if (is_snap_isolation) {
+            if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        } else if (is_read_repeatable) {
+            if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        }
+        // 只读事务解锁
+        uint64_t pre_csn = GetCommitSequenceNumber();
+        rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+
+        if(is_breakdown) {
+            auto time2 = now_to_us();
+            MOT_LOG_INFO("async 事务提交 只读 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+        }
+        return RC_OK;
+    }
+
+}
+
+// wzy:解锁本地锁Plor，原csn是否发生变化
+void TxnManager::UnlockLockInfo_Plor(uint64_t csn, bool abort)
+{
+    m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, csn, abort);
+}
+
+/////////////// Wound-wait /////////////////
+
+RC TxnManager::ReadLockForSwitch_WoundWait() {
+    return m_occManager.SwitchReadPhaseWoundWait(this, local_ip_index);
+}
+
+RC TxnManager::WriteLockForSwitch_WoundWait() {
+    return m_occManager.SwitchWritePhaseWoundWait(this, local_ip_index, false);
+}
+
+RC TxnManager::WriteLockForSwitchHotRows_WoundWait() {
+    return m_occManager.SwitchWritePhaseWoundWait(this, local_ip_index, true);
+}
+
+RC TxnManager::GetReadLock_WoundWait(MOT::Row* currRow) {
+    return m_occManager.ReadPhaseWoundWait(this, local_ip_index, currRow);
+}
+
+RC TxnManager::GetWriteLock_WoundWait(MOT::Row* currRow) {
+    return m_occManager.WritePhaseWoundWait(this, local_ip_index, currRow);
+}
+
+
+// wzy: 单机不需要
+RC TxnManager::SendLockInfo_WoundWait(MOT::Row* currRow)
+{
+    if (is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 &&
+        MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while (MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch)
+            usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+    auto temp = kNotifyNum;
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique = MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    RC rc = RC_OK;
+    if (kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if (random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+
+    // wzy: 对于交互型事务发送lock info并设置为lock
+    if (kServerNum > 1) {         // 单机无需发送
+        if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
+                index_pack,
+                index_unique,
+                true, currRow)) {  // 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+            (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                ->fetch_add(1);
+            return RC_ABORT;
+        }
+    }
+
+    // wzy: 在阻塞前就更新计数器
+    auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+    MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+
+    // ============================ 等待事务当前epoch合并 ============================
+
+    while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+        usleep(200);
+    }
+
+    MOTAdaptor::IncLocalLockinfoExecedCounters(epoch_mod, index_pack);
+
+    // 插入plor 写锁，循环等待
+    //    rc = m_occManager.LockPhasePlor(this, local_ip_index, currRow);
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+    // 获得锁则直接return
+    return rc;
+}
+
+// wzy: 单机不需要
+RC TxnManager::SendReadLockInfo_WoundWait(MOT::Row* currRow)
+{
+    if (is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 &&
+        MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while (MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch)
+            usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+    auto temp = kNotifyNum;
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique = MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    RC rc = RC_OK;
+    if (kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if (random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+
+    // wzy: 对于交互型事务发送lock info并设置为lock
+    if (kServerNum > 1) {         // 单机无需发送
+        if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
+                index_pack,
+                index_unique,
+                true, currRow)) {  // 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+            (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                ->fetch_add(1);
+            return RC_ABORT;
+        }
+    }
+
+    // wzy: 在阻塞前就更新计数器
+    auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+    MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+
+    // ============================ 等待事务当前epoch合并 ============================
+
+    while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+        usleep(200);
+    }
+
+    MOTAdaptor::IncLocalLockinfoExecedCounters(epoch_mod, index_pack);
+
+    // 插入plor 写锁，循环等待
+    //    rc = m_occManager.ReadLockPhasePlor(this, local_ip_index, currRow);
+
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+    // 获得锁则直接return
+    return rc;
+}
+
+// wzy: plor 提交，单机
+RC TxnManager::Commit_WoundWait(){
+
+    if(is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 && MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while(MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch) usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+
+    // wzy: recovery debug
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique =  MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    uint64_t cnt = 0;
+    RC rc = RC_OK;
+    if(kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if(random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+    SetStartMOTCommitTime(now_to_us());
+
+    if (this->m_accessMgr->m_rowCnt > 0 && !result){
+        // wzy: 检查事务是否被abort
+        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+            return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
+        }
+
+        // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式
+        if(m_occManager.ValidationPhaseWoundWait(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            if (IsInteractive()) {
+                //                MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+            return RC_ABORT;
+        }
+
+        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
+
+        auto time1 = now_to_us();
+        cnt = 0;
+        auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+        MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
+        MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
+
+        // TODO: 需要epoch吗? 等待上一個epoch結束
+        while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
+            usleep(200);
+        }
+
+        auto time3 = now_to_us();
+        this->SetBlockTime(time3 - time1);
+
+        MOTAdaptor::IncLocalExecedCounters(epoch_mod, index_pack);
+
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
+
+        uint64_t pre_csn = GetCommitSequenceNumber();
+
+
+        if (rc == RC_ABORT){
+            if (IsInteractive()) {
+                //                MOT_LOG_INFO("[Abort] CommitPhase() local failed tmp_csn : %s ", csn_temp.c_str());
+                MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+            }
+            MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+        }
+
+        if(rc != RC_ABORT){
+            while(!MOTAdaptor::IsRemoteExeced()) {
+                usleep(200);
+            }
+            // 乐观和悲观Plor执行的同步提交
+            rc = m_occManager.UnlockReadWriteLockWoundWait(this, local_ip_index, pre_csn, false);
+            csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+
+            if(MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)){
+                if (IsInteractive()) {
+                    MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.fetch_add(1);
+                    //                    MOT_LOG_INFO("[Abort] abort_transcation_csn_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                }
+                MOTAdaptor::Abort_transcation_csn_set_abort_num.fetch_add(1);
+                MOTAdaptor::abort_transcation_csn_set.remove(csn_temp);
+                rc = RC_ABORT;
+            }
+            // wzy:
+            if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                if (IsInteractive()) {
+                    MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                    //                    MOT_LOG_INFO("[Abort] deadlock_abort_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                }
+                rc = RC_ABORT;     // 被死锁检测abort
+            }
+        }
+
+        if(rc == RC_OK){
+            MOTAdaptor::IncRecordCommitTxnCounters(epoch_mod, index_pack);
+            (*MOTAdaptor::write_committed_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+            if(is_breakdown) {
+                auto time2 = now_to_us();
+                MOT_LOG_INFO("async 事务提交 读写 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                    GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+            }
+        }
+        else {
+            (*MOTAdaptor::write_abort_after_send_txn_num[(GetCommitEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
+        }
+
+        MOTAdaptor::IncLocalCommittedCounters(epoch_mod, index_pack);
+        return rc;
+    }
+    else{       // 只读
+        auto time1 = now_to_us();
+        if (is_snap_isolation) {
+            if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                if (is_debug_print_enable) MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        } else if (is_read_repeatable) {
+            if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                if (is_debug_print_enable) MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
+                if (IsInteractive())
+                    MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                return RC_ABORT;
+            }
+        }
+
+        if(is_breakdown) {
+            auto time2 = now_to_us();
+            MOT_LOG_INFO("async 事务提交 只读 epoch:%llu StartMOTExecTime %llu StartMOTCommitTime %llu ValidateFinishTime %llu BlockTime %llu MOTExecTime %llu MOTValidateTime %llu MOTTotalTime %llu ZipTime %llu ZipSize %llu WriteSize %llu",
+                GetCommitEpoch(), GetStartMOTExecTime(), GetStartMOTCommitTime(), time2, GetBlockTime(), (GetStartMOTCommitTime() - GetStartMOTExecTime()), (time2 - GetStartMOTCommitTime() - GetBlockTime()), time2 - GetStartMOTExecTime(), GetZipTime(), GetZipSize(), GetWriteSize());
+        }
+        return RC_OK;
+    }
+
+}
+
+// wzy:解锁本地锁Plor，原csn是否发生变化
+void TxnManager::UnlockLockInfo_WoundWait(uint64_t csn, bool abort)
+{
+    m_occManager.UnlockReadWriteLockWoundWait(this, local_ip_index, csn, abort);
+}
+
+
+////////////////////////////////////////////
+
+// wzy: 发送lock info，等待本地上锁成功才返回
+RC TxnManager::SendLockInfo(MOT::Row* currRow)
+{
+    if (is_raft_enable == 1 && local_ip_index == kRaftStopServerId && kRaftStopEpoch > 0 &&
+        MOTAdaptor::GetPhysicalEpoch() > kRaftStopEpoch) {
+        while (MOTAdaptor::GetPhysicalEpoch() < kRaftRestrtEpoch)
+            usleep(kSleepTime);
+    }
+
+    m_occManager.updateInsertSetSize(this);
+    bool result = m_occManager.IsReadOnly(this);
+    uint64_t index_pack = GetIndexPack();
+    auto temp = kNotifyNum;
+    if (!MOTAdaptor::isInited.load()) return RC_OK;
+    if (kNotifyNum <= 0 || MOTAdaptor::max_length <= 0) kNotifyNum = 1;
+
+    uint64_t index_notify = index_pack % kNotifyNum;
+    uint64_t index_unique = MOTAdaptor::IncLocalTxnIndex(GetStartEpoch() % MOTAdaptor::max_length, index_pack);
+    RC rc = RC_OK;
+    if (kDelayRatio > 0) {
+        std::default_random_engine random;
+        random.seed(time(0));
+        if (random() % 100 < kDelayRatio)
+            usleep(kDelayTime);
+    }
+
+    // wzy: 对于交互型事务发送lock info并设置为lock
+    if (kServerNum > 1 && IsInteractive()) {         // 单机无需发送
+        if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
+                index_pack,
+                index_unique,
+                true, currRow)) {  // 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
+            (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                ->fetch_add(1);
+            return RC_ABORT;
+        }
+    }
+
+    // wzy: 在阻塞前就更新计数器
+    auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+    MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+
+    // 对于交互型事务而言，只有上锁请求成功后才能返回，否则一直等待
+    // 等待上一个epoch执行完成（上一个epoch本地和远端都提交）
+    // ============================ 等待事务当前epoch合并 ============================
+
+    while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+        usleep(200);
+    }
+
+    // 本地更新上锁的metadata（插入metadata中）
+    // 若table不存在在rc abort
+    rc = m_occManager.LockPhase(this, local_ip_index, currRow);
+    MOTAdaptor::IncLocalLockinfoExecedCounters(epoch_mod, index_pack);
+
+    while (!MOTAdaptor::IsLockExeced() || !MOTAdaptor::IsLockGranted()) {  // 等待远端合并完成，在merge中有lock插入操作
+        usleep(200);
+    }
+    // 验证自己是否获得锁
+    // 没获得锁则继续等待，直到获得锁
+    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    while (m_occManager.LockCheck(this, local_ip_index, currRow) == RC_ABORT) {
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+            return RC_ABORT;     // 被死锁检测abort
+        }
+        usleep(100);
+    }
+    if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+    // 获得锁则直接return
+    return rc;
+}
+
+// wzy:解锁本地锁，原csn是否发生变化
+void TxnManager::UnlockLockInfo(uint64_t csn, bool abort)
+{
+    m_occManager.UnlockPhase(this, local_ip_index, csn, abort);
+}
+
+
 
 }  // namespace MOT

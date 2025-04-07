@@ -1651,6 +1651,9 @@ getDynaParamSeq(const char *string, bool initflag, bool placeholder, core_yyscan
 					(errcode(ERRCODE_SYNTAX_ERROR), 
 					errmsg("It is forbidden to use placeholder and dollar quoting together.")));
 		u_sess->parser_cxt.has_dollar = true;
+		if (string == NULL) {
+		    return 0;
+		}
 		return atol(string);
 	}
 

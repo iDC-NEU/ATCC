@@ -238,6 +238,8 @@
 #define static
 #endif
 
+// begin; => 1egin;
+// start transaction; => start transa[retry_cnt];
 //ADDBY NEU
 #include "storage/mot/mot_fdw.h"
 #include "postmaster/tinyxml2.h"
@@ -249,15 +251,25 @@ std::vector<std::string> kServerIp, kCacheServerIp;
 std::vector<uint64_t> port; // ServerNum * PackageNum
 volatile uint64_t kServerNum = 1;
 uint64_t kPortNum = 1, kPackageNum = 1, kNotifyNum = 1, kBatchNum = 1, kNotifyThreadNum = 1, kPackThreadNum = 4, kSendThreadNum = 1, 
-    kListenThreadNum = 1, kUnseriThreadNum = 1, kUnpackThreadNum = 1, kMergeThreadNum = 1, kCommitThreadNum = 1, kRecordCommitThreadNum = 1, kSendMessageNum = 1, kReceiveMessageNum = 1, 
+    kListenThreadNum = 1, kUnseriThreadNum = 1, kUnpackThreadNum = 1, kMergeThreadNum = 1, kCommitThreadNum = 1, kRecordCommitThreadNum = 1, 
+    kSendMessageNum = 1, kReceiveMessageNum = 1, 
     kSleepTime = 1, local_ip_index = 0, kCacheMaxLength = 200000, kDelayEpochNum = 0, kServerTimeOut_us = 700000, kRaftTimeOut_us = 500000, kLimiteTxnNum = 20,
-    kStartCheckStateNum = 1000000, kDelayTime = 0, kDelayRatio = 0;
+    kStartCheckStateNum = 1000000, kDelayTime = 0, kDelayRatio = 0, kRaftStopEpoch = 0, kRaftRestrtEpoch = 0, kRaftStopServerId = 1,
+    kRaftLeaderId = 0, kRaftStartCheckEpoch = 100;
+uint64_t kLockThreadNum = 5, kHotRowsFreq = 10, kInteractivePerc = 10;       // wzy
+uint64_t cc_mode = 0;           // wzy: 并发控制模式，1：混合 2：Plor 3：
+
+bool isMVCC_Active = false, kInteractive_Active = false, kPriority_Active = false, kAllPessimisticLock = false, kHotRow_Active = false, kPreLockCheck_Active = false, is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false;
+uint64_t kEpochLimit = 10, kReadCntLimit = 10, kWriteCntLimit = 10, kHotCntEpochLen = 10, kHotCntLimit = 10, kEpochWeight = 0, kReadCntWeight = 0, kWriteCntWeight = 0, kSwitchLimit = 0;
+uint64_t kPredictThread = 1;
+
+
 std::vector<std::string> send_ips;
 std::vector<uint64_t>send_ports;
 std::string kMasterIp, kPrivateIp;
 volatile bool is_stable_epoch_send = false, is_epoch_advanced_by_message = true, is_read_repeatable = true, is_breakdown = true, 
     is_snap_isolation = true, is_cache_server_available = true, is_fault_tolerance_enable = false, is_protobuf_gzip = false, 
-    is_total_pack = false, is_sync_exec = false, is_limite_txn = false, is_full_async_exec = false;
+    is_total_pack = false, is_sync_exec = false, is_limite_txn = false, is_full_async_exec = false, is_raft_enable = false, is_remote_cache_server_enable = false;
 
 void GenerateEpochThreads();
 void CkeckEpochThreadsI();
@@ -11278,19 +11290,26 @@ void GenerateEpochThreads(){
         ereport(LOG, (errmsg("EpochPhysicalTimerManagerThread第 %d 个创建完成 pid %lu",i, g_instance.pid_cxt.EpochPhysicalTimerManagerPIDS[i])));
     }
 
-    
-    // for (int i = 0 ; i < 1 ; i++){
-    //     g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i] = initialize_util_thread(EPOCH_MESSAGE_CACHE_MANAGER); 
-    //     epoch_cache_thread_ids.push_back(g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i]);
-    //     ereport(LOG, (errmsg("EpochMessageCacheManagerThread第 %d 个创建完成 pid %lu",i, g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i])));
-    // }
-
-    
     for (int i = 0 ; i < 1 ; i++){
-        g_instance.pid_cxt.EpochMessageManagerPIDS[i] = initialize_util_thread(EPOCH_MESSAGE_MANAGER); 
+        g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i] = initialize_util_thread(EPOCH_MESSAGE_CACHE_MANAGER); 
+        epoch_cache_thread_ids.push_back(g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i]);
+        ereport(LOG, (errmsg("EpochMessageCacheManagerThread第 %d 个创建完成 pid %lu",i, g_instance.pid_cxt.EpochMessageCacheManagerPIDS[i])));
+    }
+
+    // wzy: 上锁线程
+    for (int i = 0 ; i < (int)kLockThreadNum ; i++){
+        g_instance.pid_cxt.EpochMessageManagerPIDS[i] = initialize_util_thread(EPOCH_MESSAGE_MANAGER);
         epoch_manager_thread_ids.push_back(g_instance.pid_cxt.EpochMessageManagerPIDS[i]);
         ereport(LOG, (errmsg("EpochMessageManagerThread创建完成第 %d 个创建完成 pid %lu",i, g_instance.pid_cxt.EpochMessageManagerPIDS[i])));
     }
+
+    // wzy: 做版本回收线程
+    for (int i = 0 ; i < 1 ; i++){
+        g_instance.pid_cxt.EpochMessageManagerPIDS[i] = initialize_util_thread(EPOCH_UNPACK);
+        epoch_manager_thread_ids.push_back(g_instance.pid_cxt.EpochMessageManagerPIDS[i]);
+        ereport(LOG, (errmsg("EpochUnpack %d 个创建完成 pid %lu",i, g_instance.pid_cxt.EpochMessageManagerPIDS[i])));
+    }
+
 
     if(kServerNum != 1) {
         for (int i = 0 ; i < (int)kPackThreadNum; i++){
@@ -11489,7 +11508,7 @@ void CkeckEpochThreadsI(){
 
 void GetServerInfo(){
     tinyxml2::XMLDocument doc;  
-    doc.LoadFile("/tmp/ServerInfo.xml");  
+    doc.LoadFile("/home/zwx/ServerInfo.xml");
     tinyxml2::XMLElement *root=doc.RootElement();  
     tinyxml2::XMLElement *index_element=root->FirstChildElement("local_remote_ip");  
 	int symbol_local_or_remote=0;
@@ -11589,7 +11608,27 @@ void GetServerInfo(){
 
     tinyxml2::XMLElement* delay_ratio = root->FirstChildElement("delay_ratio");
     kDelayRatio = std::stoull(delay_ratio->GetText());
-    
+
+    tinyxml2::XMLElement* is_remote_cache_server_enable_t = root->FirstChildElement("is_remote_cache_server_enable");
+    is_remote_cache_server_enable = std::stoull(is_remote_cache_server_enable_t->GetText())  == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_raft_enable_t = root->FirstChildElement("is_raft_enable");
+    is_raft_enable = std::stoull(is_raft_enable_t->GetText())  == 0 ? false : true;
+
+    tinyxml2::XMLElement* raft_start_check_epoch = root->FirstChildElement("raft_start_check_epoch");
+    kRaftStartCheckEpoch = std::stoull(raft_start_check_epoch->GetText());
+
+    tinyxml2::XMLElement* raft_stop_epoch = root->FirstChildElement("raft_stop_epoch");
+    kRaftStopEpoch = std::stoull(raft_stop_epoch->GetText());
+
+    tinyxml2::XMLElement* raft_restart_epoch = root->FirstChildElement("raft_restart_epoch");
+    kRaftRestrtEpoch = std::stoull(raft_restart_epoch->GetText());
+
+    tinyxml2::XMLElement* raft_lerder_id = root->FirstChildElement("raft_lerder_id");
+    kRaftLeaderId = std::stoull(raft_lerder_id->GetText());
+
+    tinyxml2::XMLElement* raft_stop_server_id = root->FirstChildElement("raft_stop_server_id");
+    kRaftStopServerId = std::stoull(raft_stop_server_id->GetText());
 
     
     tinyxml2::XMLElement* notify_num = root->FirstChildElement("notify_num");
@@ -11616,7 +11655,7 @@ void GetServerInfo(){
 
     if(kServerNum > 1){
         // kSendThreadNum = kListenThreadNum = kPackageNum + 1;
-        kSendThreadNum = kListenThreadNum = 2;
+        kSendThreadNum = kListenThreadNum = 3;
     }
     else{
         kSendThreadNum = kListenThreadNum = 1;
@@ -11647,6 +11686,80 @@ void GetServerInfo(){
 
     tinyxml2::XMLElement* record_commit_thread_num = root->FirstChildElement("record_commit_thread_num");
     kRecordCommitThreadNum= std::stoull(record_commit_thread_num->GetText());
+
+
+    //////////////// wzy: 混合
+    tinyxml2::XMLElement* cc_mode_ = root->FirstChildElement("CC_mode");
+    cc_mode= std::stoull(cc_mode_->GetText());
+
+    tinyxml2::XMLElement* lock_thread_num = root->FirstChildElement("lock_thread_num");
+    kLockThreadNum= std::stoull(lock_thread_num->GetText());
+
+    tinyxml2::XMLElement* hot_rows_freq = root->FirstChildElement("hot_rows_freq");
+    kHotRowsFreq= std::stoull(hot_rows_freq->GetText());
+
+    tinyxml2::XMLElement* interactive_perc = root->FirstChildElement("interactive_perc");
+    kInteractivePerc= std::stoull(interactive_perc->GetText());
+
+    tinyxml2::XMLElement* is_mvcc = root->FirstChildElement("is_mvcc");
+    isMVCC_Active = std::stoi(is_mvcc->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_interactive = root->FirstChildElement("is_interactive");
+    kInteractive_Active = std::stoi(is_interactive->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_priority = root->FirstChildElement("is_priority");
+    kPriority_Active = std::stoi(is_priority->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_hot_row_lock = root->FirstChildElement("is_hot_row_lock");
+    kHotRow_Active = std::stoi(is_hot_row_lock->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_all_pessimistic_lock = root->FirstChildElement("is_all_pessimistic_lock");
+    kAllPessimisticLock = std::stoi(is_all_pessimistic_lock->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_pre_lock_check = root->FirstChildElement("is_pre_lock_check");
+    kPreLockCheck_Active = std::stoi(is_pre_lock_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_wound_wait_check = root->FirstChildElement("is_wound_wait_enable");
+    is_wound_wait_enable = std::stoi(is_wound_wait_check->GetText()) == 0 ? false : true;
+
+    // is_debug_print_enable
+    tinyxml2::XMLElement* is_debug_print_check = root->FirstChildElement("is_debug_print_enable");
+    is_debug_print_enable = std::stoi(is_debug_print_check->GetText()) == 0 ? false : true;
+
+    // 开启事务并发控制切换
+    tinyxml2::XMLElement* is_CC_Switch_check = root->FirstChildElement("is_CC_Switch_enable");
+    is_CC_Switch_enable = std::stoi(is_CC_Switch_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* epoch_limit_check = root->FirstChildElement("kEpochLimit");
+    kEpochLimit = std::stoull(epoch_limit_check->GetText());
+
+    tinyxml2::XMLElement* read_cnt_check = root->FirstChildElement("kReadCntLimit");
+    kReadCntLimit = std::stoull(read_cnt_check->GetText());
+
+    tinyxml2::XMLElement* write_cnt_check = root->FirstChildElement("kWriteCntLimit");
+    kWriteCntLimit = std::stoull(write_cnt_check->GetText());
+
+    tinyxml2::XMLElement* hot_cnt_epoch_check = root->FirstChildElement("kHotCntEpochLen");
+    kHotCntEpochLen = std::stoull(hot_cnt_epoch_check->GetText());
+
+    tinyxml2::XMLElement* hot_cnt_check = root->FirstChildElement("kHotCntLimit");
+    kHotCntLimit = std::stoull(hot_cnt_check->GetText());
+
+    tinyxml2::XMLElement* epoch_weight_check = root->FirstChildElement("kEpochWeight");
+    kEpochWeight = std::stoull(epoch_weight_check->GetText());
+
+    tinyxml2::XMLElement* read_weight_check = root->FirstChildElement("kReadCntWeight");
+    kReadCntWeight = std::stoull(read_weight_check->GetText());
+
+    tinyxml2::XMLElement* write_weight_check = root->FirstChildElement("kWriteCntWeight");
+    kWriteCntWeight = std::stoull(write_weight_check->GetText());
+
+    tinyxml2::XMLElement* switch_limit_check = root->FirstChildElement("kSwitchLimit");
+    kSwitchLimit = std::stoull(switch_limit_check->GetText());
+
+    // 开启RL模型线程
+//    tinyxml2::XMLElement* predict_thread_cnt = root->FirstChildElement("kPredictThread");
+//    kPredictThread = std::stoull(predict_thread_cnt->GetText());
 
 
     ereport(LOG, (errmsg("local ip_index %llu ip %s",local_ip_index, kServerIp[local_ip_index].c_str())));

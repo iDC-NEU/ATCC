@@ -24,13 +24,18 @@ extern volatile uint64_t kServerNum;
 extern uint64_t kPortNum, kPackageNum, kNotifyNum, kBatchNum, kNotifyThreadNum, kPackThreadNum, kSendThreadNum, 
     kListenThreadNum, kUnseriThreadNum, kUnpackThreadNum, kMergeThreadNum, kCommitThreadNum, kRecordCommitThreadNum, kSendMessageNum, kReceiveMessageNum, 
     kSleepTime, local_ip_index, kCacheMaxLength, kDelayEpochNum, kServerTimeOut_us, kRaftTimeOut_us, kStartCheckStateNum, kLimiteTxnNum, kDelayTime,
-    kDelayRatio;
+    kDelayRatio, kRaftStopEpoch, kRaftRestrtEpoch, kRaftStopServerId, kRaftLeaderId, kRaftStartCheckEpoch;
+extern uint64_t kLockThreadNum, kHotRowsFreq, kInteractivePerc, cc_mode; // wzy
+extern bool isMVCC_Active, kInteractive_Active, kPriority_Active, kHotRow_Active, kAllPessimisticLock, kPreLockCheck_Active, is_CC_Switch_enable, is_wound_wait_enable, is_debug_print_enable;            // wzy
+extern uint64_t kEpochLimit, kReadCntLimit, kWriteCntLimit, kHotCntEpochLen, kHotCntLimit, kEpochWeight, kReadCntWeight, kWriteCntWeight, kSwitchLimit;
+extern uint64_t kPredictThread;     // RL模型线程个数
+
 extern std::vector<std::string> send_ips;
 extern std::vector<uint64_t>send_ports;
 extern std::string kMasterIp, kPrivateIp;
 extern volatile bool is_stable_epoch_send, is_epoch_advanced_by_message, is_read_repeatable, is_snap_isolation,
     is_breakdown, is_cache_server_available, is_fault_tolerance_enable, is_protobuf_gzip, is_total_pack, is_sync_exec, is_limite_txn,
-    is_full_async_exec;
+    is_full_async_exec, is_raft_enable, is_remote_cache_server_enable;
 
 extern THR_LOCAL bool comm_client_bind;
 

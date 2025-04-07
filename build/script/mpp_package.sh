@@ -758,7 +758,7 @@ function install_gaussdb()
     fi
 
     cd "$ROOT_DIR/contrib/pg_upgrade_support"
-    make clean >> "$LOG_FILE" 2>&1
+     make clean >> "$LOG_FILE" 2>&1
     make -sj >> "$LOG_FILE" 2>&1
     make install -sj >> "$LOG_FILE" 2>&1
     echo "End make install MPPDB" >> "$LOG_FILE" 2>&1

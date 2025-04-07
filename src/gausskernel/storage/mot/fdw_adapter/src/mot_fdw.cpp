@@ -1449,11 +1449,18 @@ static TupleTableSlot* MOTExecForeignUpdate(
         return nullptr;
     }
 
+
     // This case handle multiple updates of the same row in one query
     if (fdwState->m_currTxn->IsUpdatedInCurrStmt()) {
         return nullptr;
     }
     if ((rc = MOTAdaptor::UpdateRow(fdwState, planSlot, currRow)) == MOT::RC_OK) {
+        // wzy: 测试模拟事务执行层，对于交互型事务，发送LockInfo后等待，直到上锁成功返回再继续执行
+//        auto txn = fdwState->m_currTxn;
+//        if (txn->IsInteractive()) {
+//            rc = MOTAdaptor::SendInteractiveLockInfo(currRow);
+//        }
+
         if (resultRelInfo->ri_projectReturning) {
             return planSlot;
         } else {
@@ -1544,6 +1551,8 @@ uint64_t now_to_us_fdw(){
     return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
+
+//std::atomic<int> start_txn_num(0); // wzy: 测试
 static void MOTXactCallback(XactEvent event, void* arg)
 {
     int rc = MOT::RC_OK;
@@ -1575,7 +1584,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
 
     MOT::TxnState txnState = txn->GetTxnState();
 
-    if(txn->GetStartEpoch() == 0) {
+    if(txn->GetStartEpoch() == 0) {     // 事务一开始的初始化
         txn->SetIndexPack(GetThreadID() % kPackageNum);
         auto time1 = now_to_us_fdw();
         txn->SetStartMOTExecTime(time1);
@@ -1607,26 +1616,28 @@ static void MOTXactCallback(XactEvent event, void* arg)
         txn->SetStartLogicalEpoch(MOTAdaptor::GetLogicalEpoch());
     }
 
-
     elog(DEBUG2, "xact_callback event %u, transaction state %u, tid %lu", event, txnState, tid);
 
     if (event == XACT_EVENT_START) {
         // MOT_LOG_INFO("XACT_EVENT_START %llu", txn->GetStartEpoch());
+
         elog(DEBUG2, "XACT_EVENT_START, tid %lu", tid);
         if (txnState == MOT::TxnState::TXN_START) {
             // Double start!!!
+
             // MOT_LOG_INFO("XACT_EVENT_START ROLL_BACK");
             if(is_sync_exec) {
                 (*MOTAdaptor::total_abort_txn_num[(txn->GetStartEpoch() % MOTAdaptor::_max_length)])[txn->GetIndexPack()]->fetch_add(1);
-                // MOTAdaptor::DecLocalChangeSetNum(txn->GetStartEpoch(), txn->GetIndexPack(), 1);
             }
             txn->ClearEpochState();
             MOTAdaptor::Rollback();
         }
         if (txnState != MOT::TxnState::TXN_PREPARE) {
-            txn->StartTransaction(tid, u_sess->utils_cxt.XactIsoLevel);
+            txn->StartTransactionInteractive(tid, u_sess->utils_cxt.XactIsoLevel, u_sess->storage_cxt.interactiveTxn > 0);
         }
-    } else if (event == XACT_EVENT_COMMIT) {
+    }
+    else if (event == XACT_EVENT_COMMIT) {
+
         // MOT_LOG_INFO("XACT_EVENT_COMMIT %llu", txn->GetStartEpoch());
         if (txnState == MOT::TxnState::TXN_END_TRANSACTION) {
             elog(DEBUG2, "XACT_EVENT_COMMIT, transaction already in end state, skipping, tid %lu", tid);
@@ -1649,7 +1660,54 @@ static void MOTXactCallback(XactEvent event, void* arg)
 
         elog(DEBUG2, "XACT_EVENT_COMMIT, tid %lu", tid);
 
-        rc = MOTAdaptor::ValidateCommit();//Commit();
+        // wzy
+        if (cc_mode == 0 || cc_mode == 1) {     // crdt + pcc + dl
+            rc = MOTAdaptor::ValidateCommit();  //Commit();
+            txn->commit_time = now_to_us_fdw();
+        } else if (cc_mode == 2) {              // crdt + plor
+            if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitPlor();       // interactive plor
+            else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
+            txn->commit_time = now_to_us_fdw();
+        } else if (cc_mode == 3) {              // crdt + pcc
+            if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitWoundWait();       // interactive PCC
+            else rc = MOTAdaptor::ValidateCommit();                      // store-procedure OCC
+            txn->commit_time = now_to_us_fdw();
+        } else if (cc_mode == 4) {              // silo + plor no epoch
+            if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitPlor();       // interactive plor
+            else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
+            txn->commit_time = now_to_us_fdw();
+        }
+
+
+        if(rc == MOT::RC_OK){
+            MOTAdaptor::commit_txn_num.fetch_add(1);
+            MOTAdaptor::txn_total_time.fetch_add(txn->commit_time - txn->start_time);
+
+            // 统计事务读写经历epoch
+            MOTAdaptor::txn_total_epoch.fetch_add(MOTAdaptor::GetPhysicalEpoch() - txn->GetStartEpoch());
+            MOTAdaptor::txn_total_readCnt.fetch_add(txn->GetReadCnt());
+            MOTAdaptor::txn_total_writeCnt.fetch_add(txn->GetWriteCnt());
+            MOTAdaptor::txn_total_hotCnt.fetch_add(txn->GetHotCnt());
+
+            // 进段时间统计
+            MOTAdaptor::temp_commit_txn_num.fetch_add(1);
+            MOTAdaptor::txn_temp_total_time.fetch_add(txn->commit_time - txn->start_time);
+            MOTAdaptor::txn_temp_total_epoch.fetch_add(MOTAdaptor::GetPhysicalEpoch() - txn->GetStartEpoch());
+            MOTAdaptor::txn_temp_total_readCnt.fetch_add(txn->GetReadCnt());
+            MOTAdaptor::txn_temp_total_writeCnt.fetch_add(txn->GetWriteCnt());
+            MOTAdaptor::txn_temp_total_hotCnt.fetch_add(txn->GetHotCnt());
+
+
+            if (txn->IsInteractive()) {
+                // MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, false);
+                MOTAdaptor::commit_interactive_txn_num.fetch_add(1);
+                MOTAdaptor::interactive_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
+                if (txn->pessimistic_flag) {
+                    MOTAdaptor::commit_pcc_interactive_txn_num.fetch_add(1);
+                    MOTAdaptor::interactive_pcc_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
+                }
+            }
+        }
         
         TryRecordTimestamp(3, finishCommit);//ADDBY NEU HW
 
@@ -1663,7 +1721,8 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 txnState);//ADDBY NEU
         }
         txn->SetTxnState(MOT::TxnState::TXN_COMMIT);
-    } else if (event == XACT_EVENT_RECORD_COMMIT) {
+    }
+    else if (event == XACT_EVENT_RECORD_COMMIT) {
         // MOT_LOG_INFO("XACT_EVENT_RECORD_COMMIT %llu", txn->GetStartEpoch());
         if (txnState == MOT::TxnState::TXN_END_TRANSACTION) {
             elog(DEBUG2, "XACT_EVENT_COMMIT, transaction already in end state, skipping, tid %lu", tid);
@@ -1678,32 +1737,43 @@ static void MOTXactCallback(XactEvent event, void* arg)
         if (txnState == MOT::TxnState::TXN_PREPARE) {
             MOTAdaptor::CommitPrepared(csn);
         } else {
-            MOTAdaptor::RecordCommit(csn);//CommitInternalII();
+            uint64_t pre_csn = txn->pre_csn;
+            MOTAdaptor::RecordCommit(pre_csn);  //CommitInternalII();
             // auto epoch = txn->GetCommitEpoch();
             // if(!txn->isOnlyRead()){
-            //     while(!epoch < MOTAdaptor::local_change_set_ptr1_current_epoch) usleep(100); 
+            //     while(!epoch < MOTAdaptor::local_change_set_ptr1_current_epoch) usleep(200); 
                 //远端事务提交未完成，本地事务写完后等待。
             // }
+            u_sess->storage_cxt.interactiveTxn = 0;
+            t_thrd.storage_cxt.thrd_interactiveTxn = 0;
         }
-    } else if (event == XACT_EVENT_END_TRANSACTION) {
+    }
+    else if (event == XACT_EVENT_END_TRANSACTION) {
         // MOT_LOG_INFO("XACT_EVENT_END_TRANSACTION %llu", txn->GetStartEpoch());
         if (txnState == MOT::TxnState::TXN_END_TRANSACTION) {
             elog(DEBUG2, "XACT_EVENT_END_TRANSACTION, transaction already in end state, skipping, tid %lu", tid);
             return;
         }
         elog(DEBUG2, "XACT_EVENT_END_TRANSACTION, tid %lu", tid);
-        MOTAdaptor::EndTransaction();
-        
-        txn->ClearEpochState();
+        // wzy: 从活跃事务列表移除，得在end transaction之前不然internal tid会改变
+        if (txn->IsInteractive()) MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
+
+        MOTAdaptor::EndTransaction();               // 在这儿释放sentinel的锁
+        MOTAdaptor::txn_state_map_plor_.remove(txn->start_time);    // 清除状态
+
+        txn->ClearEpochState();         // 清空state，包括pre_csn
         txn->SetTxnState(MOT::TxnState::TXN_END_TRANSACTION);
         // if(!txn->isOnlyRead()){
         //     uint64_t thread_id = GetThreadID();//随机分布
         //     uint64_t index_pack = thread_id % kPackageNum;
         //     // MOTAdaptor::DecComCounter(index_pack);
-        //     // while(!epoch < MOTAdaptor::local_change_set_ptr1_current_epoch) usleep(100); 
+        //     // while(!epoch < MOTAdaptor::local_change_set_ptr1_current_epoch) usleep(200); 
         //     //远端事务提交未完成，本地事务写完后等待。
         // }
-    } else if (event == XACT_EVENT_PREPARE) {
+        u_sess->storage_cxt.interactiveTxn = 0;
+        t_thrd.storage_cxt.thrd_interactiveTxn = 0;
+    }
+    else if (event == XACT_EVENT_PREPARE) {
         // MOT_LOG_INFO("XACT_EVENT_PREPARE %llu", txn->GetStartEpoch());
         elog(DEBUG2, "XACT_EVENT_PREPARE, tid %lu", tid);
         rc = MOTAdaptor::Prepare();
@@ -1716,17 +1786,59 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 txnState);
         }
         txn->SetTxnState(MOT::TxnState::TXN_PREPARE);
-    } else if (event == XACT_EVENT_ABORT) {
+    }
+    else if (event == XACT_EVENT_ABORT) {
+        // 在此阶段不持有sentinel
         // MOT_LOG_INFO("XACT_EVENT_ABORT %llu", txn->GetStartEpoch());
         if(is_sync_exec) {
             (*MOTAdaptor::total_abort_txn_num[(txn->GetStartEpoch() % MOTAdaptor::_max_length)])[txn->GetIndexPack()]->fetch_add(1);
-            // MOTAdaptor::DecLocalChangeSetNum(txn->GetStartEpoch(), txn->GetIndexPack(), 1);
         }
         elog(DEBUG2, "XACT_EVENT_ABORT, tid %lu", tid);
+
+        txn->commit_time = now_to_us_fdw();
+        MOTAdaptor::txn_abort_time.fetch_add(txn->commit_time - txn->start_time);
+
+        // wzy: 进行解锁，需要本地和远端一并解锁（因为交互型事务远端没有end transaction通知）
+        MOTAdaptor::Abort_txn_num.fetch_add(1);
+        if (txn->IsInteractive()) {
+            MOTAdaptor::interactive_txn_abort_time.fetch_add(txn->commit_time - txn->start_time);
+            MOTAdaptor::Abort_interactive_txn_num.fetch_add(1);
+            if(txn->pessimistic_flag) {
+                MOT_LOG_INFO("PCC abort!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+                MOTAdaptor::Abort_pcc_interactive_txn_num.fetch_add(1);
+            }
+        }
+
+        uint64_t pre_csn = txn->pre_csn;  // wzy: pre_csn用于解锁
+        if (cc_mode == 0 || cc_mode == 1) {
+            if (txn->IsInteractive()) {
+                MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, true);
+                MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
+            }
+        } else if (cc_mode == 2) {
+            if (txn->IsInteractive()) {
+                if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoPlor(pre_csn, true);
+                MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
+            }
+        } else if (cc_mode == 3) {
+            if (txn->IsInteractive()) {
+                if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoWoundWait(pre_csn, true);
+                MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
+            }
+        } else if (cc_mode == 4) {
+            if (txn->IsInteractive()) {
+                if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoPlor(pre_csn, true);
+                MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
+            }
+        }
+
         MOTAdaptor::Rollback();
-        txn->ClearEpochState();
+        txn->ClearEpochState();     // 清空state，包括pre_csn
         txn->SetTxnState(MOT::TxnState::TXN_ROLLBACK);
-    } else if (event == XACT_EVENT_COMMIT_PREPARED) {
+        u_sess->storage_cxt.interactiveTxn = 0;
+        t_thrd.storage_cxt.thrd_interactiveTxn = 0;
+    }
+    else if (event == XACT_EVENT_COMMIT_PREPARED) {
         // MOT_LOG_INFO("XACT_EVENT_COMMIT_PREPARED %llu", txn->GetStartEpoch());
         if (txnState == MOT::TxnState::TXN_PREPARE) {
             elog(DEBUG2, "XACT_EVENT_COMMIT_PREPARED, tid %lu", tid);
@@ -1754,7 +1866,8 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 txnState);
         }
         txn->SetTxnState(MOT::TxnState::TXN_COMMIT);
-    } else if (event == XACT_EVENT_ROLLBACK_PREPARED) {
+    }
+    else if (event == XACT_EVENT_ROLLBACK_PREPARED) {
         // MOT_LOG_INFO("XACT_EVENT_ROLLBACK_PREPARED %llu", txn->GetStartEpoch());
         elog(DEBUG2, "XACT_EVENT_ROLLBACK_PREPARED, tid %lu", tid);
         if (txnState != MOT::TxnState::TXN_PREPARE) {
@@ -1762,7 +1875,8 @@ static void MOTXactCallback(XactEvent event, void* arg)
         }
         MOTAdaptor::RollbackPrepared();
         txn->SetTxnState(MOT::TxnState::TXN_ROLLBACK);
-    } else if (event == XACT_EVENT_PREROLLBACK_CLEANUP) {
+    }
+    else if (event == XACT_EVENT_PREROLLBACK_CLEANUP) {
         // MOT_LOG_INFO("XACT_EVENT_PREROLLBACK_CLEANUP %llu", txn->GetStartEpoch());
         CleanQueryStatesOnError(txn);
     }
@@ -2469,10 +2583,13 @@ void FDWEpochPhysicalTimerManagerThreadMain(uint64_t id){
     EpochPhysicalTimerManagerThreadMain(id);
 }
 void FDWEpochMessageCacheManagerThreadMain(uint64_t id){
-    EpochMessageCacheManagerThreadMain(id);
+    // EpochMessageCacheManagerThreadMain(id);
+    MultiRaftThreadMain(id);
 }
 void FDWEpochMessageManagerThreadMain(uint64_t id){
-    EpochMessageManagerThreadMain(id);
+//    EpochMessageManagerThreadMain(id);
+    // TODO: [ 测试 ] 激活死锁检测
+    EpochLockThreadMain(id);
 }
 
 void FDWEpochNotifyThreadMain(uint64_t id){
@@ -2480,6 +2597,10 @@ void FDWEpochNotifyThreadMain(uint64_t id){
 }
 void FDWEpochPackThreadMain(uint64_t id){
     EpochPackThreadMain(id);
+}
+
+void FDWEpochRaftSendThreadMain(uint64_t id) {
+    EpochRaftSendThreadMain(id);
 }
 void FDWEpochSendThreadMain(uint64_t id){
     EpochSendThreadMain(id);
@@ -2493,11 +2614,18 @@ void FDWEpochListenThreadMain(uint64_t id){
 void FDWEpochMessageListenThreadMain(uint64_t id){
     EpochMessageListenThreadMain(id);
 }
+void FDWEpochRaftListenThreadMain(uint64_t id) {
+    EpochRaftListenThreadMain(id);
+}
+
 void FDWEpochUnseriThreadMain(uint64_t id){
     EpochUnseriThreadMain(id);
 }
 void FDWEpochUnpackThreadMain(uint64_t id){
-    EpochUnpackThreadMain(id);
+//    EpochUnpackThreadMain(id);
+    // TODO: [ 测试 ] 激活版本回收，
+    TryGetServerInfo();
+//    EpochCleanVersionThreadMain(id);
 }
 void FDWEpochMergeThreadMain(uint64_t id){
     EpochMergeThreadMain(id);
@@ -2508,4 +2636,42 @@ void FDWEpochCommitThreadMain(uint64_t id){
 
 void FDWEpochRecordCommitThreadMain(uint64_t id){
     EpochRecordCommitThreadMain(id);
+}
+
+void FDWMultiRaftThreadMain(uint64_t id) {
+    MultiRaftThreadMain(id);
+}
+
+void FDWSetInteravtiveTxn(knl_session_context* u_sess) {
+    PG_TRY();
+    {
+        TransactionId txn_id = 0;
+        const char* callerSrc = "FDWSetInteravtiveTxn";
+        if (!u_sess->mot_cxt.txn_manager) {
+            MOTAdaptor::InitTxnManager(callerSrc);
+            if (u_sess->mot_cxt.txn_manager != nullptr) {
+                if (txn_id != 0) {
+                    u_sess->mot_cxt.txn_manager->SetTransactionId(txn_id);
+                }
+            } else {
+                report_pg_error(MOT_GET_ROOT_ERROR_RC());
+            }
+
+            if (!u_sess->mot_cxt.txn_manager->IsInteractive() && u_sess->storage_cxt.interactiveTxn > 1) {
+                u_sess->mot_cxt.txn_manager->SetInteractive(true);
+                MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+                MOT_LOG_INFO("TxnManager interactive 1 FDWSetInteravtiveTxn thrd_interactiveTxn : %d",
+                    u_sess->storage_cxt.interactiveTxn);
+            }
+        }
+    }
+    PG_END_TRY();
+
+    if (u_sess->mot_cxt.txn_manager != nullptr && !u_sess->mot_cxt.txn_manager->IsInteractive() && u_sess->storage_cxt.interactiveTxn > 1) {
+        u_sess->mot_cxt.txn_manager->SetInteractive(true);
+        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+        MOT_LOG_INFO("TxnManager interactive 2 FDWSetInteravtiveTxn thrd_interactiveTxn : %d",
+            u_sess->storage_cxt.interactiveTxn);
+    }
+//    MOT_LOG_INFO("TxnManager stored process FDWSetInteravtiveTxn");
 }

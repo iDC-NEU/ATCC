@@ -31,6 +31,9 @@
 #include <cstring>
 #include <functional>
 #include <unordered_map>
+#include <list>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "global.h"
 #include "redo_log.h"
@@ -58,6 +61,42 @@ class Key;
 class Index;
 
 #define MOTCurrTxn MOT_GET_CURRENT_SESSION_CONTEXT()->GetTxnManager()
+
+// wzy: ReadMVCC 加速多版本读操作
+class ReadMVCC {
+public:
+    ReadMVCC(){
+        read_cache = std::unordered_map<Sentinel*, Row*>();
+    }
+
+    ~ReadMVCC(){
+        read_cache.clear();
+    }
+
+    void ClearState() {
+        std::lock_guard<std::mutex> lock(mutex);
+        read_cache.clear();
+    }
+
+    bool AddReadCache(Sentinel* originalSentinel, Row* row) {
+        std::lock_guard<std::mutex> lock(mutex);
+        read_cache[originalSentinel] = row;
+        return true;
+    }
+
+    bool GetReadCache(Sentinel* originalSentinel, Row*& r_row){
+        std::lock_guard<std::mutex> lock(mutex);
+        if (read_cache.count(originalSentinel) != 0) {
+            r_row = read_cache[originalSentinel];
+            return true;
+        }
+        return false;
+    }
+
+private:
+    std::unordered_map<Sentinel*, Row*> read_cache;
+    std::mutex mutex;
+};
 
 /**
  * @class TxnManager
@@ -93,6 +132,7 @@ public:
     static inline __attribute__((always_inline)) void* operator new(size_t size, void* ptr) noexcept
     {
         (void)size;
+
         return ptr;
     }
 
@@ -159,6 +199,8 @@ public:
      */
     RC StartTransaction(uint64_t transactionId, int isolationLevel);
 
+
+
     /**
      * @brief Performs pre-commit validation (OCC validation).
      * @return Result code denoting success or failure.
@@ -170,10 +212,41 @@ public:
      */
     void RecordCommit();
 
+    void RecordCommit(uint64_t& pre_csn);
+
     /**
      * @brief Convenience interface which does both ValidateCommit and RecordCommit.
      */
     RC Commit();
+
+    /////////// PLOR /////////////
+    RC ReadLockForSwitch_Plor();
+    RC ReadLockForSwitchHotRows_Plor();
+    RC WriteLockForSwitch_Plor();
+    RC WriteLockForSwitchHotRows_Plor();
+    RC GetReadLock_Plor(MOT::Row* currRow);          // wzy:
+    RC GetWriteLock_Plor(MOT::Row* currRow);          // wzy:
+    RC SendLockInfo_Plor(MOT::Row* currRow);        // no use
+    RC SendReadLockInfo_Plor(MOT::Row* currRow);        // no use
+    RC Commit_Plor();
+    RC Commit_Plor_Epoch();
+    void UnlockLockInfo_Plor(uint64_t csn, bool abort);
+
+    //////////// Wound-wait //////////////////
+    RC ReadLockForSwitch_WoundWait();
+    RC WriteLockForSwitch_WoundWait();
+    RC WriteLockForSwitchHotRows_WoundWait();
+    RC GetReadLock_WoundWait(MOT::Row* currRow);          // wzy:
+    RC GetWriteLock_WoundWait(MOT::Row* currRow);          // wzy:
+    RC SendLockInfo_WoundWait(MOT::Row* currRow);        // no use
+    RC SendReadLockInfo_WoundWait(MOT::Row* currRow);        // no use
+    RC Commit_WoundWait();
+    void UnlockLockInfo_WoundWait(uint64_t csn, bool abort);
+
+    RC SendLockInfo(MOT::Row* currRow);          // wzy:
+
+    void UnlockLockInfo(uint64_t csn, bool abort);      // wzy:
+
     // RC Commit(uint64_t &thread_id);
     void LiteCommit();
 
@@ -293,6 +366,8 @@ public:
      */
     RC AccessLookup(const AccessType type, Sentinel* const& originalSentinel, Row*& localRow);
 
+    RC AccessLookupMVCC(const AccessType type, Sentinel* const& originalSentinel, Row*& localRow);
+
     /**
      * @brief Searches in the cache for the row following a secondary index item.
      * @param table The table in which the row is to be searched.
@@ -325,6 +400,7 @@ public:
     void RollbackDDLs();
 
     RC OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns);
+
 
     /**
      * @brief Updates the value in a single field in a row.
@@ -444,6 +520,7 @@ public:
 
     bool IsUpdatedInCurrStmt();
 
+
 private:
     static constexpr uint32_t SESSION_ID_BITS = 32;
 
@@ -468,6 +545,8 @@ private:
      * @brief Internal commit
      */
     void CommitInternal();
+
+    void CommitInternalPlor(uint64_t& pre_csn);
 
     void RollbackInternal(bool isPrepared);
 
@@ -575,8 +654,10 @@ public:
 
 public:
     void CommitInternalII();//ADDBY NEU
+    RC StartTransactionInteractive(uint64_t transactionId, int isolationLevel, bool interactive_ = false);
+
     bool isOnlyRead();
-    void CommitForRemote();
+    void CommitForRemote(uint64_t server_id);
     RC ValidateOcc();
     bool localMergeValidate(uint64_t csn);
 
@@ -682,9 +763,54 @@ public:
     
     void ClearEpochState() {
         zip_time = write_size = zip_size = startEpoch = startLogicalEpoch = index_pack = CommitEpoch = block_time = mot_start_exec_time = mot_start_commit_time = 0;
+        read_cnt = write_cnt = 0;
+        pessimistic_flag = false;
+        first_time_pessimistic = false;
+        retry_cnt = 0;
+        pre_csn = 0;    // 用于unlock
+        hot_cnt = 0;
+        hot_rowid_records.clear();
     }
 
+    RC SwitchToPCC();
 
+    // wzy: 指定为悲观事务
+    void SetInteractive(bool value)
+    {
+        interactive = value;
+    }
+
+    bool IsInteractive()
+    {
+        return interactive;
+    }
+
+    void AddReadCnt(){
+        read_cnt++;
+    }
+
+    void AddHotRowCnt(){
+        hot_cnt++;
+    }
+
+    void AddWriteCnt(){
+        write_cnt++;
+    }
+
+    uint64_t GetReadCnt(){
+        return read_cnt;
+    }
+
+    uint64_t GetHotCnt(){
+        return hot_cnt;
+    }
+
+    uint64_t GetWriteCnt(){
+
+        return write_cnt;
+    }
+
+    bool ValidateTxnPessimistic(uint64_t curr_epoch);
 
 private:
 
@@ -695,9 +821,32 @@ private:
     uint64_t startEpoch, startLogicalEpoch, index_pack, mot_start_exec_time, mot_start_commit_time, block_time, zip_time, write_size, zip_size;
     uint64_t CommitEpoch;
     bool startInMerge;
-    uint64_t startTime;
-    
+    uint64_t startTime, txnId;
+
+    bool interactive;  // wzy: 指定为交互性事务
+    ReadMVCC read_cache;
+
+    uint64_t read_cnt;  // wzy: 统计交互性事务执行到目前的成本
+    uint64_t write_cnt;
+
+
+public:
+    bool pessimistic_flag;        // wzy: 设置为悲观执行
+    bool first_time_pessimistic;
+    uint64_t start_time;
+    uint64_t commit_time;
+    int retry_cnt;                // 重做次数
+    int hot_cnt;
+
+    std::unordered_set<uint64_t> hot_rowid_records;
+
+    uint64_t pre_csn;
+
+    static std::atomic<uint64_t> start_txn_num;
+    static std::atomic<uint64_t> start_interactive_txn_num;
 };
+
+
 }  // namespace MOT
 
 #endif  // MOT_TXN_H

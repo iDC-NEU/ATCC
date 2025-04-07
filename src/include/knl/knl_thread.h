@@ -8,7 +8,7 @@
  * knl_thread.h
  *        Data stucture for thread level global variables.
  *
- *   When anyone try to added variable in this file, which means add a thread level
+ *   When anyone try to added variable in this file, which means add a thread level2
  *   variable, there are several rules needed to obey:
  *
  *   1. Only used in one thread.
@@ -2491,6 +2491,9 @@ typedef struct knl_t_storage_context {
     /* reserve `1000' for thread-private file id */
     int max_userdatafiles;
 
+
+    // wzy
+    int thrd_interactiveTxn;
 } knl_t_storage_context;
 
 typedef struct knl_t_port_context {

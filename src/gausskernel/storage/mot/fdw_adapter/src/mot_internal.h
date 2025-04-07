@@ -2,7 +2,7 @@
  * Copyright (c) 2020 Huawei Technologies Co.,Ltd.
  *
  * openGauss is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You can use this software according to the terms and conditions of tfhe Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
  *
  *          http://license.coscl.org.cn/MulanPSL2
@@ -57,6 +57,9 @@
 #include <typeinfo>
 #include <random>
 #include <stdlib.h>
+#include <set>
+// #include "message.pb.h"      // 不能引用
+// #include <semaphore.h>
 // #include <semaphore.h>
 
 using std::map;
@@ -73,8 +76,11 @@ extern void EpochMessageCacheManagerThreadMain(uint64_t id);
 
 extern void EpochNotifyThreadMain(uint64_t id);
 extern void EpochPackThreadMain(uint64_t id);
+
+extern void EpochRaftSendThreadMain(uint64_t id);
 extern void EpochSendThreadMain(uint64_t id);
 
+extern void EpochRaftListenThreadMain(uint64_t id);
 extern void EpochListenThreadMain(uint64_t id);
 extern void EpochUnseriThreadMain(uint64_t id);
 extern void EpochUnpackThreadMain(uint64_t id);
@@ -84,6 +90,18 @@ extern void EpochRecordCommitThreadMain(uint64_t id);
 
 extern void EpochMessageSendThreadMain(uint64_t id);
 extern void EpochMessageListenThreadMain(uint64_t id);
+
+extern void MultiRaftThreadMain(uint64_t id);
+
+extern void EpochLockThreadMain(uint64_t id);   // wzy:
+extern void EpochLockThreadMain_WoundWait(uint64_t id);   // wzy:
+extern void EpochLockThreadMain_Wait(uint64_t id);   // wzy:
+
+extern void TryGetServerInfo();                    // wzy: 接收Server Info
+extern void ReGetServerInfo();                    // wzy: 接收Server Info
+
+
+extern void EpochCleanVersionThreadMain(uint64_t id);   // wzy:
 
 namespace aum {
     class SpinLock {
@@ -246,6 +264,38 @@ namespace aum {
             _map_temp[k] = v;
         }
 
+        // wzy: v为vector<string>
+        void insert_vector(key& k, std::string& e)
+        {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            bool result = false;
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            std::shared_ptr<std::vector<std::string>> m_vec;
+            value v;                        // pair
+            if (iter == _map_temp.end()) {  // 没有找到k的情况
+                m_vec = std::make_shared<std::vector<std::string>>();
+                m_vec->emplace_back(e);
+                _map_temp[k] = m_vec;
+                result = true;
+            } else {  // 找到k的情况，向k中添加
+                m_vec = _map_temp[k];
+                // 遍历v，确认tid是否在其中，若不在则插入，若在则跳过，不能重复
+                for (const auto& temp : *m_vec) {
+                    if (temp == e) {
+                        result = true;
+                        break;
+                    }
+                }
+                if (!result) {
+                    m_vec->emplace_back(e);
+                }
+                _map_temp[k] = m_vec;
+                result = true;
+            }
+            lock.unlock();
+        }
 
         void remove(key &k, value &v) 
         {
@@ -289,7 +339,9 @@ namespace aum {
         }
 
         bool contain(key &k, value &v){
+            std::mutex& _mutex_temp = GetMutexRef(k);   // wzy: 保险起见先上锁
             std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
             map_iterator iter = _map_temp.find(k);
             if(iter != _map_temp.end()){
                 if(iter->second == v){
@@ -328,7 +380,96 @@ namespace aum {
             return ans;
         }
 
-protected:
+        // wzy: 获取到元素
+        bool get_element(key& k, value& v)
+        {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            if (iter != _map_temp.end()) {
+                v = iter->second;
+                return true;
+            }
+            return false;
+        }
+
+        // wzy: 获取queue return true，若不存在则创建 return false
+        bool get_or_create_queue(key& k, value& v, value& new_v)
+        {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            if (iter != _map_temp.end()) {
+                v = iter->second;
+                return true;
+            } else {
+                _map_temp[k] = new_v;
+                v = new_v;
+                return true;
+            }
+        }
+
+        void remove_queue(key &k)
+        {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            if (iter != _map_temp.end()) {
+                auto v = iter->second;
+                _map_temp.erase(iter);
+            }
+            lock.unlock();
+        }
+
+        bool add_visit(key& k, value& v) {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            value old_v;
+            map_iterator iter = _map_temp.find(k);
+            if (iter != _map_temp.end()) {
+                old_v = iter->second;
+                old_v += v;
+                _map_temp[k] = old_v;
+                return true;
+            } else {
+                _map_temp[k] = v;
+                return false;
+            }
+        }
+
+        bool contain_lock(key &k, value &v){
+//            std::mutex& _mutex_temp = GetMutexRef(k);   // wzy: 保险起见先上锁
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+//            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            if(iter != _map_temp.end()){
+                if(iter->second == v){
+                    return true;
+                } else return false;
+            }
+            return true;
+        }
+
+        // wzy: cas states
+        bool cas_element(key& k, value old_v, value new_v) {
+            std::mutex& _mutex_temp = GetMutexRef(k);
+            std::unordered_map<key, value>& _map_temp = GetMapRef(k);
+            std::unique_lock<std::mutex> lock(_mutex_temp);
+            map_iterator iter = _map_temp.find(k);
+            if (iter != _map_temp.end()) {
+                if (iter->second == old_v) {
+                    _map_temp[k] = new_v;
+                    return true;
+                } else return false;
+            }
+            return true;       // 不存在元素
+        }
+
+    protected:
         inline std::unordered_map<key, value>& GetMapRef(const key k){ return _map[(_hash(k) % _N)]; }
         inline std::unordered_map<key, value>& GetMapRef(const key k) const { return _map[(_hash(k) % _N)]; }
         inline std::mutex& GetMutexRef(const key k) { return _mutex[(_hash(k) % _N)]; }
@@ -340,6 +481,7 @@ protected:
         std::unordered_map<key, value> _map[_N];
         std::mutex _mutex[_N];
     };
+
 }; // NAMESPACE AUM
 
 
@@ -507,6 +649,22 @@ public:
     static MotMemoryDetail* GetMemSize(uint32_t* nodeCount, bool isGlobal);
     static MotSessionMemoryDetail* GetSessionMemSize(uint32_t* sessionCount);
     static MOT::RC ValidateCommit();
+
+    static MOT::RC SendInteractiveLockInfo(MOT::Row* currRow);  // wzy: 模拟事务执行层
+    static void UnlockInteractiveLockInfo(uint64_t csn, bool abort);   // wzy: 模拟事务执行层解锁
+
+    ////////////// PLOR ///////////////
+    static MOT::RC SwitchPlor();
+    static MOT::RC ValidateCommitPlor();            // wzy: Plor
+    static void UnlockInteractiveLockInfoPlor(uint64_t csn, bool abort);   // wzy: 模拟事务执行层解锁
+
+    ///////////// Wound-wait ////////////////
+    static MOT::RC SwitchWoundWait();
+    static MOT::RC ValidateCommitWoundWait();            // wzy: wound-wait
+    static void UnlockInteractiveLockInfoWoundWait(uint64_t csn, bool abort);   // wzy: 模拟事务执行层解锁
+
+    //////////////////////////////////
+
     static void RecordCommit(uint64_t csn);
     static MOT::RC Commit(uint64_t csn);  // Does both ValidateCommit and RecordCommit
     static void EndTransaction();
@@ -657,7 +815,6 @@ private:
 
 
 
-
 private:
     typedef typename std::unordered_set<MOT::TxnManager *> TxnBuffer;
     typedef typename TxnBuffer::iterator TxnBufferIter;
@@ -666,20 +823,381 @@ private:
     static bool timerStop;
     //ADDBY NUE Concurrency
     static volatile bool remote_execed, record_committed, remote_record_committed, is_current_epoch_abort;
+    static volatile bool lock_granted, lock_execed, lock_committed, deadlock_detectted; /// wzy :lockinfo
+    static std::atomic<uint64_t> lock_grant_num, lock_should_grant_num;
+
     static volatile uint64_t logical_epoch;
     static volatile uint64_t physical_epoch;
 
 public:
     static uint64_t max_length, pack_num;
     static std::default_random_engine random_mot;
-    static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> local_txn_counters, local_txn_exc_counters,
-        local_txn_index,
-        record_commit_txn_counters, record_committed_txn_counters, remote_merged_txn_counters, remote_commit_txn_counters, 
+    static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> 
+        local_txn_counters, local_txn_exc_counters, local_txn_execed_counters, local_txn_committed_counters,
+        local_txn_index, record_commit_txn_counters, record_committed_txn_counters, remote_merged_txn_counters, remote_commit_txn_counters,
         remote_committed_txn_counters, limite_txn_num;
+
+    static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> local_lockinfo_counters, merge_lockinfo_counters, local_lockinfo_execed_counters;    /// wzy :lockinfo
     static std::map<uint64_t, std::unique_ptr<std::vector<MOT::Row*>>> remote_row_ptr_map;
     static aum::concurrent_unordered_map<std::string, std::string, std::string> insertSet;
     static aum::concurrent_unordered_map<std::string, std::string, std::string> insertSetForCommit;
     static aum::concurrent_unordered_map<std::string, std::string, std::string> abort_transcation_csn_set;
+
+
+    // wzy: 记录对应的tablename Rowid以及csn_server_id 队列和获取到锁的csn_server_id，用cv来唤醒
+    class LockRequestQueue;
+    class WaitForGraph;
+    class DynamicHotRow;
+    static aum::concurrent_unordered_map<std::string, std::shared_ptr<LockRequestQueue>, std::string>
+        row_lockrequest_map;
+
+    static aum::concurrent_unordered_map<std::string, std::string, std::string> epoch_lock_set;     // wzy: 优化
+
+    // wzy : csn + server id - row lock request queue 处理abort的交互型事务
+    static aum::concurrent_unordered_map<std::string, std::shared_ptr<std::vector<std::shared_ptr<LockRequestQueue>>>, std::string>
+        csn_requests_map;
+
+    // wzy: 快速中止事务
+    static aum::concurrent_unordered_map<std::string, std::shared_ptr<std::vector<std::string>>, std::string>
+        txn_rowid_map;
+
+    // wzy: 事务状态用于Wound-wait plus中 0-running 1-abort 2-CommitPhase
+    static aum::concurrent_unordered_map<uint64_t, int, std::string> txn_state_map_plor_;
+
+
+    // wzy: 记录已有LockRequest队列的rowid
+    static std::set<std::string> rowid_set;     // 去重   // delete
+    static std::vector<std::string> rowid_vec;  // 遍历   // delete
+    static std::mutex rowid_set_mutex;      // delete
+
+    // wzy: 等待图，解决死锁，上锁参考
+    static std::map<std::string, std::set<std::string>> wait_for;       // delete
+    static std::mutex wait_for_mutex;       // delete
+
+    static WaitForGraph wait_for_graph;
+    static aum::concurrent_unordered_map<std::string, std::string, std::string> deadlock_abort_set;        // 记录由死锁检测abort的事务tid
+
+    static std::set<TransactionId> active_txn_list;     /// wzy: 活跃事务id
+    static std::mutex active_txn_list_mutex;
+    static std::atomic<TransactionId> min_active_txn_id;      // wzy: 最小活跃事务id
+    static std::list<MOT::Row*> clean_row_list;             /// wzy: 记录有多版本的row
+    static std::unordered_map<std::string, std::list<MOT::Row*>::iterator> clean_row_list_map;        // 去重
+    static std::mutex clean_row_list_mutex;
+
+    static std::vector<std::shared_ptr<moodycamel::BlockingConcurrentQueue<std::shared_ptr<LockRequestQueue>>>> active_lock_queues;          // wzy: 分epoch记录活跃lock queue
+    static std::vector<std::shared_ptr<std::unordered_set<std::string>>> active_lock_queues_set;
+    static std::vector<std::mutex> active_lock_queues_mutex;
+
+    static uint64_t lock_thread_num;
+    static std::vector<std::shared_ptr<std::list<std::shared_ptr<MOTAdaptor::LockRequestQueue>>>> active_lock_list;         // wzy: 用于多线程
+    static std::vector<std::shared_ptr<std::unordered_map<std::shared_ptr<LockRequestQueue>, std::list<std::shared_ptr<LockRequestQueue>>::iterator>>> active_lock_list_set;
+    static std::vector<std::mutex> active_lock_list_mutex;
+    static std::atomic<uint64_t> active_lock_list_size;
+    static std::vector<bool> active_lock_list_exced;
+
+    static std::list<std::shared_ptr<LockRequestQueue>> active_queue_list;             /// wzy: 记录活跃的queue
+    static std::unordered_map<std::shared_ptr<LockRequestQueue>, std::list<std::shared_ptr<LockRequestQueue>>::iterator> active_queue_set;
+    static std::mutex active_queue_list_mutex;
+
+    static DynamicHotRow dynamic_hot_rows;
+
+    // wzy: recovery debug
+    static std::atomic<bool> isInited;
+    static std::atomic<bool> need_clean;
+
+    // wzy: 统计
+    static std::atomic<uint64_t> txn_total_epoch;
+    static std::atomic<uint64_t> txn_total_readCnt;
+    static std::atomic<uint64_t> txn_total_writeCnt;
+    static std::atomic<uint64_t> txn_total_hotCnt;
+    static std::atomic<uint64_t> txn_total_lockCnt;
+
+    // wzy: 30s statistics
+    static std::atomic<uint64_t> temp_commit_txn_num;
+    static std::atomic<uint64_t> txn_temp_total_time;
+    static std::atomic<uint64_t> txn_temp_total_readCnt;
+    static std::atomic<uint64_t> txn_temp_total_writeCnt;
+    static std::atomic<uint64_t> txn_temp_total_hotCnt;
+    static std::atomic<uint64_t> txn_temp_total_epoch;
+
+    static std::atomic<uint64_t> txn_total_switchTime;
+    static std::atomic<uint64_t> txn_total_read_lockTime;
+    static std::atomic<uint64_t> txn_total_write_lockTime;
+    static std::atomic<uint64_t> txn_total_validate_lockTime;
+    static std::atomic<uint64_t> txn_total_validate_hotOccTime;
+
+    static std::atomic<uint64_t> txn_total_switchCnt;
+    static std::atomic<uint64_t> txn_total_read_lockCnt;
+    static std::atomic<uint64_t> txn_total_write_lockCnt;
+    static std::atomic<uint64_t> txn_total_validate_lockCnt;
+    static std::atomic<uint64_t> txn_total_validate_hotOccCnt;
+
+    static std::atomic<uint64_t> txn_temp_total_switchTime;
+    static std::atomic<uint64_t> txn_temp_total_read_lockTime;
+    static std::atomic<uint64_t> txn_temp_total_write_lockTime;
+    static std::atomic<uint64_t> txn_temp_total_validate_lockTime;
+    static std::atomic<uint64_t> txn_temp_total_validate_hotOccTime;
+
+    static std::atomic<uint64_t> txn_temp_total_switchCnt;
+    static std::atomic<uint64_t> txn_temp_total_read_lockCnt;
+    static std::atomic<uint64_t> txn_temp_total_write_lockCnt;
+    static std::atomic<uint64_t> txn_temp_total_validate_lockCnt;
+    static std::atomic<uint64_t> txn_temp_total_validate_hotOccCnt;
+
+    static std::atomic<uint64_t> start_num_start_txn;
+    static std::atomic<uint64_t> start_num_txn_construct;
+
+    static std::atomic<uint64_t> pessimisitic_txn_num;              // 本地PCC事务
+
+    static std::atomic<uint64_t> start_txn_num;
+    static std::atomic<uint64_t> start_interactive_txn_num;
+    static std::atomic<uint64_t> commit_txn_num;                    // 本地非交互型事务
+    static std::atomic<uint64_t> commit_interactive_txn_num;        // 本地交互型事务
+    static std::atomic<uint64_t> commit_pcc_interactive_txn_num;
+    static std::atomic<uint64_t> txn_total_time;
+    static std::atomic<uint64_t> interactive_txn_total_time;
+    static std::atomic<uint64_t> interactive_pcc_txn_total_time;
+    static std::atomic<uint64_t> txn_abort_time;
+    static std::atomic<uint64_t> interactive_txn_abort_time;
+
+    static std::atomic<uint64_t> LockCheck_abort_num;
+    static std::atomic<uint64_t> Commit_abort_num;             // commit阶段的abort数
+    static std::atomic<uint64_t> DeadLock_abort_num;
+    static std::atomic<uint64_t> Abort_txn_num;
+    static std::atomic<uint64_t> Abort_interactive_txn_num;
+    static std::atomic<uint64_t> Abort_pcc_interactive_txn_num;
+    static std::atomic<uint64_t> Remote_Abort_interactive_txn_num;
+
+    static std::atomic<uint64_t> CommitPhase_abort_num;             // 记录abort的所有 txn
+    static std::atomic<uint64_t> CommitCheck_abort_num;             // commit阶段的abort数
+    static std::atomic<uint64_t> Abort_transcation_csn_set_abort_num;
+
+    static std::atomic<uint64_t> Remote_ValidateAndSetWriteForRemote_abort_num; // 远端验证abort
+    static std::atomic<uint64_t> Remote_CommitCheck_abort_num; // 远端验证abort
+
+
+    static std::atomic<uint64_t> CommitPhase_ValidateAndSetWriteForCommit_abort_num;
+    static std::atomic<uint64_t> CommitPhase_IsRowAvailable_abort_num;
+    static std::atomic<uint64_t> CommitPhase_origSentinel_abort_num;
+    static std::atomic<uint64_t> CommitLockCheck_IsRowAvailable_abort_num;
+
+    static std::atomic<uint64_t> Commit_abort_interactive_num;
+    static std::atomic<uint64_t> CommitPhase_abort_interactive_num;
+    static std::atomic<uint64_t> CommitCheck_abort_interactive_num;
+    static std::atomic<uint64_t> CommitCheck_deadlock_abort_interactive_num;
+    static std::atomic<uint64_t> ValidateReadInMergeForSnap_abort_interactive_num;
+    static std::atomic<uint64_t> ValidateReadInMerge_abort_interactive_num;
+    static std::atomic<uint64_t> InsertTxntoLocalChangeSet_abort_interactive_num;
+    static std::atomic<uint64_t> Abort_transcation_csn_set_abort_interactive_num;
+
+    static std::atomic<uint64_t> CommitPhase_ValidateAndSetWriteForCommit_abort_interactive_num;
+    static std::atomic<uint64_t> CommitPhase_IsRowAvailable_abort_interactive_num;
+    static std::atomic<uint64_t> CommitPhase_origSentinel_abort_interactive_num;
+
+    static std::atomic<uint64_t> Switch_validation_abort_num;
+    static std::atomic<uint64_t> Switch_validation_occ_abort_num;
+    static std::atomic<uint64_t> Switch_validation_pcc_abort_num;
+
+    // Silo abort统计
+    static std::atomic<uint64_t> Silo_validation_abort_num;
+    static std::atomic<uint64_t> Silo_quick_validation_abort_num;
+    static std::atomic<uint64_t> Silo_lockheader_abort_num;
+    static std::atomic<uint64_t> Silo_lockheader_abort_by_interactive_num;
+    static std::atomic<uint64_t> Silo_write_validation_abort_num;
+    static std::atomic<uint64_t> Silo_read_validation_abort_num;
+
+    //LOCKINFO 上锁请求添加成功和解锁统计
+    static std::atomic<uint64_t> local_lock_num;
+    static std::atomic<uint64_t> remote_lock_num;
+    static std::atomic<uint64_t> local_unlock_num;
+    static std::atomic<uint64_t> remote_unlock_num;
+    static std::atomic<uint64_t> send_lock_num;
+    static std::atomic<uint64_t> receive_lock_num;
+
+
+    //////////////////////////////////////////////////
+    // wzy: 添加全局活跃事务
+    static void AddActiveTxnRow(TransactionId tid, MOT::Row* row) {
+        std::lock_guard<std::mutex> txn_lock(active_txn_list_mutex);
+        active_txn_list.insert(tid);
+    }
+
+    static void AddCleanRow(MOT::Row* row) {
+        std::lock_guard<std::mutex> row_lock(clean_row_list_mutex);
+        auto table_name = row->GetTable()->GetLongTableName();
+        auto tmp_rowid = table_name + ":" + to_string(row->GetRowId());
+        if (!clean_row_list_map.count(tmp_rowid)) {
+            clean_row_list.push_back(row);
+            clean_row_list_map[tmp_rowid] = std::prev(clean_row_list.end());
+        }
+    }
+
+    // wzy: 添加活跃queue，内部判断request queue的请求 > 0，去重，有问题
+    static void AddEpochActiveQueue(std::shared_ptr<LockRequestQueue> &queue, uint64_t epoch) {
+        uint64_t epoch_mod = epoch % 2;
+        std::lock_guard<std::mutex> lock(active_lock_queues_mutex[epoch_mod]);
+        if (active_lock_queues_set[epoch_mod]->count(queue->m_row_id) == 0 && !queue->empty()) {
+            active_lock_queues[epoch_mod]->enqueue(queue);
+            active_lock_queues[epoch_mod]->enqueue(std::shared_ptr<LockRequestQueue>());
+            active_lock_queues_set[epoch_mod]->insert(queue->m_row_id);
+        }
+    }
+    // wzy: 清空活跃queue，有问题
+    static void ClearEpochActiveQueue(uint64_t epoch) {
+        uint64_t epoch_mod = epoch % 2;
+        std::lock_guard<std::mutex> lock(active_lock_queues_mutex[epoch_mod]);
+        active_lock_queues_set[epoch_mod]->clear();
+    }
+
+    static uint64_t GetActiveQueueNum(uint64_t n) {
+        return active_lock_list_size.load();
+    }
+
+    static void SetActiveLockListExced(uint64_t id, bool value) {
+        active_lock_list_exced[id] = value;
+    }
+
+    static bool IsActiveLockListExced(uint64_t id) {
+        return active_lock_list_exced[id];
+    }
+
+    static bool IsAllActiveLockListExced() {
+        for (int i = 0; i < lock_thread_num; i++) {
+            if (!active_lock_list_exced[i]) return false;
+        }
+        return true;
+    }
+
+    // wzy: 添加活跃queue，多线程
+    static void AddActiveQueue(std::shared_ptr<LockRequestQueue> &queue, uint64_t id) {
+        id = id % lock_thread_num;
+        std::lock_guard<std::mutex> queue_lock(active_lock_list_mutex[id]);
+        if (!active_lock_list_set[id]->count(queue)) {
+            active_lock_list[id]->push_back(queue);
+            auto iter = std::prev(active_lock_list[id]->end());     // iter为空？
+            active_lock_list_set[id]->emplace(queue, iter);
+            active_lock_list_size.fetch_add(1);
+        }
+    }
+
+    // wzy: 移除活跃queue，多线程
+    static void RemoveActiveQueue(std::shared_ptr<LockRequestQueue> &queue, uint64_t id) {
+        id = id % lock_thread_num;
+        std::lock_guard<std::mutex> queue_lock(active_lock_list_mutex[id]);
+        if (queue->lock_request_queue_.empty()) {
+            auto iter = active_lock_list_set[id]->find(queue);
+            if (iter != active_lock_list_set[id]->end()) {
+                active_lock_list[id]->erase(iter->second);
+                active_lock_list_set[id]->erase(iter);
+                active_lock_list_size.fetch_sub(1);
+            }
+        }
+    }
+
+    // wzy: 添加活跃queue
+    static void AddActiveQueue(std::shared_ptr<LockRequestQueue> &queue) {
+        std::lock_guard<std::mutex> queue_lock(active_queue_list_mutex);
+        if (!active_queue_set.count(queue)) {
+            active_queue_list.push_back(queue);
+            active_queue_set[queue] = std::prev(active_queue_list.end());
+        }
+    }
+
+    // TODO: tmp_vec->push_back(queue)并发问题
+    // wzy: 加入csn - request queue
+    static void AddCsnRequestQueue(std::string& csn, const std::shared_ptr<MOTAdaptor::LockRequestQueue> &queue) {
+//        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> tmp_vec = nullptr;
+//        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> new_vec = nullptr;
+//        if (!MOTAdaptor::csn_requests_map.get_element(csn, tmp_vec) || !tmp_vec){    // 未找到则创建新lock request
+//            new_vec = std::make_shared<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>>();
+//        }
+//        if(MOTAdaptor::csn_requests_map.get_or_create_queue(csn, tmp_vec, new_vec) && tmp_vec) {
+//            if (queue) tmp_vec->push_back(queue);
+//        }
+//        new_vec.reset();
+//        tmp_vec = nullptr;
+
+        // TODO: 插入txn_rowid_map
+        if (queue) txn_rowid_map.insert_vector(csn, queue->m_row_id);
+//        std::shared_ptr<std::vector<std::string>> tmp_vec_1 = nullptr;
+//        std::shared_ptr<std::vector<std::string>> new_vec_1 = nullptr;
+//        if (!MOTAdaptor::txn_rowid_map.get_element(csn, tmp_vec_1) || !tmp_vec_1){    // 未找到则创建新lock request
+//            new_vec_1 = std::make_shared<std::vector<std::string>>();
+//        }
+//        if(MOTAdaptor::txn_rowid_map.get_or_create_queue(csn, tmp_vec_1, new_vec_1) && tmp_vec_1) {
+//            if (queue) tmp_vec_1->push_back(queue->m_row_id);
+//        }
+//        new_vec_1.reset();
+//        tmp_vec_1.reset();
+    }
+
+    // wzy: 移除活跃queue
+    static void RemoveActiveQueue(std::shared_ptr<LockRequestQueue> &queue) {
+        std::lock_guard<std::mutex> queue_lock(active_queue_list_mutex);
+        if (queue->lock_request_queue_.empty()) {
+            auto iter = active_queue_set.find(queue);
+            active_queue_list.erase(iter->second);
+            active_queue_set.erase(iter);
+        }
+    }
+
+    static bool IsRowAvailable(string &rowid, uint64_t &tid, string &csn, string &res) {
+        uint64_t epoch_mod = GetLogicalEpoch() % (UINT64_MAX - 1);
+        std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
+        MOTAdaptor::row_lockrequest_map.get_element(rowid, tmp_queue);
+        // if (tmp_queue && !tmp_queue->available_row(rowid, csn)) return false;
+        // 已经被锁则abort
+        if (cc_mode == 1) {
+            if (tmp_queue && !tmp_queue->available_row(rowid, csn, res, epoch_mod)) return false;
+            return MOTAdaptor::epoch_lock_set.contain_lock(rowid, csn);
+        }
+        else if (cc_mode == 2 || cc_mode == 3 || cc_mode == 4) {
+            if (tmp_queue && !tmp_queue->AvailableRowPlor(rowid, tid, csn, res)) return false;
+            return true;
+        }
+    }
+
+    static bool IsRowAvailable(string &rowid, string &csn, string &res) {
+        uint64_t epoch_mod = GetLogicalEpoch() % (UINT64_MAX - 1);
+        std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
+        MOTAdaptor::row_lockrequest_map.get_element(rowid, tmp_queue);
+        // if (tmp_queue && !tmp_queue->available_row(rowid, csn)) return false;
+        // 已经被锁则abort
+        if (tmp_queue && !tmp_queue->available_row(rowid, csn, res, epoch_mod)) return false;
+        return MOTAdaptor::epoch_lock_set.contain_lock(rowid, csn);   
+    }
+
+    // TODO: wzy 测试
+    static void EpochCleanVersion() {
+        TransactionId min_active_txn = INT64_MAX_VALUE;
+        if (!active_txn_list.empty()) {
+            min_active_txn = *MOTAdaptor::active_txn_list.begin();
+        }
+        std::unique_lock<std::mutex> row_lock(clean_row_list_mutex);
+        // 更新最小活跃txn id，并进行清除
+        for (auto row : clean_row_list) {
+            row->GetRowHeader()->CleanupVersions(min_active_txn);
+        }
+        row_lock.unlock();
+        SetNeedClean(false);
+    }
+
+    static void RemoveActiveTxn(TransactionId tid) {
+        std::lock_guard<std::mutex> txn_lock(active_txn_list_mutex);
+        active_txn_list.erase(tid);
+        if (min_active_txn_id.load() >= tid) SetNeedClean(true);
+//        EpochCleanVersion();    // 测试
+    }
+
+    static void AddActiveTxn(TransactionId tid) {
+        // recovery 会空转生成多个tid = 0的事务，并且之后不会提交
+        std::lock_guard<std::mutex> txn_lock(active_txn_list_mutex);
+        if (tid != 0) {
+            active_txn_list.insert(tid);
+            if (min_active_txn_id.load() == 0 && tid != 0) min_active_txn_id.store(tid);
+        }
+    }
+
 
 
     static void SetTimerStop(bool value) {timerStop = value;}
@@ -687,7 +1205,27 @@ public:
     
     static bool IsRemoteExeced() {return remote_execed;}
     static void SetRemoteExeced(bool value) {remote_execed = value;}
-    
+
+    // wzy: 本地和远端锁已插入
+    static bool IsLockExeced() {return lock_execed;}
+    static void SetLockExeced(bool value) {lock_execed = value;}
+
+    // wzy:
+    static bool IsLockGranted() {return lock_granted;}
+    static void SetLockGranted(bool value) {lock_granted = value;}
+
+    // wzy:
+    static bool IsDeadLockDetected() {return deadlock_detectted;}
+    static void SetDeadLockDetected(bool value) {deadlock_detectted = value;}
+
+    // wzy:
+    static bool IsNeedClean() {return need_clean.load();}
+    static void SetNeedClean(bool value) {need_clean.store(value);}
+
+    // wzy:
+    static bool IsLockCommitted(){ return lock_committed;}
+    static void SetLockCommitted(bool value){ lock_committed = value;}
+
     static bool IsRecordCommitted(){ return record_committed;}
     static void SetRecordCommitted(bool value){ record_committed = value;}
     
@@ -705,10 +1243,65 @@ public:
     static uint64_t AddLogicalEpoch(){ return ++ logical_epoch;}
     static uint64_t GetLogicalEpoch(){ return logical_epoch;}
 
-    static uint64_t IncLocalTxnCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_counters[epoch_mod % max_length])[index]->fetch_add(ADD_NUM);}
-    static uint64_t DecLocalTxnCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_counters[epoch_mod % max_length])[index]->fetch_sub(ADD_NUM);}
-    static uint64_t DecExeCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_counters[epoch_mod % max_length])[index]->fetch_sub(1);}
-    static uint64_t DecComCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_counters[epoch_mod % max_length])[index]->fetch_sub(MOD_NUM);}
+
+    static uint64_t IncLocalTxnCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+
+    // wzy:
+    static uint64_t IncLocalLockinfoCounters(uint64_t epoch_mod, uint64_t index){ return (*local_lockinfo_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t IncLocalLockinfoExecedCounters(uint64_t epoch_mod, uint64_t index){ return (*local_lockinfo_execed_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t GetLocalLockinfoExecedCounters(uint64_t epoch_mod) {
+        uint64_t ans = 0;
+        epoch_mod %= max_length;
+        for(int i = 0; i < (int)pack_num; i ++){
+            ans += (*local_lockinfo_execed_counters[epoch_mod])[i]->load();
+        }
+        return ans;
+    }
+    static uint64_t GetLocalLockinfoCounters(uint64_t epoch_mod){
+        uint64_t ans = 0;
+        epoch_mod %= max_length;
+        for(int i = 0; i < (int)pack_num; i ++){
+            ans += (*local_lockinfo_counters[epoch_mod])[i]->load();
+        }
+        return ans;
+    }
+    static bool IsLocalLockinfoCountersExced(uint64_t epoch_mod){
+        return GetLocalLockinfoExecedCounters(epoch_mod) >= GetLocalLockinfoCounters(epoch_mod);
+    }
+    static uint64_t GetLockGrantedNum() {return lock_grant_num.load();}
+    static void SetLockGrantedNum(uint64_t num) {lock_grant_num.store(num);}
+    static void AddLockGrantedNum(){lock_grant_num.fetch_add(1);}
+    static uint64_t GetShouldLockGrantedNum() {return lock_should_grant_num.load();}
+    static void SetShouldLockGrantedNum(uint64_t num) {lock_should_grant_num.store(num);}
+
+    ////////////
+
+
+    static uint64_t IncLocalExecedCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_execed_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t IncLocalCommittedCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_committed_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t GetLocalExecedCounters(uint64_t epoch_mod) {
+        uint64_t ans = 0;
+        epoch_mod %= max_length;
+        for(int i = 0; i < (int)pack_num; i ++){
+            ans += (*local_txn_execed_counters[epoch_mod])[i]->load();
+        }
+        return ans;
+    }
+
+    static uint64_t GetLocalCommittedCounters(uint64_t epoch_mod) {
+        uint64_t ans = 0;
+        epoch_mod %= max_length;
+        for(int i = 0; i < (int)pack_num; i ++){
+            ans += (*local_txn_committed_counters[epoch_mod])[i]->load();
+        }
+        return ans;
+    }
+    static bool IsLocalTxnCountersExced(uint64_t epoch_mod){
+        return GetLocalExecedCounters(epoch_mod) >= GetLocalTxnCounters(epoch_mod);
+    }
+    static bool IsLocalTxnCountersCommitted(uint64_t epoch_mod){
+        return GetLocalCommittedCounters(epoch_mod) >= GetLocalTxnCounters(epoch_mod);
+    }
     static bool IsLocalTxnCountersExcEqualZero(uint64_t epoch_mod){
         epoch_mod %= max_length;
         for(int i = 0; i < (int)pack_num; i ++){
@@ -732,9 +1325,9 @@ public:
         return ans;
     }
 
+
     static void SetLocalTxnExcCounters(uint64_t epoch_mod, uint64_t index, uint64_t value){ (*local_txn_exc_counters[epoch_mod % max_length])[index]->store(value);}
     static uint64_t IncLocalTxnExcCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_exc_counters[epoch_mod % max_length])[index]->fetch_add(1);}
-    static uint64_t DecLocalTxnExcCounters(uint64_t epoch_mod, uint64_t index){ return (*local_txn_exc_counters[epoch_mod % max_length])[index]->fetch_sub(1);}
     static uint64_t GetLocalTxnExcCounters(uint64_t epoch_mod){
         uint64_t ans = 0;
         epoch_mod %= max_length;
@@ -751,6 +1344,15 @@ public:
         return ans;
     }
 
+    // wzy:
+    static uint64_t IncMergeLockinfoCounters(uint64_t epoch_mod, uint64_t index){ return (*merge_lockinfo_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t GetMergeLockinfoCounters(uint64_t epoch_mod){
+        uint64_t ans = 0;
+        epoch_mod %= max_length;
+        for(int i = 0; i < (int)pack_num; i ++) ans += (*merge_lockinfo_counters[epoch_mod])[i]->load();
+        return ans;
+    }
+
     static void SetRecordCommittedTxnCounters(uint64_t epoch_mod, uint64_t index, uint64_t value){ (*record_committed_txn_counters[epoch_mod % max_length])[index]->store(value);}
     static uint64_t IncRecordCommittedTxnCounters(uint64_t epoch_mod, uint64_t index){ return (*record_committed_txn_counters[epoch_mod % max_length])[index]->fetch_add(1);}
     static uint64_t GetRecordCommittedTxnCounters(uint64_t epoch_mod){ 
@@ -760,7 +1362,9 @@ public:
         return ans;
     }
 
-    static uint64_t IncLocalTxnIndex(uint64_t epoch_mod, uint64_t index){ return (*local_txn_index[epoch_mod % max_length])[index]->fetch_add(1);}
+    static uint64_t IncLocalTxnIndex(uint64_t epoch_mod, uint64_t index){
+        return (*local_txn_index[epoch_mod % max_length])[index]->fetch_add(1);
+    }
 
     static void SetRemoteMergedTxnCounters(uint64_t epoch_mod, uint64_t index, uint64_t value){ (*remote_merged_txn_counters[epoch_mod % max_length])[index]->store(value);}
     static uint64_t IncRemoteMergedTxnCounters(uint64_t epoch_mod, uint64_t index){ return (*remote_merged_txn_counters[epoch_mod % max_length])[index]->fetch_add(1);}
@@ -802,9 +1406,12 @@ public:
 
     static uint64_t _max_length, _pack_num;
     static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> txn_num_ptrs,
-        packd_txn_num_ptrs, write_abort_before_send_txn_num, 
+        write_abort_before_send_txn_num,
         write_abort_after_send_txn_num, total_abort_txn_num, read_abort_txn_num, read_committed_txn_num, write_committed_txn_num, 
-        read_total_txn_num, write_total_txn_num, pack_txn_num;
+        read_total_txn_num, write_total_txn_num, pack_txn_num, packd_txn_num_ptrs;
+
+    /// wzy: lockinfo
+    static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>>  lockinfo_num_ptrs, packd_lockinfo_num_ptrs, pack_lockinfo_num;
 
     static void Init(uint64_t pack_num, uint64_t length);
     
@@ -823,6 +1430,13 @@ public:
         return ans;
     }
 
+    // wzy:
+    static uint64_t LoadLockinfoSet(uint64_t epoch) {
+        uint64_t ans = 0, epoch_mod = epoch % _max_length;
+        for(int i = 0; i < (int)_pack_num; i ++)
+            ans += (*lockinfo_num_ptrs[epoch_mod])[i]->load();
+        return ans;
+    }
 
     static uint64_t LoadTotalAbortTxnNum(uint64_t epoch) {
         uint64_t ans = 0, epoch_mod = epoch % _max_length;
@@ -880,6 +1494,15 @@ public:
         return ans;
     }
 
+    // wzy:
+    static uint64_t LoadPackLockinfoNum(uint64_t epoch)
+    {
+        uint64_t ans = 0, epoch_mod = epoch % _max_length;
+        for (int i = 0; i < (int)_pack_num; i++)
+            ans += (*pack_lockinfo_num[epoch_mod])[i]->load();
+        return ans;
+    }
+
     static uint64_t LoadWriteTotalTxnNum(uint64_t epoch) {
         uint64_t ans = 0, epoch_mod = epoch % _max_length;
         for(int i = 0; i < (int)_pack_num; i ++)
@@ -894,6 +1517,14 @@ public:
         return ans;
     }
 
+    // wzy: lockinfo packed_lockinfo_num_ptrs
+    static uint64_t LoadPackedLockinfoNum(uint64_t epoch) {
+        uint64_t ans = 0, epoch_mod = epoch % _max_length;
+        for(int i = 0; i < (int)_pack_num; i ++)
+            ans += (*packd_lockinfo_num_ptrs[epoch_mod])[i]->load();
+        return ans;
+    }
+
     static uint64_t LoadShouldSendTxnNum(uint64_t epoch) {
         if(is_sync_exec) {
             // if(LoadChangeSet(epoch) < LoadReadCommittedTxnNum(epoch) - (LoadTotalAbortTxnNum(epoch) - LoadWriteAbortAfterSendTxnNum(epoch))) {
@@ -905,20 +1536,47 @@ public:
         else 
             return LoadChangeSet(epoch);
     }
+
+    // wzy:
+    static uint64_t LoadShouldSendLockinfoNum(uint64_t epoch) {
+         return LoadLockinfoSet(epoch);
+    }
+
     static uint64_t LoadShouldExecTxnNum(uint64_t epoch) {// 只在 is_sync_exec中使用
         // if(LoadChangeSet(epoch) < LoadReadCommittedTxnNum(epoch) - (LoadTotalAbortTxnNum(epoch) - LoadWriteAbortAfterSendTxnNum(epoch))) {
         //     return MOTAdaptor::GetLocalTxnExcCounters();
         // }
-        return LoadChangeSet(epoch) - LoadReadCommittedTxnNum(epoch) - 
-            (LoadTotalAbortTxnNum(epoch) - LoadWriteAbortAfterSendTxnNum(epoch));
+        if(is_sync_exec)
+            return LoadChangeSet(epoch) - LoadReadCommittedTxnNum(epoch) - 
+                (LoadTotalAbortTxnNum(epoch) - LoadWriteAbortAfterSendTxnNum(epoch));
+        else return LoadChangeSet(epoch);
     }
 
     static bool IsCurrentEpochFinished(uint64_t epoch) {
+        usleep(200);
         return ((LoadPackedTxnNum(epoch) >= LoadShouldSendTxnNum(epoch)) &&  epoch < MOTAdaptor::GetPhysicalEpoch());
+    }
+
+    // wzy:
+    static bool IsCurrentEpochFinishedInteractive(uint64_t epoch) {
+        usleep(200);
+        bool flag = ((LoadPackedTxnNum(epoch) >= LoadShouldSendTxnNum(epoch)) &&  epoch < MOTAdaptor::GetPhysicalEpoch());
+        return flag && (LoadPackedLockinfoNum(epoch) >= LoadShouldSendLockinfoNum(epoch));
     }
 
     static bool TryAddNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
         (*(txn_num_ptrs[epoch_num % _max_length]))[index]->fetch_add(value);
+        return true;
+    }
+
+    // wzy:
+    static bool TryAddLockinfoNum(uint64_t epoch_num, uint64_t index, uint64_t value)
+    {
+        (*(lockinfo_num_ptrs[epoch_num % _max_length]))[index]->fetch_add(value);
+        return true;
+    }
+    static bool AddPackedLockinfoNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
+        (*(packd_lockinfo_num_ptrs[epoch_num % _max_length]))[index]->fetch_add(value);
         return true;
     }
 
@@ -927,20 +1585,14 @@ public:
         return true;
     }
 
-    static bool SubNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
-        (*(txn_num_ptrs[epoch_num % _max_length]))[index]->fetch_sub(value);
-        return true;
-    }
-
+    // packd_txn_num_ptrs
     static bool AddPackedNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
         (*(packd_txn_num_ptrs[epoch_num % _max_length]))[index]->fetch_add(value);
         return true;
     }
 
-    static bool SubPackedNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
-        (*(packd_txn_num_ptrs[epoch_num % _max_length]))[index]->fetch_sub(value);
-        return true;
-    }
+
+
 
     static void ClearMergeEpochState() {
         remote_row_ptr_map.clear();
@@ -948,9 +1600,21 @@ public:
         insertSetForCommit.clear();
         abort_transcation_csn_set.clear();
         remote_execed = false;
+        // wzy: lockinfo
+        lock_granted = false;
+        lock_execed = false;
+        lock_committed = true;
+        lock_grant_num.store(0);
+        lock_should_grant_num.store(0);
+        deadlock_detectted = true;
+        epoch_lock_set.clear();
+
         auto epoch = logical_epoch % max_length;
         for(int i = 0; i <= (int)pack_num; i++) {
             (*limite_txn_num[epoch])[i]->store(0);
+        }
+        for (int i = 0; i < lock_thread_num; i++) {
+            active_lock_list_exced[i] = false;
         }
     }
 
@@ -979,29 +1643,42 @@ public:
             (*write_total_txn_num[epoch_mod])[i]->store(0);
             (*pack_txn_num[epoch_mod])[i]->store(0);
 
+            /// wzy: lockinfo
+            (*local_lockinfo_counters[epoch_mod])[i]->store(0);
+            (*lockinfo_num_ptrs[epoch_mod])[i]->store(0);
+            (*packd_lockinfo_num_ptrs[epoch_mod])[i]->store(0);
+            (*pack_lockinfo_num[epoch_mod])[i]->store(0);
+            (*merge_lockinfo_counters[epoch_mod])[i]->store(0);
         }
     }
     
     static bool InsertTxntoLocalChangeSet(MOT::TxnManager* txMan, const uint64_t& index_pack, const uint64_t& index_unique);
+    // wzy:
+    static bool InsertTxntoLocalChangeSet2(MOT::TxnManager* txMan, const uint64_t& index_pack, const uint64_t& index_unique);
+    static bool InsertTxntoLocalLockInfo(MOT::TxnManager* txMan, const uint64_t& index_pack, const uint64_t& index_unique, const bool& lock, MOT::Row* currRow);
     static bool TryIncLocalChangeSetNum(uint64_t epoch, uint64_t index_pack, uint64_t value);
     static bool IncLocalChangeSetNum(uint64_t epoch, uint64_t index_pack, uint64_t value);
-    static bool DecLocalChangeSetNum(uint64_t epoch, uint64_t index_pack, uint64_t value);
     static bool InsertRowToSet(MOT::TxnManager* txMan, void* txn_void, const uint64_t& index_pack, const uint64_t& index_unique);
     static bool InsertTxnIntoRecordCommitQueue(MOT::TxnManager* txMan, void* txn_void, MOT::RC &rc);
     static void LocalTxnSafeExit(const uint64_t& index_pack, void* txn_void);
     static void Output(std::string v);
     static void Merge(MOT::TxnManager* txMan, uint64_t& index_pack);
     static void Commit(MOT::TxnManager* txMan, uint64_t& index_pack);
-    static void EnqueueEmpty(uint64_t index);
-
     
     
     static std::unique_ptr<std::atomic<uint64_t>> should_receive_pack_num, online_server_num;
     static std::vector<std::unique_ptr<std::atomic<uint64_t>>> is_server_online;
     static std::vector<std::vector<std::unique_ptr<std::atomic<uint64_t>>>> 
         received_pack_num, received_txn_num, should_receive_txn_num;
-    static std::vector<std::unique_ptr<std::atomic<uint64_t>>> 
-        received_total_pack_num, received_total_txn_num;
+
+    /// wzy: lockinfo
+    static std::vector<std::vector<std::unique_ptr<std::atomic<uint64_t>>>> should_receive_lockinfo_num, received_lockinfo_num;
+
+    static std::vector<std::unique_ptr<std::atomic<uint64_t>>>
+    received_total_pack_num, received_total_txn_num;
+
+    /// wzy: lockinfo
+    static std::vector<std::unique_ptr<std::atomic<uint64_t>>> received_total_lockinfo_num;
 
     static uint64_t AddShouldReceiveTxnNum(uint64_t epoch, uint64_t index, uint64_t value) {
         return should_receive_txn_num[epoch % _max_length][index]->fetch_add(value);
@@ -1009,9 +1686,29 @@ public:
     static void StoreShouldReceiveTxnNum(uint64_t epoch, uint64_t index, uint64_t value) {
         should_receive_txn_num[epoch % _max_length][index]->store(value);
     }
+    // wzy:
+    static void StoreShouldReceiveLockinfoNum(uint64_t epoch, uint64_t index, uint64_t value) {
+        should_receive_lockinfo_num[epoch % _max_length][index]->store(value);
+    }
+    static uint64_t GetShouldReceiveLockinfoNum(uint64_t epoch, uint64_t index) {
+        return should_receive_lockinfo_num[epoch % _max_length][index]->load();
+    }
+    // wzy:
+    static uint64_t GetShouldReceiveLockinfoNum(uint64_t epoch) {
+        epoch %= _max_length;
+        uint64_t ans = 0;
+        for(int i = 0; i < (int)received_pack_num[epoch].size(); i++) {
+            if(received_pack_num[epoch][i]->load() == 1)
+                ans += should_receive_lockinfo_num[epoch][i]->load();
+        }
+        return ans;
+    }
+
+
     static uint64_t GetShouldReceiveTxnNum(uint64_t epoch, uint64_t index) {
         return should_receive_txn_num[epoch % _max_length][index]->load();
     }
+
     static uint64_t GetShouldReceiveTxnNum(uint64_t epoch) {
         epoch %= _max_length;
         uint64_t ans = 0;
@@ -1021,6 +1718,7 @@ public:
         }
         return ans;
     }
+
 
     static uint64_t AddReceivedPackNum(uint64_t epoch, uint64_t index, uint64_t value) {
         return received_pack_num[epoch % _max_length][index]->fetch_add(value);
@@ -1044,12 +1742,30 @@ public:
     static uint64_t AddReceivedTxnNum(uint64_t epoch, uint64_t index, uint64_t value) {
         return received_txn_num[epoch % _max_length][index]->fetch_add(value);
     }
+    // wzy: 接收到的lockinfo计数
+    static uint64_t AddReceivedLockinfoNum(uint64_t epoch, uint64_t index, uint64_t value) {
+        return received_lockinfo_num[epoch % _max_length][index]->fetch_add(value);
+    }
+    static uint64_t GetReceivedLockinfoNum(uint64_t epoch, uint64_t index) {
+        return received_lockinfo_num[epoch % _max_length][index]->load();
+    }
+    static uint64_t GetReceivedLockinfoNum(uint64_t epoch) {
+        epoch %= _max_length;
+        uint64_t ans = 0;
+        for(int i = 0; i < (int)received_pack_num[epoch].size(); i++) {
+            if(received_pack_num[epoch][i]->load() == 1)
+                ans += received_lockinfo_num[epoch][i]->load();
+        }
+        return ans;
+    }
+
     static void StoreReceivedTxnNum(uint64_t epoch, uint64_t index, uint64_t value) {
         received_txn_num[epoch % _max_length][index]->store(value);
     }
     static uint64_t GetReceivedTxnNum(uint64_t epoch, uint64_t index) {
         return received_txn_num[epoch % _max_length][index]->load();
     }
+
     static uint64_t GetReceivedTxnNum(uint64_t epoch) {
         epoch %= _max_length;
         uint64_t ans = 0;
@@ -1058,6 +1774,13 @@ public:
                 ans += received_txn_num[epoch][i]->load();
         }
         return ans;
+    }
+
+    static uint64_t AddReceivedLockinfoNumTotal(uint64_t epoch, uint64_t value) {
+        return received_total_lockinfo_num[epoch % _max_length]->fetch_add(value);
+    }
+    static uint64_t GetReceivedLockinfoNumTotal(uint64_t epoch) {
+        return received_total_lockinfo_num[epoch % _max_length]->load();
     }
 
     static uint64_t AddReceivedPackNumTotal(uint64_t epoch, uint64_t value) {
@@ -1069,9 +1792,11 @@ public:
     static uint64_t AddReceivedTxnNumTotal(uint64_t epoch, uint64_t value) {
         return received_total_txn_num[epoch % _max_length]->fetch_add(value);
     }
+
     static uint64_t GetReceivedTxnNumTotal(uint64_t epoch) {
         return received_total_txn_num[epoch % _max_length]->load();
     }
+
 
     static uint64_t AddShouldReceivePackNum(uint64_t value) {
         return should_receive_pack_num->fetch_add(value);
@@ -1106,9 +1831,13 @@ public:
             received_pack_num[epoch][i]->store(0);
             received_txn_num[epoch][i]->store(0);
             should_receive_txn_num[epoch][i]->store(0);
+
+            received_lockinfo_num[epoch][i]->store(0);      /// wzy
+            should_receive_lockinfo_num[epoch][i]->store(0);        /// wzy
         }
         received_total_pack_num[epoch]->store(0);
         received_total_txn_num[epoch]->store(0);
+        received_total_lockinfo_num[epoch]->store(0);       /// wzy
     }
 
     static void SetServerOnLine(std::string ip) {
@@ -1155,7 +1884,1217 @@ public:
     static void SetCacheServerStored(uint64_t epoch, uint64_t value) {
         received_epoch[epoch % _max_length]->store(value);
     }
-    
+
+public:
+    //////////////// RL State List /////////////////
+
+    class RLState {
+    public:
+        uint64_t tid_;      // 查看tid是否能对应上
+        int action_;
+
+        int retry_cnt_;
+        uint64_t runtime_;
+        int read_cnt_;
+        int write_cnt_;
+        int hot_visited_;
+
+        RLState(uint64_t tid, uint64_t action, uint64_t retry_cnt, uint64_t runtime, uint64_t read_cnt, uint64_t write_cnt, uint64_t hot_visited)
+            :tid_(tid), action_(action), retry_cnt_(retry_cnt), runtime_(runtime), read_cnt_(read_cnt), write_cnt_(write_cnt), hot_visited_(hot_visited)
+        {}
+
+    };
+
+    ////////////////////////////////////////
+    // wzy : 上锁和死锁检测
+    class LockRequest {
+    public:
+        uint64_t server_id_;
+        uint64_t csn_;
+        uint64_t start_epoch_;
+        uint64_t commit_epoch_;
+        int retry_cnt_;
+        uint64_t score_;
+        std::string tid_;  // csn + serverid
+
+        std::string key_;
+        std::string table_name_;
+        LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+            : csn_(csn), server_id_(server_id), start_epoch_(start_epoch)
+        {
+            tid_ = to_string(csn_) + ":" + to_string(server_id_);
+            uint64_t f = UINT64_MAX - csn_;
+            score_ = 0;
+            score_ |= ((uint64_t)retry_cnt_ << 57);
+            score_ |= (f & 0x1FFFFFFFFFFFFFFF);
+        }
+        LockRequest(uint64_t server_id, uint64_t csn, uint64_t start_epoch, uint64_t commit_epoch)
+        {
+            server_id_ = server_id;
+            csn_ = csn;
+            start_epoch_ = start_epoch;
+            commit_epoch_ = commit_epoch;
+            tid_ = to_string(csn_) + ":" + to_string(server_id_);
+            uint64_t f = UINT64_MAX - csn_;
+            score_ = 0;
+            score_ |= ((uint64_t)retry_cnt_ << 57);
+            score_ |= (f & 0x1FFFFFFFFFFFFFFF);
+        }
+
+        LockRequest(MOT::TxnManager* txMan, uint32_t server_id)
+        {
+            server_id_ = server_id;
+            csn_ = txMan->pre_csn;
+            start_epoch_ = txMan->GetStartEpoch();
+            commit_epoch_ = txMan->GetCommitEpoch();
+            tid_ = to_string(csn_) + ":" + to_string(server_id_);
+            retry_cnt_ = txMan->retry_cnt;
+            uint64_t f = UINT64_MAX - csn_;
+//            score_ = (uint64_t ) retry_cnt_;
+            score_ |= ((uint64_t)retry_cnt_ << 57);
+            score_ |= (f & 0x1FFFFFFFFFFFFFF);           // Use the lower 57 bits for (max - csn_)
+        }
+    };
+
+    // wzy: LockRequestQueue
+    class LockRequestQueue {
+    public:
+        std::list<std::string> lock_request_string_queue_;            // ordered
+        std::list<std::shared_ptr<LockRequest>> lock_request_queue_;  // ordered
+        std::unordered_set<std::string> lock_request_queue_set_;        // 去重
+        std::unordered_map<std::string, std::list<std::shared_ptr<LockRequest>>::iterator> lock_request_queue_map_;        // 去重
+
+
+        std::condition_variable cv_;
+        std::mutex latch_;          // lock queue mutex
+
+        std::string grant_csn;    // epoch结束成功上锁的csn
+        std::shared_ptr<LockRequest> grant_request;
+        std::string m_grant_csn;  // 正在上锁的server id + csn
+        std::shared_ptr<LockRequest> m_grant_request;
+        std::string m_row_id;       // 当前queue对应的rowid
+
+        uint64_t epoch_;            // 当前锁开始生效的epoch(该epoch之后的会判定锁)
+
+        std::thread lock_thread_;
+        std::thread print_thread_;
+        bool ready;
+
+        std::atomic<uint64_t> request_num;        // request个数统计
+
+        // 不启动debug 线程
+        // LockRequestQueue()
+        //     : lock_thread_(&LockRequestQueue::processLockRequests, this),
+        //       print_thread_(&LockRequestQueue::processPrintRequests, this),
+        //       ready(false)
+        // {
+        //     lock_request_queue_ = std::list<std::shared_ptr<LockRequest>>();
+        //     grant_request = nullptr;
+        // }
+
+        uint64_t now_to_us(){
+            return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        }
+
+        ////////////////// PLOR //////////////////////
+        const static uint64_t INVALID_TID = 0;
+        std::list<std::shared_ptr<LockRequest>> reader_list_;  // 读者表       // 实现plor需要, 提交中的事务等待reader 表中tid小的提交后才能继续
+        std::unordered_map<uint64_t, std::list<std::shared_ptr<LockRequest>>::iterator> reader_list_map_;        // 读者去重
+
+        // helper
+        std::list<uint64_t> snapshot_reader_list_;
+        std::unordered_map<uint64_t, uint64_t> snapshot_reader_score_map_;
+        std::unordered_map<uint64_t, std::list<uint64_t>::iterator> snapshot_reader_list_map_;        // snapshot读者去重
+        ////
+
+        std::list<std::shared_ptr<LockRequest>> writer_list_;  // 读者表       // 实现plor需要, 提交中的事务等待reader 表中tid小的提交后才能继续
+        std::unordered_map<uint64_t, std::list<std::shared_ptr<LockRequest>>::iterator> writer_list_map_;        // 读者去重
+        std::mutex p_latch_;            // reader list mutex
+
+        std::atomic<uint64_t> writer_{INVALID_TID};               // 获得写锁
+        std::atomic<uint64_t> m_writer_{INVALID_TID};             // 备选获取写锁
+
+        std::atomic<uint64_t> writer_score_{INVALID_TID};                // 写锁的score
+        std::atomic<uint64_t> m_writer_score_{INVALID_TID};              // 备选写锁的score
+
+        std::atomic<bool> excl_sig{false};          // 升级为写锁(提交时候), 归latch 控制
+        std::atomic<uint64_t> excl_tid{INVALID_TID};          // 升级为写锁(提交时候), 归latch 控制
+
+        void SetExcl(uint64_t& tid) {
+            if (writer_.load() == tid) {
+                excl_sig.store(true);
+                excl_tid.store(tid);
+            }
+        }
+
+        bool LockRD(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+            if (tid == writer_.load()) return true;
+
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (reader_list_map_.count(tid)) return true;           // 重复则不管
+            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+            uint64_t tid_score = new_request->score_;
+
+
+            // switch阶段上读锁 采用no-wait
+            if (writer_.load() != INVALID_TID && switch_phase) {
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                return false;
+            }
+
+            // switch阶段上锁
+            if (IsSmallerThanWriter(tid, tid_score) && switch_phase) {
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                return false;
+            }
+
+            reader_list_.push_back(new_request);
+            reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
+            snapshot_reader_list_.push_back(tid);
+            snapshot_reader_score_map_[tid] = tid_score;
+            snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
+            lock.unlock();
+
+            uint64_t start_time = now_to_us();
+            // PLOR 算法，若当前reader tid < 写者tid，则写者abort
+            // 需要吗? 记录了读之后，需要检验是否要中止写锁吗?
+            while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段
+                lock.lock();
+                if (!excl_sig.load()) break;
+                if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
+                    AbortTransactinRequest(writer_.load());
+                }
+
+                if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                    RemoveReaderRequest(tid);
+                    RemoveWriterRequest(tid);
+                    return false;
+                }
+
+                if (now_to_us() - start_time > 3000000) {
+                    // MOT_LOG_INFO("LockRD() csn : %s , rowid : %s", s_tid.c_str(), row_id.c_str());
+                    return false;
+                }
+                lock.unlock();
+            }
+            return true;
+        }
+
+        bool LockWR(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
+            // 分配tid不相同，直接用uint64_t
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+            if (writer_.load() == tid) return true;
+
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+            uint64_t tid_score = new_request->score_;
+            if (tid_score > m_writer_score_) {
+                m_writer_ = tid;
+                m_writer_score_ = tid_score;
+            }
+            writer_list_.push_back(new_request);
+            writer_list_map_[tid] = std::prev(writer_list_.end());
+            request_num.fetch_add(1);
+            lock.unlock();
+
+            uint64_t start_time = now_to_us();
+
+            // PLOR 算法等待成功上锁后再继续执行
+            uint64_t expected = 0L;
+            if (!writer_.compare_exchange_weak(expected, tid)) {
+                while (writer_.load() != tid) {
+                    lock.lock();
+                    if (writer_.load() == INVALID_TID) writer_.store(tid);
+                    if (tid == writer_.load()) break;
+                    if (tid != writer_.load() && !IsSmallerThanWriter(tid, tid_score)) {
+                        AbortTransactinRequest(writer_.load());
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+                        return false;
+                    }
+                    lock.unlock();
+                    if (now_to_us() - start_time > 3000000) {
+                        // MOT_LOG_INFO("LockWR() csn : %s , rowid : %s", s_tid.c_str(), row_id.c_str());
+                        return false;
+                    }
+                }
+            }
+            writer_score_.store(tid_score);         // 自己获得锁
+            return true;
+        }
+
+        bool UnlockRD(std::string& row_id, uint64_t& tid) {
+            std::lock_guard<std::mutex> lock(p_latch_);
+            RemoveReaderRequest(tid);
+            return true;
+        }
+
+        bool UnlockWR(std::string& row_id, uint64_t& tid, std::string& res_tid, uint32_t& server_id) {
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            std::lock_guard<std::mutex> lock(p_latch_);
+            bool res = true;
+            if (writer_.load() == INVALID_TID || writer_.load() != tid) {
+                res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                res = false;            // 同一事务不同操作解锁同一行，可能遇到该情况
+            } else {
+                writer_.store(INVALID_TID);
+//                MOTAdaptor::epoch_lock_set.insert(row_id, s_tid);     // 先插入当前epoch有锁集, 需要吗?
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                // 消除exclusive模式
+                excl_sig = false;
+            }
+            if (writer_.load() == INVALID_TID) {
+                // 获取优先级最高的tid，获取写锁
+                if (!writer_list_.empty() && m_writer_.load() == INVALID_TID) {  // 如果队里有request，则取第一个作为grant
+                    // 找到最大的元素
+                    auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
+                    m_writer_.store((*max_element)->csn_);
+                    m_writer_score_.store((*max_element)->score_);
+                }
+                writer_score_.store(m_writer_score_.load());
+                writer_.store(m_writer_.load());
+            }
+            return res;
+        }
+
+        bool ValidateWR(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (writer_.load() != tid) return false;
+
+            SetExcl(tid);
+
+            std::list<uint64_t> snapshot_queue(snapshot_reader_list_);
+            std::unordered_map<uint64_t, uint64_t> snapshot_score_map(snapshot_reader_score_map_);
+
+            uint64_t start_time = now_to_us();
+            for (auto reader : snapshot_queue) {
+                uint64_t r_score = snapshot_score_map[reader];
+                if (reader == tid) continue;
+                if (IsSmallerThanWriter(reader, r_score)){
+                    AbortTransactinRequest(reader);
+                } else {
+                    // 等待该reader commit
+                    auto r = reader;
+                    while (r != tid && reader_list_map_.count(r)) {
+                        lock.unlock();
+                        if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                            lock.lock();
+                            RemoveReaderRequest(tid);
+                            RemoveWriterRequest(tid);
+                            lock.unlock();
+                            return false;
+                        }
+                        if (now_to_us() - start_time > 3000000) {
+                            return false;
+                        }
+                        lock.lock();
+                    }
+                }
+            }
+
+            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                return false;
+            }
+            return true;
+        }
+
+        // 对OCC写操作进行检测 -> 有读者则返回false
+        bool AvailableRowPlor(std::string& row_id, uint64_t& tid, std::string& s_tid, std::string& res)
+        {
+            std::lock_guard<std::mutex> lock(p_latch_);
+            bool result = false;
+            if (writer_.load() == tid) return true;         // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
+
+            if (!reader_list_.empty()) return false;        // 没有读者
+
+            // if (!excl_sig.load()) return true;      // 没有正在提交的写者?
+            if (writer_list_.size() <= 0)
+                return true;
+            if (writer_.load() == INVALID_TID || writer_.load() == tid) {
+                return true;
+            } else {
+                res = writer_.load();
+                result = false;
+            }
+            return result;
+        }
+
+        /////////////////// Wound-wait plus ////////////////////
+        std::atomic<uint64_t> reader_score_{INVALID_TID};       // 读者score最大值
+
+        // helper : writer > tid returns true
+        bool IsSmallerThanWriter(uint64_t& tid, uint64_t& tid_score) {
+            if (writer_score_.load() > tid_score) return true;
+            else if (writer_score_.load() == tid_score) {
+                if (writer_.load() < tid) return true;
+                else return false;
+            }
+            return false;
+        }
+
+        bool LockRD_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
+
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+            if (tid == writer_.load()) return true;
+
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (reader_list_map_.count(tid)) return true;           // 重复则不管
+            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+            uint64_t tid_score = new_request->score_;
+
+            // switch阶段上锁
+            if (IsSmallerThanWriter(tid, tid_score) && switch_phase) {
+                RemoveReaderRequest(tid);
+                RemoveWriterRequest(tid);
+                return false;
+            }
+
+            reader_list_.push_back(new_request);
+            reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
+            snapshot_reader_list_.push_back(tid);
+            snapshot_reader_score_map_[tid] = tid_score;
+            snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
+            lock.unlock();
+
+
+            if (writer_.load() != INVALID_TID) {
+                while (true) {
+                    lock.lock();
+                    if ((excl_sig.load() || IsSmallerThanWriter(tid, tid_score)) && switch_phase) return false;
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+                        return false;
+                    }
+                    uint64_t w = writer_.load();
+                    if (writer_.load() == INVALID_TID || (!IsSmallerThanWriter(tid, tid_score) && MOTAdaptor::txn_state_map_plor_.cas_element(w, 0, 1))) {
+                        AbortTransactinRequest(writer_.load());     // 中止writer，为了百分百保障高优先级事务成功
+                        break;
+                    }
+                    if (!excl_sig.load()) break;        // 未进入独占模式说明没有提交，未提交可以访问
+                    lock.unlock();
+                }
+            }
+            return true;
+        }
+
+        bool LockWR_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
+            // 分配tid不相同，直接用uint64_t
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            if (writer_.load() == tid) return true;
+
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+            uint64_t tid_score = new_request->score_;
+            if (tid_score > m_writer_score_) {
+                m_writer_ = tid;
+                m_writer_score_ = tid_score;
+            }
+            writer_list_.push_back(new_request);
+            writer_list_map_[tid] = std::prev(writer_list_.end());
+            request_num.fetch_add(1);
+            lock.unlock();
+
+            uint64_t expected = 0;
+            if (!writer_.compare_exchange_weak(expected, tid)) {
+                while (writer_.load() != tid) {
+                    lock.lock();
+                    uint64_t w = writer_.load();
+                    if (!IsSmallerThanWriter(tid, tid_score) && MOTAdaptor::txn_state_map_plor_.cas_element(w, 0, 1)) {
+                        AbortTransactinRequest(writer_.load());
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+                        return false;
+                    }
+                    lock.unlock();
+                }
+            }
+            writer_score_.store(tid_score);         // 自己获得锁
+            return true;
+        }
+
+        bool UnlockRD_WoundWait(std::string& row_id, uint64_t& tid) {
+            std::lock_guard<std::mutex> lock(p_latch_);
+            RemoveReaderRequest(tid);
+            if (reader_score_.load() == tid) {
+                // 找到最大score_
+                auto max_element = *std::max_element(reader_list_.begin(), reader_list_.end(), cmp);
+                reader_score_.store(max_element->score_);
+            }
+            return true;
+        }
+
+        bool UnlockWR_WoundWait(std::string& row_id, uint64_t& tid, std::string& res_tid) {
+            std::string s_tid = to_string(tid) + ":" + to_string(1);
+            std::lock_guard<std::mutex> lock(p_latch_);
+            bool res = true;
+            if (writer_.load() == INVALID_TID || writer_.load() != tid) {
+                res_tid = to_string(writer_.load()) + ":" + to_string(1);
+                RemoveWriterRequest(tid);
+                res = false;            // 同一事务不同操作解锁同一行，可能遇到该情况
+            } else {
+                writer_.store(INVALID_TID);
+//                MOTAdaptor::epoch_lock_set.insert(row_id, s_tid);     // 先插入当前epoch有锁集, 需要吗?
+                RemoveWriterRequest(tid);
+                // 消除exclusive模式
+                excl_sig = false;
+            }
+            if (writer_.load() == INVALID_TID) {
+                // 获取优先级最高的tid，获取写锁
+                if (!writer_list_.empty() && m_writer_.load() == INVALID_TID) {  // 如果队里有request，则取第一个作为grant
+                    // 找到最大的元素
+                    auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
+                    m_writer_.store((*max_element)->csn_);
+                    m_writer_score_.store((*max_element)->score_);
+                }
+                writer_score_.store(m_writer_score_.load());
+                writer_.store(m_writer_.load());
+            }
+            return res;
+        }
+
+        bool ValidateWR_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
+            uint64_t tid = txMan->GetCommitSequenceNumber();
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+            std::unique_lock<std::mutex> lock(p_latch_);
+            if (writer_.load() != tid) return false;
+            lock.unlock();
+
+            while (true) {
+                lock.lock();
+                if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                    RemoveReaderRequest(tid);
+                    RemoveWriterRequest(tid);
+                    return false;
+                }
+                if (writer_.load() != tid) return false;
+                if (reader_score_.load() <= writer_score_.load()) break;
+                lock.unlock();
+            }
+
+            if (excl_sig.load() && excl_tid.load() == tid) return true;
+            bool expected = false;
+            if(!excl_sig.compare_exchange_weak(expected, true)) return false;
+            excl_tid.store(tid);
+
+            for (uint64_t & reader : snapshot_reader_list_) {
+                uint64_t r_score = snapshot_reader_score_map_[reader];
+                if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                    RemoveReaderRequest(tid);
+                    RemoveWriterRequest(tid);
+                    return false;
+                }
+                if (reader == tid) continue;
+                if (reader != INVALID_TID && IsSmallerThanWriter(reader, r_score)) {
+                    AbortTransactinRequest(reader);
+                } else {
+                    // not happen
+                }
+            }
+            return true;
+        }
+
+        ///////////////////////////////////////////////
+
+        LockRequestQueue(std::string& row_id)
+        {
+            m_row_id = row_id;
+            ready = false;
+            epoch_ = UINT64_MAX;
+            lock_request_queue_ = std::list<std::shared_ptr<LockRequest>>();
+            lock_request_queue_set_ = std::unordered_set<std::string>();
+            lock_request_queue_map_ =  std::unordered_map<std::string, std::list<std::shared_ptr<LockRequest>>::iterator>();
+            m_grant_request = nullptr;
+            grant_request = nullptr;
+            request_num.store(0);
+        }
+
+        ~LockRequestQueue()
+        {
+            lock_request_queue_.clear();
+            lock_request_queue_set_.clear();
+            lock_request_queue_map_.clear();
+//            lock_thread_.join();
+        }
+
+        // 优化： 实时更新grant_csn，更新为最优先的request，其他的存在queue中
+        bool lock_row_remote(std::string& row_id, uint64_t server_id, uint64_t csn, uint64_t start_epoch, uint64_t commit_epoch)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            std::string tid = to_string(csn) + ":" + to_string(server_id);
+
+            if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
+                // temp queue做排序，防止迭代器失效
+//                std::list<std::shared_ptr<LockRequest>> temp_list = lock_request_queue_;
+//                temp_list.sort(cmp);
+//                m_grant_request.reset();
+//                m_grant_request = temp_list.front();
+//                m_grant_csn = m_grant_request->tid_;
+
+                // 找到最早的元素
+                auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                m_grant_request.reset();
+                m_grant_request = *max_element;
+                m_grant_csn = m_grant_request->tid_;
+            }
+            if (grant_csn == tid) return false;
+            if (lock_request_queue_map_.count(tid)) return false;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(server_id, csn, start_epoch, commit_epoch);
+            if (cmp(new_request, m_grant_request)) {
+                m_grant_csn = tid;
+                m_grant_request.reset();
+                m_grant_request = new_request;
+            }
+            lock_request_queue_.push_back(new_request);
+            lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());        // 插入迭代器
+            request_num.fetch_add(1);
+
+            if (grant_csn != "") MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);      // 添加边
+
+            return true;
+        }
+
+        // 优化：实时更新grant_csn，更新为最优先的request，其他的存在queue中
+        bool lock_row_local(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id)
+        {
+            std::string tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+            std::lock_guard<std::mutex> lock(latch_);
+
+            if (m_grant_csn.empty() && !lock_request_queue_.empty()) {  // 如果队里有request，则取第一个作为grant
+                // temp queue做排序，防止迭代器失效
+                // 找到最早的元素
+                auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                m_grant_request.reset();
+                m_grant_request = *max_element;
+                m_grant_csn = m_grant_request->tid_;
+            }
+            if (grant_csn == tid) return false;
+            if (lock_request_queue_map_.count(tid)) return false;           // 重复则不管
+
+            auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+            if (cmp(new_request, m_grant_request)) {
+                m_grant_csn = tid;
+                m_grant_request.reset();
+                m_grant_request = new_request;
+            }
+            lock_request_queue_.push_back(new_request);
+            lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());        // 插入迭代器
+
+            request_num.fetch_add(1);
+            if (grant_csn != "") MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);      // 添加边
+
+            return true;
+        }
+
+        bool get_grant_csn(std::string& tid)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            tid = grant_csn;
+            return !lock_request_queue_.empty();
+        }
+
+        bool unlock_row(std::string& row_id, std::string& tid, std::string& res_tid)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            if (grant_csn == "" || grant_csn != tid) {
+                res_tid = grant_csn;
+                if (tid == m_grant_csn) {
+                    m_grant_csn = "";
+                    m_grant_request.reset();
+                }
+                auto iter = lock_request_queue_map_.find(tid);
+                if (iter != lock_request_queue_map_.end()) {
+                    lock_request_queue_.erase(iter->second);
+                    lock_request_queue_map_.erase(iter);
+                    request_num.fetch_sub(1);
+                }
+                return false;     // 同一事务不同操作解锁同一行，可能遇到该情况
+            } else {
+                grant_csn = "";
+                MOTAdaptor::epoch_lock_set.insert(row_id, tid);     // 先插入当前epoch有锁集
+                auto iter = lock_request_queue_map_.find(tid);
+                if (iter != lock_request_queue_map_.end()) {
+                    lock_request_queue_.erase(iter->second);
+                    lock_request_queue_map_.erase(iter);
+                    request_num.fetch_sub(1);
+                }
+                grant_request.reset();
+                if (tid == m_grant_csn) {
+                    m_grant_csn = "";
+                    m_grant_request.reset();
+                }
+                // 消除生效epoch
+                epoch_ = UINT64_MAX;
+                return true;
+            }
+        }
+
+        // 返回false，则当前上锁的事务从tid返回
+        bool available_row(std::string& row_id, std::string& tid)
+        {
+            bool result = false;
+            if (lock_request_queue_.size() <= 0)
+                return true;
+            if (grant_csn == "" || grant_csn == tid) {
+                return true;
+            } else {
+                tid = grant_csn;
+                result = false;
+            }
+            return result;
+        }
+
+        // 带有epoch判断锁是否生效，返回false，则当前上锁的事务从tid返回
+        bool available_row(std::string& row_id, std::string& tid, std::string& res, uint64_t epoch)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            bool result = false;
+            if (epoch <= epoch_) return true;
+            if (lock_request_queue_.size() <= 0)
+                return true;
+            if (grant_csn == "" || grant_csn == tid) {
+                return true;
+            } else {
+                res = grant_csn;
+                result = false;
+            }
+            return result;
+        }
+
+        // 当前行是否被上锁
+        bool is_row_locked()
+        {
+            bool result = false;
+            if (lock_request_queue_.size() <= 0)
+                return true;
+            if (grant_csn == "") {
+                result = true;
+            } else {
+                result = false;
+            }
+            return result;
+        }
+
+        bool empty() {
+            return lock_request_queue_.size() <= 0;
+        }
+
+        void remove_lock_request(std::string& tid)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            if (tid == grant_csn) {
+                grant_csn = "";
+                grant_request.reset();
+            }
+            if(tid ==  m_grant_csn) {
+                m_grant_csn = "";
+                m_grant_request.reset();
+            }
+            auto iter = lock_request_queue_map_.find(tid);
+            if (iter != lock_request_queue_map_.end()) {
+                lock_request_queue_.erase(iter->second);
+                lock_request_queue_map_.erase(iter);
+                request_num.fetch_sub(1);
+            }
+        }
+
+        // 在完成上锁后，插入进wait_for
+        void generateWaitFor()
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            if (lock_request_queue_.size() <= 0) return;
+            for (auto & iter : lock_request_queue_) {
+                if (iter->tid_ == grant_csn) continue;
+                wait_for_graph.addEdge(iter->tid_, grant_csn);
+            }
+        }
+
+        static bool cmp(const std::shared_ptr<LockRequest> a, const std::shared_ptr<LockRequest> b)
+        {
+            // 排序
+            if(b == nullptr) return true;
+            bool bigger = false;
+            if (a->score_ > b->score_) {
+                bigger = true;
+            } else if (a->commit_epoch_ < b->commit_epoch_) {     // a->commit_epoch_ > b->commit_epoch_
+                bigger = true;
+            } else if (a->commit_epoch_ == b->commit_epoch_) {
+                if (a->start_epoch_ > b->start_epoch_) {
+                    bigger = true;
+                } else if (a->start_epoch_ == b->start_epoch_) {
+                    if (a->csn_ < b->csn_) {
+                        bigger = true;
+                    } else if (a->csn_ == b->csn_) {
+                        if (a->server_id_ < b->server_id_)
+                            bigger = true;
+                    }
+                }
+            }
+            return bigger;
+        }
+
+        // 对该row进行上锁操作
+        bool grantLocks()
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            // 锁未释放，或者没有剩余request则返回
+            if ((grant_csn != "") || (grant_csn == "" && m_grant_csn == "" && lock_request_queue_.size() <= 0)) return false;
+            if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
+                // 找到最大的元素
+                auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                m_grant_request.reset();
+                m_grant_request = *max_element;
+                m_grant_csn = m_grant_request->tid_;
+            }
+            grant_csn = m_grant_csn;
+            grant_request = m_grant_request;
+            return true;
+        }
+
+        // 对该row进行上锁操作，加入生效epoch判断
+        bool grantLocks(uint64_t epoch)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            // 锁未释放，或者没有剩余request则返回
+            if ((grant_csn != "") || (grant_csn == "" && m_grant_csn == "" && lock_request_queue_.size() <= 0)) return false;
+            if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
+                // 找到最大的元素
+                auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                m_grant_request.reset();
+                m_grant_request = *max_element;
+                m_grant_csn = m_grant_request->tid_;
+            }
+            grant_csn = m_grant_csn;
+            grant_request = m_grant_request;
+            epoch_ = epoch;         // 设置生效epoch
+            return true;
+        }
+
+        // 对该row进行上锁操作，wound-wait剥夺锁，返回被剥夺锁的tid
+        std::string grantLocks_woundWait(uint64_t epoch)
+        {
+            std::lock_guard<std::mutex> lock(latch_);
+            if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
+                // 找到最大的元素
+                auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                m_grant_request.reset();
+                m_grant_request = *max_element;
+                m_grant_csn = m_grant_request->tid_;
+            }
+            std::string abort_csn = "";
+            if (grant_csn != m_grant_csn) {
+                abort_csn = grant_csn;
+                // 删除abort_csn的相关请求
+                RemoveLockRequest(abort_csn);
+
+                // 授予锁
+                grant_csn = m_grant_csn;
+                grant_request = m_grant_request;
+                epoch_ = epoch;         // 设置生效epoch
+            }
+            return abort_csn;
+        }
+
+    private:
+        // bg线程选取上锁，指定为epoch commit结尾进行上锁
+        void processLockRequests()
+        {
+            while (true) {
+                std::unique_lock<std::mutex> lock(latch_);
+//                cv_.wait(lock,
+//                    [&] { return lock_request_queue_.size() >= 0 && grant_csn == "" && IsRemoteRecordCommitted(); });
+                lock_request_queue_.sort(cmp);
+                grant_csn = lock_request_queue_.front()->tid_;
+                lock_request_queue_.pop_front();
+                generateWaitFor();
+                lock.unlock();
+                usleep(200);
+            }
+        }
+
+        // bg线程打印
+        void processPrintRequests()
+        {
+            while (true) {
+                latch_.lock();
+                std::cout << "lock_request_queue_ : [" << grant_csn << "] = >";
+                for (const auto& tmp : lock_request_queue_) {
+                    std::cout << tmp->tid_ << " ";
+                }
+                std::cout << "\n";
+                latch_.unlock();
+                usleep(10000);
+            }
+        }
+
+        void AbortTransactinRequest(uint64_t abort_csn) {
+            std::string tid = to_string(abort_csn) + ":" + to_string(0);
+            MOTAdaptor::deadlock_abort_set.insert(tid, tid);
+            RemoveReaderRequest(abort_csn);
+            RemoveWriterRequest(abort_csn);
+        }
+
+        void RemoveReaderRequest(uint64_t abort_csn) {
+            // 删除abort_csn的相关请求
+            if (!reader_list_map_.count(abort_csn)) return;
+            auto iter = reader_list_map_.find(abort_csn);
+            if (iter != reader_list_map_.end()) {
+                reader_list_.erase(iter->second);
+                reader_list_map_.erase(iter);
+            }
+
+            if (!snapshot_reader_list_map_.count(abort_csn)) return;
+            auto iter1 = snapshot_reader_list_map_.find(abort_csn);
+            if (iter1 != snapshot_reader_list_map_.end()) {
+                snapshot_reader_list_.erase(iter1->second);
+                snapshot_reader_list_map_.erase(iter1);
+            }
+            auto iter2 = snapshot_reader_score_map_.find(abort_csn);
+            if (iter2 != snapshot_reader_score_map_.end()) {
+                snapshot_reader_score_map_.erase(iter2);
+            }
+        }
+
+        void RemoveWriterRequest(uint64_t abort_csn) {
+            // 删除abort_csn的相关请求
+            if (!writer_list_map_.count(abort_csn)) return;
+            auto iter = writer_list_map_.find(abort_csn);
+            if (iter != writer_list_map_.end()) {
+                writer_list_.erase(iter->second);
+                writer_list_map_.erase(iter);
+            }
+            if (abort_csn == m_writer_.load()) {
+                m_writer_.store(INVALID_TID);
+                m_writer_score_.store(INVALID_TID);
+            }
+        }
+
+        void RemoveLockRequest(std::string abort_csn) {
+            if (abort_csn == grant_csn) {
+                grant_csn = "";
+                grant_request.reset();
+            }
+            if(abort_csn ==  m_grant_csn) {
+                m_grant_csn = "";
+                m_grant_request.reset();
+            }
+            // 删除abort_csn的相关请求
+            auto iter = lock_request_queue_map_.find(abort_csn);
+            if (iter != lock_request_queue_map_.end()) {
+                lock_request_queue_.erase(iter->second);
+                lock_request_queue_map_.erase(iter);
+                request_num.fetch_sub(1);
+            }
+        }
+    };
+
+    // wzy: 等待图
+    class WaitForGraph {
+    public:
+        std::unordered_map<std::string, std::list<std::string>> graph;
+        std::unordered_map<std::string, std::unordered_set<std::string>> graph_set;       // 去重
+        std::list<std::string> vertex;                  // 遍历
+        std::unordered_set<std::string> vertex_set;   // 去重
+
+        std::atomic<uint64_t> vertex_num;
+        std::atomic<uint64_t> edge_num;
+
+        std::mutex mutex;
+
+        WaitForGraph() {
+            vertex_num.store(0);
+            edge_num.store(0);
+        }
+
+        WaitForGraph(WaitForGraph& src) {
+            graph = src.graph;
+            graph_set = src.graph_set;
+            vertex = src.vertex;
+            vertex_set = src.vertex_set;
+        }
+
+        ~WaitForGraph() {
+            graph.clear();
+            graph_set.clear();
+            vertex.clear();
+            vertex_set.clear();
+        }
+
+        uint64_t getEdgeNum() {
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            uint64_t size = 0;
+            for(const auto& v : vertex) {
+                size += graph[v].size();
+            }
+            return size;
+        }
+
+        uint64_t getVertexNum() {
+            return vertex_num.load();
+        }
+
+        // 内部调用
+        void addNode(const std::string& node) {
+            if (node == "") return;
+            if (!vertex_set.count(node)){
+                vertex.push_back(node);
+                graph[node] = std::list<std::string>();
+                vertex_set.insert(node);
+                graph_set[node] = std::unordered_set<std::string>();
+                vertex_num.fetch_add(1);
+            }
+        }
+
+        void addEdge(const std::string& from, const std::string& to) {
+            if (from == "" || to == "") return;
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            addNode(from);
+            addNode(to);
+            if (!graph_set[from].count(to)){
+                graph[from].push_back(to);
+                graph_set[from].insert(to);
+            }
+        }
+
+        void removeNode(const std::string& node) {
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            if (vertex_set.count(node)) vertex_num.fetch_sub(1);
+            vertex.remove(node);
+            vertex_set.erase(node);
+            graph.erase(node);
+            graph_set.erase(node);
+
+            for (auto &u : vertex) {
+                graph[u].remove(node);
+                graph_set[u].erase(node);
+            }
+        }
+
+        void removeEdge(const std::string& from, const std::string& to){
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            if (graph_set[from].count(to)){
+                graph[from].remove(to);
+                graph_set[from].erase(to);
+            }
+        }
+
+        void print() {
+            for (auto& node : graph) {
+                std::cout << node.first << " waits for: ";
+                for (auto& edge : node.second) {
+                    std::cout << edge << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        enum Color { WHITE, GRAY, BLACK };
+
+        void findCycle(const std::string &start, const std::string &current,
+            const std::unordered_map<std::string, std::string> &parent,
+            std::vector<std::string> &target_tids, std::unordered_set<std::string> &target_set) {
+            std::string node = current;
+            std::string target_tid;
+            while (node != start) {
+                if (target_tid.empty()) target_tid = node;
+                if (target_tid < node) target_tid = node;
+                node = parent.at(node);
+            }
+            if (!target_set.count(target_tid)) {
+                target_tids.push_back(target_tid);
+                target_set.insert(target_tid);
+            }
+        }
+
+        void DFS_VISIT(const std::string &u, std::unordered_map<std::string, Color> &color,
+            std::unordered_map<std::string, std::string> &parent,
+            std::vector<std::string> &target_tids, std::unordered_set<std::string> &target_set) {
+            color[u] = GRAY;
+            for (const auto &v : graph[u]) {
+                if (color[v] == WHITE) {
+                    parent[v] = u;
+                    DFS_VISIT(v, color, parent, target_tids, target_set);
+                } else if (color[v] == GRAY) {
+                    findCycle(v, u, parent, target_tids, target_set);
+                }
+            }
+            color[u] = BLACK;
+        }
+
+        bool CLRS_Cycles(std::vector<std::string> &target_tids, std::unordered_set<std::string> &target_set) {
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            std::unordered_map<std::string, Color> color;
+            std::unordered_map<std::string, std::string> parent;
+            if (vertex.empty()) return false;
+            for (const auto &node : vertex) {
+                color[node] = WHITE;
+                parent[node] = "";
+            }
+            for (const auto &node : vertex) {
+                if (color[node] == WHITE) {
+                    DFS_VISIT(node, color, parent, target_tids, target_set);
+                }
+            }
+            return !target_tids.empty();
+        }
+    };
+
+    // wzy: 动态统计最热门row（作为可交互型row）
+    class DynamicHotRow {
+    public:
+        // 记录当前的row统计
+        aum::concurrent_unordered_map<std::string, uint64_t , std::string> row_freq_map_;       // row 的访问次数
+        std::vector<std::string> active_rows;
+        std::mutex active_rows_mutex;
+        uint64_t visits_num;
+
+        // 目前hot rows(之前10个epoch)
+        std::vector<std::shared_ptr<std::unordered_set<std::string>>> hot_rows_set_;           // 去重
+        uint64_t hot_rows_visit_num;
+        std::mutex hot_rows_mutex_;
+
+        uint64_t maxSize_;
+        uint64_t freq_;         // 每n个epoch选出大于freq的row作为hot rows
+        uint64_t epoch_;
+
+        DynamicHotRow() {
+            maxSize_ = 100;
+            freq_ = kHotRowsFreq;
+            epoch_ = 1;
+            visits_num = 0;
+            hot_rows_visit_num = 0;
+            hot_rows_set_.reserve(2);
+            for(int i = 0; i < 2; i ++) {
+                hot_rows_set_.emplace_back(std::make_shared<std::unordered_set<std::string>>());
+            }
+        }
+
+        DynamicHotRow(uint64_t maxSize, uint64_t freq) {
+            maxSize_ = maxSize;
+            freq_ = freq;
+            hot_rows_set_.reserve(2);
+            for(int i = 0; i < 2; i ++) {
+                hot_rows_set_.emplace_back(std::make_shared<std::unordered_set<std::string>>());
+            }
+        }
+
+        // 增加访问数 table + rowId
+        void visit_row(std::string rowId) {
+            std::lock_guard<std::mutex> lock(active_rows_mutex);
+            visits_num++;
+            uint64_t freq = 1;
+            if(!row_freq_map_.add_visit(rowId, freq)){
+                active_rows.push_back(rowId);
+            }
+        }
+
+        // 按照固定次数选举hot rows
+        void get_hot_rows_by_freq() {
+            std::lock_guard<std::mutex> lock(active_rows_mutex);
+            std::unique_lock<std::mutex> hot_lock(hot_rows_mutex_);
+            uint64_t tmp_epoch = (epoch_ + 1) % 2;     // 更新到下一轮
+            hot_rows_set_[tmp_epoch]->clear();      // 清空内容
+            uint64_t f = 0;
+            for (std::string r : active_rows) {
+                row_freq_map_.get_element(r, f);
+                if(f >= freq_ && hot_rows_set_[tmp_epoch]->count(r) == 0) {
+                    hot_rows_set_[tmp_epoch]->insert(r);
+                }
+            }
+            // active row 和 freq map 清空
+            row_freq_map_.clear();
+            active_rows.clear();
+            epoch_ = tmp_epoch;
+        }
+
+        // TODO: 堆排序百分比
+        void get_hot_rows_by_percent() {
+        }
+
+        bool isHotRows(std::string rowId) {
+            if (hot_rows_set_[epoch_]->count(rowId)) hot_rows_visit_num++;
+            return hot_rows_set_[epoch_]->count(rowId);
+        }
+
+        uint64_t size() {
+            return hot_rows_set_[epoch_]->size();
+        }
+
+    };
+
+    // wzy: 存储写入CSV的记录
+//    class CSVMessage {
+//        uint64_t tid;
+//        uint64_t read_cnt;
+//        uint64_t write_cnt;
+//        uint64_t start_time;
+//        uint64_t execution_time;
+//        bool pessimistic_flag;
+//        bool commit_flag;
+//        uint64_t hot_cnt;
+//        uint64_t retry_cnt;
+//
+//        CSVMessage(uint64_t _tid, uint64_t _read_cnt, uint64_t _write_cnt, uint64_t _start_time, uint64_t _execution_time, bool _pessimistic_flag, bool _commit_flag)
+//            : tid(_tid), read_cnt(_read_cnt), write_cnt(_write_cnt), start_time(_start_time), execution_time(_execution_time), pessimistic_flag(_pessimistic_flag), commit_flag(_commit_flag)
+//        {
+//        }
+//
+//        // TODO:
+//        std::string toString() {
+//
+//        }
+//
+//    };
+
+    ///////////////////////////////////////////
+
+
+    // wzy: 死锁检测等相关操作，可能有死锁
+    // 在grant lock的时候生成
+    static void insertIntoWaitfor(const std::string& txn, const std::string& wait)
+    {
+//        std::lock_guard<std::mutex> lock(wait_for_mutex);
+        if (txn.empty() || txn == wait) return;
+        if (wait_for[txn].empty()) {
+            wait_for[txn] = std::set<std::string>();
+        }
+        wait_for[txn].insert(wait);
+    }
+
+    // 死锁后的abort删去wait for
+    static void removeFromWaitFor(std::string& txn, std::string& wait)
+    {}
 
 };
 
@@ -1245,21 +3184,6 @@ void ReleaseFdwState(MOTFdwStateSt* state);
 
 template<typename T>
 using BlockingConcurrentQueue =  moodycamel::BlockingConcurrentQueue<T>;
-// using BlockingConcurrentQueue = BlockingMPMCQueue<T>;
-// struct pack_params;
-// struct commit_thread_params;
-
-struct pack_thread_params {
-    uint64_t index;
-    uint64_t current_epoch;
-    std::shared_ptr<std::vector<std::shared_ptr<BlockingConcurrentQueue<std::string*>>>> local_change_set_txn_ptr_temp;
-    std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>> local_change_set_txn_num_ptr_temp;
-    pack_thread_params(uint64_t index, uint64_t ce, 
-        std::shared_ptr<std::vector<std::shared_ptr<BlockingConcurrentQueue<std::string*>>>> ptr1, 
-        std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>> ptr2): 
-        index(index), current_epoch(ce), local_change_set_txn_ptr_temp(ptr1), local_change_set_txn_num_ptr_temp(ptr2){}
-    pack_thread_params(){}
-};
 
 struct send_thread_params {
     uint64_t current_epoch;
@@ -1269,5 +3193,6 @@ struct send_thread_params {
         current_epoch(ce), tot(tot_temp), merge_request_ptr(ptr1){}
     send_thread_params(){}
 };
+
 
 #endif  // MOT_INTERNAL_H

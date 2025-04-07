@@ -553,9 +553,16 @@ int writeRow(MOT::Row* row, MOT::BitmapSet* bmp)
     MOT_LOG_DEBUG("Current txn is: %p", curr_txn);
     rc = curr_txn->UpdateLastRowState(MOT::AccessType::WR);
     MOT_LOG_DEBUG("Row write result: %d", (int)rc);
+
+
     if (rc == MOT::RC_OK) {
         MOT_LOG_DEBUG("Overwriting row %p with bitset %p", row, bmp);
         rc = curr_txn->OverwriteRow(row, *bmp);
+
+        // wzy: 应对update
+//        if (curr_txn->IsInteractive()) {
+//            rc = MOTAdaptor::SendInteractiveLockInfo(row);
+//        }
         MOT_LOG_DEBUG("Overwrite row result: %d", (int)rc);
     }
     return (int)rc;

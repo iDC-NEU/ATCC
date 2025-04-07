@@ -335,6 +335,7 @@ Access* TxnAccess::GetNewRowAccess(const Row* row, AccessType type, RC& rc)
     // ac->m_cts = row->m_rowHeader.GetCSN();
     ac->m_cts = row->m_rowHeader.GetStableCSN();
     ac->m_server_id = row->m_rowHeader.GetStableServerId();
+
     MOT_LOG_DEBUG("Row Count = %d, access_set_size = %d", m_rowCnt, m_accessSetSize);
     m_rowCnt++;
     return ac;
@@ -406,7 +407,6 @@ Access* TxnAccess::RowLookup(void* const currentKey)
 
 RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentinel, Row*& r_local_Row)
 {
-
     if (m_rowCnt == 0) {
         return RC::RC_LOCAL_ROW_NOT_FOUND;
     }
@@ -455,7 +455,11 @@ RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentin
             case AccessType::WR:
                 break;
             case AccessType::DEL:
-                return RC::RC_LOCAL_ROW_DELETED;
+                // wzy:
+                if(type == AccessType::RD) {
+                    r_local_Row = curr_acc->GetRowFromHeader();
+                }
+                else return RC::RC_LOCAL_ROW_DELETED;
                 break;
             case AccessType::INS:
                 if (m_txnManager->GetStmtCount() != 0 && curr_acc->m_stmtCount == m_txnManager->GetStmtCount()) {
@@ -479,7 +483,6 @@ RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentin
                         MOT_REPORT_ERROR(MOT_ERROR_OOM, "Lookup Access", "Failed to create columns bitmap");
                         return RC::RC_MEMORY_ALLOCATION_ERROR;
                     }
-
                     new_row->m_table = table;
                     curr_acc->m_localRow = new_row;
                     curr_acc->m_modifiedColumns.Init(bms, fieldCount);
@@ -492,9 +495,108 @@ RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentin
         return RC::RC_LOCAL_ROW_NOT_FOUND;
     }
 
+    // wzy: 读操作统一从access中获取row
     r_local_Row = curr_acc->GetTxnRow();
     return RC::RC_LOCAL_ROW_FOUND;
 }
+
+RC TxnAccess::AccessLookupMVCC(const AccessType type, Sentinel* const originalSentinel, Row*& r_local_Row)
+{
+    if (m_rowCnt == 0) {
+        return RC::RC_LOCAL_ROW_NOT_FOUND;
+    }
+    // type is the external operation.. for access the operation is always RD
+    void* key = nullptr;
+    Access* curr_acc = nullptr;
+
+    /*
+     * 2-Level caching
+     * Minimum is 2 cache misses for first access.
+     * For second mapped access Worse case 2 misses,
+     * Average 1 cache miss.
+     * Search:try look for row - if row not found search for sentinel!(INS type)
+     * If Row found and not delete return the row
+     * If Row is in Del verify we dont have an INS on top of the DEL
+     */
+    if (originalSentinel->IsCommited()) {
+        key = (void*)originalSentinel;
+        curr_acc = RowLookup(key);
+        // Maybe Our Insert got commited!
+        if (curr_acc == nullptr) {
+            key = originalSentinel->GetPrimarySentinel();
+            curr_acc = RowLookup(key);
+        }
+    } else {
+        key = (void*)originalSentinel;
+        curr_acc = RowLookup(key);
+    }
+    r_local_Row = nullptr;
+    if (curr_acc != nullptr) {
+        // Filter rows
+        switch (curr_acc->m_type) {
+            case AccessType::RD:
+                if (m_txnManager->GetTxnIsoLevel() == READ_COMMITED) {
+                    // If Cached row is not valid, remove it!!
+                    if (type == RD and curr_acc->m_stmtCount != m_txnManager->GetStmtCount()) {
+                        auto it = m_rowsSet->find(curr_acc->m_origSentinel);
+                        MOT_ASSERT(it != m_rowsSet->end());
+                        m_rowsSet->erase(it);
+                        ReleaseAccess(curr_acc);
+                        return RC::RC_LOCAL_ROW_NOT_FOUND;
+                    }
+                }
+                break;
+            case AccessType::RD_FOR_UPDATE:
+            case AccessType::WR:
+                break;
+            case AccessType::DEL:
+                // wzy:
+                if(type == AccessType::RD) {
+                    r_local_Row = curr_acc->GetRowFromHeader();
+                }
+                else return RC::RC_LOCAL_ROW_DELETED;
+                break;
+            case AccessType::INS:
+                if (m_txnManager->GetStmtCount() != 0 && curr_acc->m_stmtCount == m_txnManager->GetStmtCount()) {
+                    return RC::RC_LOCAL_ROW_NOT_VISIBLE;
+                }
+                // If current state is insert and next state is delete
+                // do not alloacte new row
+                if (curr_acc->m_localRow == nullptr and (type == AccessType::WR or type == AccessType::RD_FOR_UPDATE)) {
+                    Table* table = curr_acc->GetRowFromHeader()->GetTable();
+                    Row* new_row = m_dummyTable.CreateNewRow(table, curr_acc);
+                    if (__builtin_expect(new_row == nullptr, 0)) {
+                        MOT_REPORT_ERROR(MOT_ERROR_OOM, "Lookup Access", "Failed to create new row");
+                        return RC_MEMORY_ALLOCATION_ERROR;
+                    }
+
+                    int fieldCount = table->GetFieldCount() - 1;
+                    uint8_t* bms = m_dummyTable.CreateBitMapBuffer(fieldCount);
+                    if (__builtin_expect(bms == nullptr, 0)) {
+                        // if modified_columns allocation failed, release allocated row
+                        m_dummyTable.DestroyRow(new_row, curr_acc);
+                        MOT_REPORT_ERROR(MOT_ERROR_OOM, "Lookup Access", "Failed to create columns bitmap");
+                        return RC::RC_MEMORY_ALLOCATION_ERROR;
+                    }
+                    new_row->m_table = table;
+                    curr_acc->m_localRow = new_row;
+                    curr_acc->m_modifiedColumns.Init(bms, fieldCount);
+                }
+                break;
+            default:
+                break;
+        }
+    } else {
+        return RC::RC_LOCAL_ROW_NOT_FOUND;
+    }
+
+    // wzy: 读操作统一从access中获取row
+    if(type == AccessType::RD) r_local_Row = curr_acc->GetRowFromHeader();
+    else r_local_Row = curr_acc->GetTxnRow();
+
+    return RC::RC_LOCAL_ROW_FOUND;
+}
+
 
 Row* TxnAccess::MapRowtoLocalTable(const AccessType type, Sentinel* const& originalSentinel, RC& rc)
 {
@@ -516,6 +618,31 @@ Row* TxnAccess::MapRowtoLocalTable(const AccessType type, Sentinel* const& origi
     m_rowsSet->insert(RowAccessPair_t(key, current_access));
     return current_access->m_localRow;
 }
+
+// wzy:
+Row* TxnAccess::MapRowtoLocalTableMVCC(const AccessType upper_type, const AccessType type, Sentinel* const& originalSentinel, RC& rc, const bool interactive)
+{
+    Access* current_access = nullptr;
+    rc = RC_OK;
+
+    current_access = GetNewRowAccess(originalSentinel->GetData(), type, rc);
+    // Check if draft is valid
+    if (current_access == nullptr)
+        return nullptr;
+
+    // Set Last access
+    SetLastAccess(current_access);
+    current_access->m_origSentinel = reinterpret_cast<Sentinel*>(originalSentinel->GetPrimarySentinel());
+
+    current_access->m_params.SetPrimarySentinel();
+    // We map the p_sentinel for the case of commited Row!
+    void* key = (void*)current_access->m_origSentinel;
+    m_rowsSet->insert(RowAccessPair_t(key, current_access));
+
+    if (type == AccessType::RD && upper_type == AccessType::RD && interactive) return current_access->GetRowFromHeader();      // wzy : 统一从access中获取row
+    else return current_access->m_localRow;
+}
+
 
 Row* TxnAccess::AddInsertToLocalAccess(Sentinel* org_sentinel, Row* org_row, RC& rc, bool isUpgrade)
 {
@@ -653,6 +780,8 @@ RC TxnAccess::UpdateRowState(AccessType type, Access* ac)
 {
     RC rc = RC_OK;
     MOT_LOG_DEBUG("Switch key State from: %s to: %s", enTxnStates[ac->m_type], enTxnStates[type]);
+
+    if (ac == nullptr) return rc;       // wzy
     AccessType current_state = ac->m_type;
 
     auto result = txnStateMachine[current_state][type];
@@ -695,6 +824,7 @@ Row* TxnAccess::GetReadCommitedRow(Sentinel* sentinel)
     TransactionId last_tid;
     if (likely(sentinel->IsCommited() == true)) {
         Row* row = sentinel->GetData();
+        // 获取row并赋值到rowZero中
         RC rc = row->GetRow(AccessType::RD, this, m_rowZero, last_tid);
         if (rc != RC::RC_OK) {
             return nullptr;
@@ -704,6 +834,26 @@ Row* TxnAccess::GetReadCommitedRow(Sentinel* sentinel)
     } else
         return nullptr;
 }
+
+// wzy:
+Row* TxnAccess::GetReadCommitedRowMVCC(const AccessType type, Sentinel* sentinel, bool interactive)
+{
+    TransactionId last_tid;
+    if (likely(sentinel->IsCommited() == true)) {
+        Row* row = sentinel->GetData();
+        // 获取row并赋值到rowZero中
+        RC rc = row->GetRow(AccessType::RD, this, m_rowZero, last_tid);
+        if (type == AccessType::RD && interactive) return row;      // wzy : 统一从access中获取row
+        if (rc != RC::RC_OK) {
+            return nullptr;
+        } else {
+            return m_rowZero;
+        }
+    } else
+        return nullptr;
+}
+
+
 RC TxnAccess::GenerateDeletes(Access* element)
 {
     RC rc = RC_OK;

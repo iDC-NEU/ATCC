@@ -1340,6 +1340,8 @@ static void knl_t_storage_init(knl_t_storage_context* storage_cxt)
 
     storage_cxt->max_safe_fds = 32;
     storage_cxt->max_userdatafiles = 8192 - 1000;
+
+    storage_cxt->thrd_interactiveTxn = 0; //wzy
 }
 
 static void knl_t_port_init(knl_t_port_context* port_cxt)

@@ -150,6 +150,7 @@ public:
             }
             securec_check(erc, "\0", "\0");
         }
+
     }
 
     /**
@@ -158,8 +159,9 @@ public:
      */
     inline void Copy(const Row* src)
     {
-        CopyData(src->GetData(), src->GetTupleSize());
         m_table = src->m_table;
+        CopyData(src->GetData(), src->GetTupleSize());
+        // wzy: 上下换个位置
     }
 
     /**
@@ -622,6 +624,14 @@ public:
     bool ValidateAndSetWriteForRemote(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id) {
         return this->m_rowHeader.ValidateAndSetWriteForCommit(m_csn, start_epoch, commit_epoch, server_id);
     }
+    // wzy
+    bool ValidateAndSetWriteForRemoteInteractive(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id, bool interactive) {
+        return this->m_rowHeader.ValidateAndSetWriteForCommitInteractive(m_csn, start_epoch, commit_epoch, server_id, interactive);
+    }
+
+    bool InteractiveSetWriteForCommit(uint64_t m_csn, uint64_t start_epoch, uint64_t commit_epoch, uint32_t server_id) {
+        return this->m_rowHeader.InteractiveSetWriteForCommit(m_csn, start_epoch, commit_epoch, server_id);
+    }
 
     uint32_t GetServerId(){
         return this->m_rowHeader.GetServerId();
@@ -642,6 +652,21 @@ public:
     RowHeader* GetRowHeader(){
         return &(this->m_rowHeader);
     }
+
+
+    // wzy:
+    bool GetRowInteractive() {
+        return this->m_rowHeader.isInteractive();
+    }
+    void SetRowInteractive(bool interactive) {
+        this->m_rowHeader.setInteractive(interactive);
+    }
+
+    // wzy: 直接判断交互性事务逻辑，临时
+    bool isRowInteractive() {
+        return m_rowId % 100 == 0;
+    }
+
 
     void SetValueVariable_1(int id, const void* ptr, uint32_t size);
     

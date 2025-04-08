@@ -1107,6 +1107,7 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
         first_time_pessimistic = true;
         std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
         if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic1], csn : %s, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu", csn_temp.c_str(), retry_cnt, read_cnt, write_cnt);
+        MOTAdaptor::pessimisitic_priority_txn_num.fetch_add(1);
         return true;
     }
 
@@ -1117,16 +1118,18 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
             first_time_pessimistic = true;
             std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic2], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+            MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
             return true;
         }
     }
-    else if (kHotCntLimit == 0) {
+    else if (kHotCntLimit >= 100) {
         if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
-            && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt) {
+            && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= kHotCntLimit - 100) {
             pessimistic_flag = true;
             first_time_pessimistic = true;
             std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic3], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+            MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
             return true;
         }
     }

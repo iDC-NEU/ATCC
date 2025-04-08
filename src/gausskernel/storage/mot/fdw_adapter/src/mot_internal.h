@@ -948,6 +948,8 @@ public:
     static std::atomic<uint64_t> start_num_txn_construct;
 
     static std::atomic<uint64_t> pessimisitic_txn_num;              // 本地PCC事务
+    static std::atomic<uint64_t> pessimisitic_priority_txn_num;
+    static std::atomic<uint64_t> pessimisitic_hot_visits_txn_num;
 
     static std::atomic<uint64_t> start_txn_num;
     static std::atomic<uint64_t> start_interactive_txn_num;

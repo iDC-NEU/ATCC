@@ -2764,6 +2764,8 @@ std::atomic<uint64_t> MOTAdaptor::start_num_start_txn{0};
 std::atomic<uint64_t> MOTAdaptor::start_num_txn_construct{0};
 
 std::atomic<uint64_t> MOTAdaptor::pessimisitic_txn_num{0};              // PCC交互型事务
+std::atomic<uint64_t> MOTAdaptor::pessimisitic_priority_txn_num{0};         // 因为优先级而切换
+std::atomic<uint64_t> MOTAdaptor::pessimisitic_hot_visits_txn_num{0};       // 因为热数据访问而切换
 
 std::atomic<uint64_t> MOTAdaptor::start_txn_num{0};
 std::atomic<uint64_t> MOTAdaptor::start_interactive_txn_num{0};
@@ -3635,6 +3637,7 @@ void OUTPUTLOG(string s){
     WaitForGraph vertexNum %llu \
     \n== [STATISTICS]  commit_txn_num %llu PCC_txn_num %llu commit_interactive_txn_num %llu start_txn_num %llu start_interactive_txn_num %llu \
     start_num_start_txn %llu start_num_txn_construct %llu \
+    \nPCC_txn_num %llu PCC_priority_txn_num %llu PCC_hot_visits_txn_num %llu \
     \ntxn_avg_time %f interactive_avg_time %f interactive_pcc_avg_time %f \
     txn_avg_epoch %f txn_avg_readCnt %f txn_avg_writeCnt %f txn_avg_lockCnt %f txn_avg_hotCnt %f txn_total_lockCnt %llu\
     \ntxn_total_switchTime %llu txn_total_read_lockTime %llu txn_total_write_lockTime %llu txn_total_validate_lockTime %llu txn_total_validate_hotOccTime %llu \
@@ -3674,6 +3677,7 @@ void OUTPUTLOG(string s){
 
         MOTAdaptor::commit_txn_num.load(), MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::commit_interactive_txn_num.load(), MOTAdaptor::start_txn_num.load(), MOTAdaptor::start_interactive_txn_num.load(),
         MOTAdaptor::start_num_start_txn.load(), MOTAdaptor::start_num_txn_construct.load(),
+        MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::pessimisitic_priority_txn_num.load(), MOTAdaptor::pessimisitic_hot_visits_txn_num.load(),
         txn_avg_time, interactive_txn_avg_time, interactive_pcc_txn_avg_time,
         txn_avg_epoch, txn_avg_readCnt, txn_avg_writeCnt, txn_avg_lockCnt, txn_avg_hotCnt, MOTAdaptor::txn_total_lockCnt.load(),
         MOTAdaptor::txn_total_switchTime.load(), MOTAdaptor::txn_total_read_lockTime.load(), MOTAdaptor::txn_total_write_lockTime.load(), MOTAdaptor::txn_total_validate_lockTime.load(), MOTAdaptor::txn_total_validate_hotOccTime.load(),

@@ -812,6 +812,9 @@ public:
 
     bool ValidateTxnPessimistic(uint64_t curr_epoch);
 
+    // TODO: 寄存轨迹
+
+
 private:
 
     bool m_failedCommitPrepared;

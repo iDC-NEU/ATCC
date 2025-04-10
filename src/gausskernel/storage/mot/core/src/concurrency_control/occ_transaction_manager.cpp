@@ -282,6 +282,7 @@ bool OccTransactionManager::LockHeadersNoWait(TxnManager* txMan, uint32_t& numSe
     uint64_t sleepTime = 1;
     uint64_t thdId = txMan->GetThdId();
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
+    bool flag = true;
     numSentinelsLock = 0;
     while (numSentinelsLock != m_writeSetSize) {
         for (const auto& raPair : orderedSet) {
@@ -301,8 +302,9 @@ bool OccTransactionManager::LockHeadersNoWait(TxnManager* txMan, uint32_t& numSe
                                                 csn_tmp.c_str(),
                                                 res_tid.c_str());
                     MOTAdaptor::Silo_lockheader_abort_by_interactive_num.fetch_add(1);
-                    return false;           // 直接返回？还是等待下个循环？直到超时？
-//                    break;
+                    flag = false;
+                    break;
+                    // return false;           // 直接返回？还是等待下个循环？直到超时？
                 }
             }
 
@@ -324,6 +326,7 @@ bool OccTransactionManager::LockHeadersNoWait(TxnManager* txMan, uint32_t& numSe
         if (numSentinelsLock != m_writeSetSize) {
             ReleaseHeaderLocks(txMan, numSentinelsLock);
             numSentinelsLock = 0;
+            if (!flag) return false;            // wzy
             if (m_preAbort) {
                 for (const auto& acPair : orderedSet) {
                     const Access* ac = acPair.second;
@@ -1358,6 +1361,7 @@ bool OccTransactionManager::GetWriteLockPlor(TxnManager* txMan, uint32_t server_
         // MOTAdaptor::AddActiveQueue(tmp_queue, rowId);
         if (!res) {
             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR [failed] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
+            MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
             return false;
         } else {
             // 插入csn + queue
@@ -1426,6 +1430,7 @@ bool OccTransactionManager::GetReadLockPlor(TxnManager* txMan, uint32_t server_i
 //        MOTAdaptor::AddActiveQueue(tmp_queue, rowId);
         if (!res) {
             if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [failed] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
+            MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
             return false;
         } else {
             // 插入csn + queue
@@ -1503,6 +1508,7 @@ bool OccTransactionManager::GetSwitchReadLockPlorPrevRLock(MOT::TxnManager* txMa
                         if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchReadLockPlorPrevRLock() LockRD [error] tmp_csn : %s  , tmp_rowid : %s",
                             csn_temp.c_str(),
                             tmp_rowid.c_str());
+                        MOTAdaptor::ReadLock_switch_pcc_abort_num.fetch_add(1);
                         result = false;
                     } else {
                         if (is_debug_print_enable) MOT_LOG_INFO(
@@ -1604,6 +1610,7 @@ bool OccTransactionManager::GetSwitchReadLockPlor(TxnManager* txMan, uint32_t se
                     auto res = tmp_queue->LockRD(tmp_rowid, txMan, server_id, true);
                     if(!res) {
                         if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchReadLockPlor() LockRD [error] tmp_csn : %s  , tmp_rowid : %s", csn_temp.c_str(), tmp_rowid.c_str());
+                        MOTAdaptor::ReadLock_switch_pcc_abort_num.fetch_add(1);
                         result = false;
                     } else {
                         if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchReadLockPlor() LockRD tmp_csn : %s , epoch : %llu , tmp_rowid : %s", csn_temp.c_str(), epoch_mod, tmp_rowid.c_str());
@@ -1675,6 +1682,7 @@ bool OccTransactionManager::GetSwitchWriteLockPlor(TxnManager* txMan, uint32_t s
                 auto res = tmp_queue->LockWR(tmp_rowid, txMan, server_id);
                 if(!res) {
                     if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchWriteLockPlor() LockWR [error] tmp_csn : %s  , tmp_rowid : %s", csn_temp.c_str(), tmp_rowid.c_str());
+                    MOTAdaptor::WriteLock_switch_pcc_abort_num.fetch_add(1);
                     return false;
                 } else {
                     if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchWriteLockPlor() LockWR tmp_csn : %s , epoch : %llu , tmp_rowid : %s", csn_temp.c_str(), epoch_mod, tmp_rowid.c_str());

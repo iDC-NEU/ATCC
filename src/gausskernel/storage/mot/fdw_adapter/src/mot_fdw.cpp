@@ -1705,6 +1705,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 if (txn->pessimistic_flag) {
                     MOTAdaptor::commit_pcc_interactive_txn_num.fetch_add(1);
                     MOTAdaptor::interactive_pcc_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
+                    MOT_LOG_INFO("PCC commit!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
                 }
             }
         }

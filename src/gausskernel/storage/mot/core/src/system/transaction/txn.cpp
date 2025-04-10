@@ -113,6 +113,7 @@ Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSenti
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
         pre_csn = start_time;       // 用于释放锁
+        session_id = u_sess->mot_cxt.session_id;
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
         if (is_debug_print_enable) {
             MOT_LOG_INFO("[First time] TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
@@ -126,7 +127,6 @@ Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSenti
     }
 
     auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
-
     TryRecordTimestamp(1, startExec);//ADDBY NEU HW
 
     // wzy: 检验是否切换
@@ -426,6 +426,7 @@ RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolation
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
         pre_csn = start_time;
+        session_id = u_sess->mot_cxt.session_id;
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
@@ -985,6 +986,7 @@ TxnManager::TxnManager(SessionContext* session_context)
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
         pre_csn = start_time;
+        session_id = u_sess->mot_cxt.session_id;
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
@@ -1309,6 +1311,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
                         pre_csn = GetCommitSequenceNumber();
+                        session_id = u_sess->mot_cxt.session_id;
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1317,6 +1320,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
                         pre_csn = GetCommitSequenceNumber();
+                        session_id = u_sess->mot_cxt.session_id;
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -2252,6 +2256,7 @@ RC TxnManager::Commit(){
             if (IsInteractive() && pessimistic_flag) {
                 // wzy: 在epoch commit check前解锁/abort
                 uint64_t pre_csn = GetCommitSequenceNumber();
+                session_id = u_sess->mot_cxt.session_id;
                 MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, rc != RC_OK);
             }
 
@@ -2515,7 +2520,8 @@ RC TxnManager::Commit_Plor(){
         }
 
         // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式，貌似没有Lock
-        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+//        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT) {
             if (IsInteractive()) {
                 if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
                 MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
@@ -2527,8 +2533,9 @@ RC TxnManager::Commit_Plor(){
         SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
         if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
 
+        // TODO：无需再次检验
         // No wait for epochs
-        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
+//        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
         // uint64_t pre_csn = GetCommitSequenceNumber();
 
         // 更新到row header，对写集sentinel上锁

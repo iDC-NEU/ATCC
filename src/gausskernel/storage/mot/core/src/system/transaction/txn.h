@@ -843,6 +843,7 @@ public:
 
     std::unordered_set<uint64_t> hot_rowid_records;
 
+    uint32_t session_id;              // session id
     uint64_t pre_csn;
 
     static std::atomic<uint64_t> start_txn_num;

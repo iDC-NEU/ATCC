@@ -1000,6 +1000,11 @@ public:
     static std::atomic<uint64_t> Switch_validation_occ_abort_num;
     static std::atomic<uint64_t> Switch_validation_pcc_abort_num;
 
+    static std::atomic<uint64_t> ReadLock_pcc_abort_num;
+    static std::atomic<uint64_t> WriteLock_pcc_abort_num;
+    static std::atomic<uint64_t> ReadLock_switch_pcc_abort_num;
+    static std::atomic<uint64_t> WriteLock_switch_pcc_abort_num;
+
     // Silo abort统计
     static std::atomic<uint64_t> Silo_validation_abort_num;
     static std::atomic<uint64_t> Silo_quick_validation_abort_num;

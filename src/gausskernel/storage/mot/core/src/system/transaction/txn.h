@@ -243,6 +243,21 @@ public:
     RC Commit_WoundWait();
     void UnlockLockInfo_WoundWait(uint64_t csn, bool abort);
 
+    //////////////// DL Detect ////////////////////
+    RC ReadLockForSwitch_DL();
+    RC ReadLockForSwitchHotRows_DL();
+    RC WriteLockForSwitch_DL();
+    RC WriteLockForSwitchHotRows_DL();
+    RC GetReadLock_DL(MOT::Row* currRow);          // wzy:
+    RC GetWriteLock_DL(MOT::Row* currRow);          // wzy:
+    RC SendLockInfo_DL(MOT::Row* currRow);        // no use
+    RC SendReadLockInfo_DL(MOT::Row* currRow);        // no use
+    RC Commit_DL();
+    RC Commit_DL_Epoch();
+    void UnlockLockInfo_DL(uint64_t csn, bool abort);
+
+    /////////////////////////////////////////////////
+
     RC SendLockInfo(MOT::Row* currRow);          // wzy:
 
     void UnlockLockInfo(uint64_t csn, bool abort);      // wzy:
@@ -768,6 +783,7 @@ public:
         first_time_pessimistic = false;
         retry_cnt = 0;
         pre_csn = 0;    // 用于unlock
+        score_ = 0;
         hot_cnt = 0;
         hot_rowid_records.clear();
     }
@@ -810,6 +826,14 @@ public:
         return write_cnt;
     }
 
+    uint64_t GetScore() {
+        score_ = 0;
+        uint64_t f = UINT64_MAX - pre_csn;
+        score_ |= ((uint64_t)retry_cnt << 57);
+        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+        return score_;
+    }
+
     bool ValidateTxnPessimistic(uint64_t curr_epoch);
 
     // TODO: 寄存轨迹
@@ -845,6 +869,7 @@ public:
 
     uint32_t session_id;              // session id
     uint64_t pre_csn;
+    uint64_t score_;
 
     static std::atomic<uint64_t> start_txn_num;
     static std::atomic<uint64_t> start_interactive_txn_num;

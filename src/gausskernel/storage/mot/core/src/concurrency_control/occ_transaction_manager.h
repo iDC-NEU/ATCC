@@ -302,6 +302,22 @@ public:
     RC UnlockReadWriteLockWoundWait(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
     bool UnlockReadWriteRowWoundWait(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
 
+    ///////////////////// DL Detect ///////////////////////
+    RC WritePhaseDL(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetWriteLockDL(TxnManager* txMan, uint32_t server_id, void* currRow);
+    RC ReadPhaseDL(TxnManager* txMan, uint32_t server_id, void* currRow);
+    bool GetReadLockDL(TxnManager* txMan, uint32_t server_id, void* currRow);
+
+    RC SwitchReadPhaseDL(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchReadLockDL(TxnManager* txMan, uint32_t server_id);
+    bool GetSwitchReadLockDLPrevRLock(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+
+    RC SwitchWritePhaseDL(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchWriteLockDL(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+
+    RC UnlockReadWriteLockDL(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+    bool UnlockReadWriteRowDL(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+
     //////////////////////////////////////////////////
 };
 }  // namespace MOT

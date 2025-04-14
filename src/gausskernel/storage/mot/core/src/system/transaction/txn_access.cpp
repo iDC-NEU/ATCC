@@ -405,6 +405,7 @@ Access* TxnAccess::RowLookup(void* const currentKey)
     return nullptr;
 }
 
+
 RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentinel, Row*& r_local_Row)
 {
     if (m_rowCnt == 0) {
@@ -494,6 +495,8 @@ RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentin
     } else {
         return RC::RC_LOCAL_ROW_NOT_FOUND;
     }
+
+    // TODO: 在这儿先上锁了? 再读取?
 
     // wzy: 读操作统一从access中获取row
     r_local_Row = curr_acc->GetTxnRow();
@@ -596,7 +599,6 @@ RC TxnAccess::AccessLookupMVCC(const AccessType type, Sentinel* const originalSe
 
     return RC::RC_LOCAL_ROW_FOUND;
 }
-
 
 Row* TxnAccess::MapRowtoLocalTable(const AccessType type, Sentinel* const& originalSentinel, RC& rc)
 {

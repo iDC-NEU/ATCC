@@ -1676,7 +1676,12 @@ static void MOTXactCallback(XactEvent event, void* arg)
             if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitPlor();       // interactive plor
             else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
             txn->commit_time = now_to_us_fdw();
+        } else if (cc_mode == 5) {              // silo + plor no epoch
+            if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitDL();       // interactive plor
+            else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
+            txn->commit_time = now_to_us_fdw();
         }
+
 
 
         if(rc == MOT::RC_OK){
@@ -1706,7 +1711,13 @@ static void MOTXactCallback(XactEvent event, void* arg)
                     MOTAdaptor::commit_pcc_interactive_txn_num.fetch_add(1);
                     MOTAdaptor::interactive_pcc_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
                     MOT_LOG_INFO("PCC commit!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+                } else {
+                    MOTAdaptor::commit_occ_interactive_txn_num.fetch_add(1);
+                    MOTAdaptor::interactive_occ_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
                 }
+            } else {
+                MOTAdaptor::commit_stored_txn_num.fetch_add(1);
+                MOTAdaptor::stored_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
             }
         }
         

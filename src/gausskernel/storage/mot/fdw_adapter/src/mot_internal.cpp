@@ -644,6 +644,19 @@ MOT::RC MOTAdaptor::ValidateCommitPlor()
     }
 }
 
+// wzy: DL detect
+MOT::RC MOTAdaptor::ValidateCommitDL()
+{
+    EnsureSafeThreadAccessInline();
+    MOT::TxnManager* txn = GetSafeTxn(__FUNCTION__);
+    if (!IS_PGXC_COORDINATOR) {
+        return txn->Commit_DL();               // 分epoch验证
+    } else {
+        // Nothing to do in coordinator
+        return MOT::RC_OK;
+    }
+}
+
 // wzy: Wound-wait
 MOT::RC MOTAdaptor::ValidateCommitWoundWait()
 {
@@ -2747,6 +2760,14 @@ std::atomic<uint64_t> MOTAdaptor::txn_total_write_lockCnt{0};
 std::atomic<uint64_t> MOTAdaptor::txn_total_validate_lockCnt{0};
 std::atomic<uint64_t> MOTAdaptor::txn_total_validate_hotOccCnt{0};
 
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_RLock{0};
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_WLock{0};
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_Sentinel{0};
+
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_RLockCnt{0};
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_WLockCnt{0};
+std::atomic<uint64_t> MOTAdaptor::txn_total_switchTime_SentinelCnt{0};
+
 // wzy: 30s statistics
 std::atomic<uint64_t> MOTAdaptor::txn_temp_total_switchTime{0};
 std::atomic<uint64_t> MOTAdaptor::txn_temp_total_read_lockTime{0};
@@ -2770,11 +2791,16 @@ std::atomic<uint64_t> MOTAdaptor::pessimisitic_hot_visits_txn_num{0};       // �
 std::atomic<uint64_t> MOTAdaptor::start_txn_num{0};
 std::atomic<uint64_t> MOTAdaptor::start_interactive_txn_num{0};
 std::atomic<uint64_t> MOTAdaptor::commit_txn_num{0};                    // 本地非交互型事务
+std::atomic<uint64_t> MOTAdaptor::commit_stored_txn_num{0};
 std::atomic<uint64_t> MOTAdaptor::commit_interactive_txn_num{0};        // 本地交互型事务
 std::atomic<uint64_t> MOTAdaptor::commit_pcc_interactive_txn_num{0};
+std::atomic<uint64_t> MOTAdaptor::commit_occ_interactive_txn_num{0};
+
 std::atomic<uint64_t> MOTAdaptor::txn_total_time{0};
+std::atomic<uint64_t> MOTAdaptor::stored_txn_total_time{0};
 std::atomic<uint64_t> MOTAdaptor::interactive_txn_total_time{0};
 std::atomic<uint64_t> MOTAdaptor::interactive_pcc_txn_total_time{0};
+std::atomic<uint64_t> MOTAdaptor::interactive_occ_txn_total_time{0};
 std::atomic<uint64_t> MOTAdaptor::txn_abort_time{0};
 std::atomic<uint64_t> MOTAdaptor::interactive_txn_abort_time{0};
 std::atomic<uint64_t> MOTAdaptor::LockCheck_abort_num{0};
@@ -3567,6 +3593,8 @@ void OUTPUTLOG(string s){
     auto epoch_mod = MOTAdaptor::GetLogicalEpoch() % MOTAdaptor::max_length;
     double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
     double txn_avg_switch_time = 0, txn_avg_read_lock_time = 0, txn_avg_write_lock_time = 0, txn_avg_validate_time = 0, txn_avg_validate_hotOcc_time = 0;
+    double txn_avg_switch_rlock_time = 0, txn_avg_switch_wlock_time = 0, txn_avg_switch_sentinel_time = 0;
+
 
     if(MOTAdaptor::commit_txn_num.load() != 0) {
         txn_avg_time = MOTAdaptor::txn_total_time.load() / MOTAdaptor::commit_txn_num.load();
@@ -3576,25 +3604,31 @@ void OUTPUTLOG(string s){
         txn_avg_hotCnt = MOTAdaptor::txn_total_hotCnt.load() / MOTAdaptor::commit_txn_num.load();
     }
 
-    double interactive_txn_avg_time = 0, interactive_pcc_txn_avg_time = 0;
+    double interactive_txn_avg_time = 0, interactive_pcc_txn_avg_time = 0, interactive_occ_txn_avg_time = 0, stored_txn_avg_time = 0;
     if(MOTAdaptor::commit_interactive_txn_num.load() != 0) {
         txn_avg_lockCnt = MOTAdaptor::txn_total_lockCnt.load() / MOTAdaptor::commit_interactive_txn_num.load();
         interactive_txn_avg_time = MOTAdaptor::interactive_txn_total_time.load() / MOTAdaptor::commit_interactive_txn_num.load();
     }
 
-    if(MOTAdaptor::commit_pcc_interactive_txn_num.load() != 0) {
-        interactive_pcc_txn_avg_time = MOTAdaptor::interactive_pcc_txn_total_time.load() / MOTAdaptor::commit_pcc_interactive_txn_num.load();
-    }
+    if(MOTAdaptor::commit_pcc_interactive_txn_num.load() != 0) interactive_pcc_txn_avg_time = MOTAdaptor::interactive_pcc_txn_total_time.load() / MOTAdaptor::commit_pcc_interactive_txn_num.load();
+    if(MOTAdaptor::commit_occ_interactive_txn_num.load() != 0) interactive_occ_txn_avg_time = MOTAdaptor::interactive_occ_txn_total_time.load() / MOTAdaptor::commit_occ_interactive_txn_num.load();
+    if(MOTAdaptor::commit_stored_txn_num.load() != 0) stored_txn_avg_time = MOTAdaptor::stored_txn_total_time.load() / MOTAdaptor::commit_stored_txn_num.load();
+
+
 
     double txn_avg_abort_time = 0, interactive_txn_abort_time = 0;
     if (MOTAdaptor::Abort_txn_num.load() != 0) txn_avg_abort_time = MOTAdaptor::txn_abort_time.load() / MOTAdaptor::Abort_txn_num.load();
-    if (MOTAdaptor::Abort_interactive_txn_num.load() != 0) txn_avg_abort_time = MOTAdaptor::interactive_txn_abort_time.load() / MOTAdaptor::Abort_interactive_txn_num.load();
+    if (MOTAdaptor::Abort_interactive_txn_num.load() != 0) interactive_txn_abort_time = MOTAdaptor::interactive_txn_abort_time.load() / MOTAdaptor::Abort_interactive_txn_num.load();
 
     if (MOTAdaptor::txn_total_switchCnt.load() != 0) txn_avg_switch_time = MOTAdaptor::txn_total_switchTime.load() / MOTAdaptor::txn_total_switchCnt.load();
     if (MOTAdaptor::txn_total_read_lockCnt.load() != 0) txn_avg_read_lock_time = MOTAdaptor::txn_total_read_lockTime.load() / MOTAdaptor::txn_total_read_lockCnt.load();
     if (MOTAdaptor::txn_total_write_lockCnt.load() != 0) txn_avg_write_lock_time = MOTAdaptor::txn_total_write_lockTime.load() / MOTAdaptor::txn_total_write_lockCnt.load();
     if (MOTAdaptor::txn_total_validate_lockCnt.load() != 0) txn_avg_validate_time = MOTAdaptor::txn_total_validate_lockTime.load() / MOTAdaptor::txn_total_validate_lockCnt.load();
     if (MOTAdaptor::txn_total_validate_hotOccCnt.load() != 0) txn_avg_validate_hotOcc_time = MOTAdaptor::txn_total_validate_hotOccTime.load() / MOTAdaptor::txn_total_validate_hotOccCnt.load();
+
+    if (MOTAdaptor::txn_total_switchTime_RLockCnt.load() != 0) txn_avg_switch_rlock_time = MOTAdaptor::txn_total_switchTime_RLock.load() / MOTAdaptor::txn_total_switchTime_RLockCnt.load();
+    if (MOTAdaptor::txn_total_switchTime_WLockCnt.load() != 0) txn_avg_switch_wlock_time = MOTAdaptor::txn_total_switchTime_WLock.load() / MOTAdaptor::txn_total_switchTime_WLockCnt.load();
+    if (MOTAdaptor::txn_total_switchTime_SentinelCnt.load() != 0) txn_avg_switch_sentinel_time = MOTAdaptor::txn_total_switchTime_Sentinel.load() / MOTAdaptor::txn_total_switchTime_SentinelCnt.load();
 
     // TODO: 30s内的avg
     double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
@@ -3618,6 +3652,12 @@ void OUTPUTLOG(string s){
     if (txn_temp_total_validate_lockCnt1 != 0) txn_temp_avg_validate_time = MOTAdaptor::txn_temp_total_validate_lockTime.load() / txn_temp_total_validate_lockCnt1;
     if (txn_temp_total_validate_hotOccCnt1 != 0) txn_temp_avg_validate_hotOcc_time = MOTAdaptor::txn_temp_total_validate_hotOccTime.load() / txn_temp_total_validate_hotOccCnt1;
 
+    double copy_graph_time = 0, detect_graph_time = 0;
+    uint64_t detect_count = MOTAdaptor::wait_for_graph.detect_count.load();
+    if (detect_count != 0) {
+        copy_graph_time = MOTAdaptor::wait_for_graph.copy_time.load() / detect_count;
+        detect_graph_time = MOTAdaptor::wait_for_graph.detect_time.load() / detect_count;
+    }
 
     MOT_LOG_INFO("%s physical %llu logical %llu epoch_mod %llu \
     \n== txn ShouldExecTxnNum %llu LocalTxnExc %llu \
@@ -3638,17 +3678,18 @@ void OUTPUTLOG(string s){
     ReceiveLockinfoNum %llu  ShouldReceiveLockinfoNum %llu \
     RemoteLockinfo %llu \
     GrantLockCount %llu ActiveQueueSize size %llu\
-    DynamicHotRows size %llu  DynamicHotRows total visits %llu \
-    WaitForGraph vertexNum %llu \
+    \nDynamicHotRows size %llu  DynamicHotRows total visits %llu \
+    \nWaitForGraph vertexNum %llu copy_graph_time %f detect_graph_time %f detect_count %llu \
     \n== [STATISTICS]  commit_txn_num %llu PCC_txn_num %llu commit_interactive_txn_num %llu start_txn_num %llu start_interactive_txn_num %llu \
     start_num_start_txn %llu start_num_txn_construct %llu \
     \nPCC_txn_num %llu PCC_priority_txn_num %llu PCC_hot_visits_txn_num %llu \
-    \ntxn_avg_time %f interactive_avg_time %f interactive_pcc_avg_time %f \
+    \ntxn_avg_time %f interactive_avg_time %f interactive_pcc_avg_time %f interactive_occ_avg_time %f stored_txn_avg_time %f \
     txn_avg_epoch %f txn_avg_readCnt %f txn_avg_writeCnt %f txn_avg_lockCnt %f txn_avg_hotCnt %f txn_total_lockCnt %llu\
     \ntxn_total_switchTime %llu txn_total_read_lockTime %llu txn_total_write_lockTime %llu txn_total_validate_lockTime %llu txn_total_validate_hotOccTime %llu \
     \ntxn_total_switchCnt %llu txn_avg_read_lockCnt %llu txn_avg_write_lockCnt %llu txn_avg_validate_lockCnt %llu txn_avg_validate_hotOccCnt %llu \
     \ntxn_avg_switchTime %f txn_avg_read_lockTime %f txn_avg_write_lockTime %f txn_avg_validate_lockTime %f txn_avg_validate_hotOccTime %f \
-    txn_avg_abort_time %f txn_avg_abort_time %f \
+    \txn_avg_switch_rlock_time %f txn_avg_switch_wlock_time %f txn_avg_switch_sentinel_time %f\
+    \ntxn_avg_abort_time %f interactive_txn_abort_time %f \
     \n== [RECENT] txn_temp_avg_time %f txn_temp_avg_epoch %f txn_temp_avg_readCnt %f txn_temp_avg_writeCnt %f txn_temp_avg_hotCnt %f \
     \n txn_temp_avg_switch_time %f txn_temp_avg_read_lock_time %f txn_temp_avg_write_lock_time %f txn_temp_avg_validate_time %f txn_temp_avg_validate_hotOcc_time %f \
     \n== [LOCKINFO]  local_lock_num %llu local_unlock_num %llu remote_lock_num %llu remote_unlock_num %llu send_lock_num %llu receive_lock_num %llu \
@@ -3678,16 +3719,17 @@ void OUTPUTLOG(string s){
         MOTAdaptor::GetMergeLockinfoCounters(epoch_mod),
         MOTAdaptor::GetLockGrantedNum(), MOTAdaptor::GetActiveQueueNum(MOTAdaptor::lock_thread_num),
         MOTAdaptor::dynamic_hot_rows.size(), MOTAdaptor::dynamic_hot_rows.visits_num,
-        MOTAdaptor::wait_for_graph.getVertexNum(),
+        MOTAdaptor::wait_for_graph.getVertexNum(), copy_graph_time, detect_graph_time, detect_count,
 
         MOTAdaptor::commit_txn_num.load(), MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::commit_interactive_txn_num.load(), MOTAdaptor::start_txn_num.load(), MOTAdaptor::start_interactive_txn_num.load(),
         MOTAdaptor::start_num_start_txn.load(), MOTAdaptor::start_num_txn_construct.load(),
         MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::pessimisitic_priority_txn_num.load(), MOTAdaptor::pessimisitic_hot_visits_txn_num.load(),
-        txn_avg_time, interactive_txn_avg_time, interactive_pcc_txn_avg_time,
+        txn_avg_time, interactive_txn_avg_time, interactive_pcc_txn_avg_time, interactive_occ_txn_avg_time, stored_txn_avg_time,
         txn_avg_epoch, txn_avg_readCnt, txn_avg_writeCnt, txn_avg_lockCnt, txn_avg_hotCnt, MOTAdaptor::txn_total_lockCnt.load(),
         MOTAdaptor::txn_total_switchTime.load(), MOTAdaptor::txn_total_read_lockTime.load(), MOTAdaptor::txn_total_write_lockTime.load(), MOTAdaptor::txn_total_validate_lockTime.load(), MOTAdaptor::txn_total_validate_hotOccTime.load(),
         MOTAdaptor::txn_total_switchCnt.load(), MOTAdaptor::txn_total_read_lockCnt.load(), MOTAdaptor::txn_total_write_lockCnt.load(), MOTAdaptor::txn_total_validate_lockCnt.load(), MOTAdaptor::txn_total_validate_hotOccCnt.load(),
         txn_avg_switch_time, txn_avg_read_lock_time, txn_avg_write_lock_time, txn_avg_validate_time, txn_avg_validate_hotOcc_time,
+        txn_avg_switch_rlock_time, txn_avg_switch_wlock_time, txn_avg_switch_sentinel_time,
         txn_avg_abort_time, interactive_txn_abort_time,
 
         txn_temp_avg_time, txn_temp_avg_epoch, txn_temp_avg_readCnt, txn_temp_avg_writeCnt, txn_temp_avg_hotCnt,
@@ -4140,6 +4182,25 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
                 MOT_LOG_INFO("===完成hot rows选取, 共 %llu 个hot rows, 前 10 轮共 %llu 个hot rows, 总共访问 %llu 次, 对hot rows访问总共 %llu 次, 总共耗时 %llu ", MOTAdaptor::dynamic_hot_rows.size(), pre_num, MOTAdaptor::dynamic_hot_rows.visits_num, MOTAdaptor::dynamic_hot_rows.hot_rows_visit_num, time2 - time1);
                 MOTAdaptor::dynamic_hot_rows.visits_num = 0;
                 MOTAdaptor::dynamic_hot_rows.hot_rows_visit_num = 0;
+
+                MOTAdaptor::temp_commit_txn_num.store(0);
+                MOTAdaptor::txn_temp_total_time.store(0);
+                MOTAdaptor::txn_temp_total_epoch.store(0);
+                MOTAdaptor::txn_temp_total_readCnt.store(0);
+                MOTAdaptor::txn_temp_total_writeCnt.store(0);
+                MOTAdaptor::txn_temp_total_hotCnt.store(0);
+
+                MOTAdaptor::txn_temp_total_switchCnt.store(0);
+                MOTAdaptor::txn_temp_total_read_lockCnt.store(0);
+                MOTAdaptor::txn_temp_total_write_lockCnt.store(0);
+                MOTAdaptor::txn_temp_total_validate_lockCnt.store(0);
+                MOTAdaptor::txn_temp_total_validate_hotOccCnt.store(0);
+
+                MOTAdaptor::txn_temp_total_switchTime.store(0);
+                MOTAdaptor::txn_temp_total_read_lockTime.store(0);
+                MOTAdaptor::txn_temp_total_write_lockTime.store(0);
+                MOTAdaptor::txn_temp_total_validate_lockTime.store(0);
+                MOTAdaptor::txn_temp_total_validate_hotOccTime.store(0);
             }
 
             // MultiRaftState::ClearRaftEpochState(epoch_mod);
@@ -5455,41 +5516,47 @@ void EpochLockThreadMain_Wait(uint64_t id)
 {
     // 读取wait_for，判断是否有环，DFS
     bool sleep_flag = true;
-    while (true) {
-        sleep_flag = true;
-        // 在merge结束后进行
-        if (MOTAdaptor::IsLockExeced() && !MOTAdaptor::IsLockGranted()) {
-            if (!MOTAdaptor::IsActiveLockListExced(id)) {
-                sleep_flag = false;
-                std::unique_lock<std::mutex> queue_lock(MOTAdaptor::active_lock_list_mutex[id]);
-                auto list = MOTAdaptor::active_lock_list[id];
-                uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
-                if (list) {
-                    for (const auto& queue : *list) {
-                        if (queue->grantLocks(epoch_mod)) {
-                            queue->generateWaitFor();  // 选举出新锁才会重新生成等待图
-                            MOT_LOG_INFO("[LockGranted] success EpochLockThreadMain(%llu) locked csn : %s , epoch : %llu , rowid : %s ,  request size : %llu ",
-                                id,
-                                queue->grant_csn.c_str(),
-                                queue->epoch_,
-                                queue->m_row_id.c_str(),
-                                queue->request_num.load());
-                        } else {
-                            // MOT_LOG_INFO("[LockGranted] EpochLockThreadMain() locked csn : %s , rowid : %s , epoch : %llu , request size : %llu ", queue->grant_csn.c_str(), queue->m_row_id.c_str(), queue->epoch_, queue->request_num.load());
+    if (cc_mode == 5) {
+        DeadlockDetection_CRLS();
+        usleep(2000);
+    }
+    else {
+        while (true) {
+            sleep_flag = true;
+            // 在merge结束后进行
+            if (MOTAdaptor::IsLockExeced() && !MOTAdaptor::IsLockGranted()) {
+                if (!MOTAdaptor::IsActiveLockListExced(id)) {
+                    sleep_flag = false;
+                    std::unique_lock<std::mutex> queue_lock(MOTAdaptor::active_lock_list_mutex[id]);
+                    auto list = MOTAdaptor::active_lock_list[id];
+                    uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
+                    if (list) {
+                        for (const auto& queue : *list) {
+                            if (queue->grantLocks(epoch_mod)) {
+                                queue->generateWaitFor();  // 选举出新锁才会重新生成等待图
+                                MOT_LOG_INFO("[LockGranted] success EpochLockThreadMain(%llu) locked csn : %s , epoch : %llu , rowid : %s ,  request size : %llu ",
+                                    id,
+                                    queue->grant_csn.c_str(),
+                                    queue->epoch_,
+                                    queue->m_row_id.c_str(),
+                                    queue->request_num.load());
+                            } else {
+                                // MOT_LOG_INFO("[LockGranted] EpochLockThreadMain() locked csn : %s , rowid : %s , epoch : %llu , request size : %llu ", queue->grant_csn.c_str(), queue->m_row_id.c_str(), queue->epoch_, queue->request_num.load());
+                            }
+                            MOTAdaptor::AddLockGrantedNum();
                         }
-                        MOTAdaptor::AddLockGrantedNum();
                     }
+                    queue_lock.unlock();
+                    MOTAdaptor::SetActiveLockListExced(id, true);
+                } else if (id != 0)
+                    usleep(200);
+                else if (id == 0 && MOTAdaptor::IsAllActiveLockListExced()) {
+                    DeadlockDetection_CRLS();
+                    MOTAdaptor::SetLockGranted(true);
                 }
-                queue_lock.unlock();
-                MOTAdaptor::SetActiveLockListExced(id, true);
-            }
-            else if (id != 0) usleep(200);
-            else if (id == 0 && MOTAdaptor::IsAllActiveLockListExced()) {
-                DeadlockDetection_CRLS();
-                MOTAdaptor::SetLockGranted(true);
-            }
+            } else
+                usleep(200);
         }
-        else usleep(200);
     }
 }
 
@@ -5696,7 +5763,9 @@ void DeadlockDetection_CRLS() {
     std::vector<std::string> target_tids;
     std::unordered_set<std::string> target_set;
 
-    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles(target_tids, target_set);
+//    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles(target_tids, target_set);       // 无拷贝，直接加锁
+
+    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles1(target_tids, target_set);
     if (!res) return;
     for (std::string& target_tid : target_tids) {
         // abort处理，添加到abort_transcation_csn_set

@@ -1702,7 +1702,6 @@ static void MOTXactCallback(XactEvent event, void* arg)
             MOTAdaptor::txn_temp_total_writeCnt.fetch_add(txn->GetWriteCnt());
             MOTAdaptor::txn_temp_total_hotCnt.fetch_add(txn->GetHotCnt());
 
-
             if (txn->IsInteractive()) {
                 // MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, false);
                 MOTAdaptor::commit_interactive_txn_num.fetch_add(1);
@@ -1718,6 +1717,16 @@ static void MOTXactCallback(XactEvent event, void* arg)
             } else {
                 MOTAdaptor::commit_stored_txn_num.fetch_add(1);
                 MOTAdaptor::stored_txn_total_time.fetch_add(txn->commit_time - txn->start_time);
+            }
+        } else {
+            if (txn->IsInteractive()) {
+                // MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, false);
+                if (txn->pessimistic_flag) {
+                    MOTAdaptor::Commit_abort_pcc_total_interactive_num.fetch_add(1);
+                    MOT_LOG_INFO("PCC Abort in commit phase!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+                } else {
+                    MOTAdaptor::Commit_abort_occ_total_interactive_num.fetch_add(1);
+                }
             }
         }
         

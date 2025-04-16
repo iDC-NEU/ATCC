@@ -2823,9 +2823,13 @@ std::atomic<uint64_t> MOTAdaptor::CommitPhase_IsRowAvailable_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::CommitPhase_origSentinel_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::CommitLockCheck_IsRowAvailable_abort_num{0};
 
+std::atomic<uint64_t> MOTAdaptor::Commit_abort_pcc_total_interactive_num{0};
+std::atomic<uint64_t> MOTAdaptor::Commit_abort_occ_total_interactive_num{0};
+
 std::atomic<uint64_t> MOTAdaptor::Commit_abort_interactive_num{0};
 std::atomic<uint64_t> MOTAdaptor::CommitCheck_abort_interactive_num{0};
 std::atomic<uint64_t> MOTAdaptor::CommitPhase_abort_interactive_num{0};
+std::atomic<uint64_t> MOTAdaptor::CommitUpdate_abort_interactive_num{0};
 std::atomic<uint64_t> MOTAdaptor::CommitCheck_deadlock_abort_interactive_num{0};
 std::atomic<uint64_t> MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num{0};
 std::atomic<uint64_t> MOTAdaptor::ValidateReadInMerge_abort_interactive_num{0};
@@ -3742,7 +3746,8 @@ void OUTPUTLOG(string s){
 void OUTPUTLOGAbort_txn() {
     MOT_LOG_INFO(" ====================== [ OUTPUTLOG Abort INFO ] size of abort_transcation_csn_set : %llu , deadlock_abort_set size : %llu, DeadLock_abort_num : %llu , LockCheck_abort_num : %llu , Commit_abort_num : %llu \
                    \n===== Total : Abort_num %llu , Abort_interactive_txn_num %llu , Abort_pcc_interactive_txn_num %llu ,Remote_Abort_interactive_txn_num %llu\
-                   \n===== CommitCheck Interactive :  Commit_abort_interactive_num %llu , CommitCheck_abort_interactive_num %llu , CommitPhase_abort_interactive_num %llu , CommitCheck_deadlock_abort_interactive_num %llu , Abort_transcation_csn_set_abort_interactive_num %llu , ValidateReadInMergeForSnap_abort_interactive_num %llu , ValidateReadInMerge_abort_interactive_num %llu , InsertTxntoLocalChangeSet_abort_interactive_num %llu \
+                   \n===== CommitAbort Interactive total: Commit_abort_pcc_total_interactive_num %llu, Commit_abort_occ_total_interactive_num %llu\
+                    \n===== CommitCheck Interactive :  Commit_abort_interactive_num %llu , CommitCheck_abort_interactive_num %llu , CommitPhase_abort_interactive_num %llu , CommitUpdate_abort_interactive_num %llu , CommitCheck_deadlock_abort_interactive_num %llu , Abort_transcation_csn_set_abort_interactive_num %llu , ValidateReadInMergeForSnap_abort_interactive_num %llu , ValidateReadInMerge_abort_interactive_num %llu , InsertTxntoLocalChangeSet_abort_interactive_num %llu \
                     \n===== CommitPhase Interactive : ValidateAndSetWriteForCommit abort : %llu , IsRowAvailable abort : %llu , origSentinel abort : %llu \
                     \n===== CommitPhase : ValidateAndSetWriteForCommit abort : %llu, LockCheckIsRowAvailable abort : %llu , IsRowAvailable abort : %llu , origSentinel abort : %llu \
                     \n===== Local TxnTotal : CommitPhase_abort_num %llu , CommitCheck_abort_num %llu , Abort_transcation_csn_set_abort_num %llu \
@@ -3754,7 +3759,8 @@ void OUTPUTLOGAbort_txn() {
 
         MOTAdaptor::abort_transcation_csn_set.size(), MOTAdaptor::deadlock_abort_set.size(), MOTAdaptor::DeadLock_abort_num.load(), MOTAdaptor::LockCheck_abort_num.load(), MOTAdaptor::Commit_abort_num.load(),
         MOTAdaptor::Abort_txn_num.load(), MOTAdaptor::Abort_interactive_txn_num.load(), MOTAdaptor::Abort_pcc_interactive_txn_num.load(), MOTAdaptor::Remote_Abort_interactive_txn_num.load(),
-        MOTAdaptor::Commit_abort_interactive_num.load(), MOTAdaptor::CommitCheck_abort_interactive_num.load(), MOTAdaptor::CommitPhase_abort_interactive_num.load(), MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.load(), MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.load(), MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.load(), MOTAdaptor::ValidateReadInMerge_abort_interactive_num.load(), MOTAdaptor::InsertTxntoLocalChangeSet_abort_interactive_num.load(),
+        MOTAdaptor::Commit_abort_pcc_total_interactive_num.load(), MOTAdaptor::Commit_abort_occ_total_interactive_num.load(),
+        MOTAdaptor::Commit_abort_interactive_num.load(), MOTAdaptor::CommitCheck_abort_interactive_num.load(), MOTAdaptor::CommitPhase_abort_interactive_num.load(), MOTAdaptor::CommitUpdate_abort_interactive_num.load(), MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.load(), MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.load(), MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.load(), MOTAdaptor::ValidateReadInMerge_abort_interactive_num.load(), MOTAdaptor::InsertTxntoLocalChangeSet_abort_interactive_num.load(),
         MOTAdaptor::CommitPhase_ValidateAndSetWriteForCommit_abort_interactive_num.load(), MOTAdaptor::CommitPhase_IsRowAvailable_abort_interactive_num.load(), MOTAdaptor::CommitPhase_origSentinel_abort_interactive_num.load(),
         MOTAdaptor::CommitPhase_ValidateAndSetWriteForCommit_abort_num.load(), MOTAdaptor::CommitLockCheck_IsRowAvailable_abort_num.load(), MOTAdaptor::CommitPhase_IsRowAvailable_abort_num.load(), MOTAdaptor::CommitPhase_origSentinel_abort_num.load(),
         MOTAdaptor::CommitPhase_abort_num.load(), MOTAdaptor::CommitCheck_abort_num.load(), MOTAdaptor::Abort_transcation_csn_set_abort_num.load(),

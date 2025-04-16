@@ -1412,7 +1412,6 @@ MOT::RC TxnManager::SwitchToPCC() {
                 rc = WriteLockForSwitch_DL();
         }
 
-
         auto time2 = now_to_us();
 
         // 统计切换耗时
@@ -2618,7 +2617,7 @@ RC TxnManager::Commit_Plor(){
         }
 
         SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
-        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
+//        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
 
         // TODO：无需再次检验
         // No wait for epochs

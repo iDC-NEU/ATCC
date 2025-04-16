@@ -784,6 +784,7 @@ public:
         retry_cnt = 0;
         pre_csn = 0;    // 用于unlock
         score_ = 0;
+        abort_ = false;
         hot_cnt = 0;
         hot_rowid_records.clear();
     }
@@ -870,6 +871,7 @@ public:
     uint32_t session_id;              // session id
     uint64_t pre_csn;
     uint64_t score_;
+    bool abort_;
 
     static std::atomic<uint64_t> start_txn_num;
     static std::atomic<uint64_t> start_interactive_txn_num;

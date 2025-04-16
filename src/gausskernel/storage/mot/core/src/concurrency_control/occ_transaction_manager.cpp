@@ -514,6 +514,47 @@ bool OccTransactionManager::QuickVersionCheck(TxnManager* txMan, uint32_t& readS
     return true;
 }
 
+bool OccTransactionManager::QuickVersionCheckNoValidation(TxnManager* txMan, uint32_t& readSetSize)
+{
+    int isolationLevel = txMan->GetTxnIsoLevel();
+    TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
+    readSetSize = 0;
+    for (const auto& raPair : orderedSet) {
+        const Access* ac = raPair.second;
+        if (ac->m_params.IsPrimarySentinel()) {
+            m_rowsSetSize++;
+        }
+        switch (ac->m_type) {
+            case RD_FOR_UPDATE:
+            case WR:
+                m_writeSetSize++;
+                break;
+            case DEL:
+                m_writeSetSize++;
+                m_deleteSetSize++;
+                break;
+            case INS:
+                m_insertSetSize++;
+                m_writeSetSize++;
+                break;
+            case RD:
+                if (isolationLevel > READ_COMMITED) {
+                    readSetSize++;
+                } else if (cc_mode == 4) {
+                    readSetSize++;  // silo SER + PCC
+                }
+                else {
+                    continue;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return true;
+}
+
+
 RC OccTransactionManager::ValidateOcc(TxnManager* txMan)
 {
     uint32_t numSentinelLock = 0;
@@ -1336,7 +1377,13 @@ bool OccTransactionManager::GetWriteLockPlor(TxnManager* txMan, uint32_t server_
     std::shared_ptr<MOTAdaptor::LockRequestQueue> new_queue = nullptr;
     auto currRow = static_cast<Row*>(row);
 
-    if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) return false;
+    if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
+        if (!txMan->abort_) {
+            txMan->abort_ = true;
+            MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
+        }
+        return false;
+    }
     if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
 
     auto table = currRow->GetTable();
@@ -1355,13 +1402,22 @@ bool OccTransactionManager::GetWriteLockPlor(TxnManager* txMan, uint32_t server_
     auto time1 = now_to_us();
     if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
         auto res = tmp_queue->LockWR(tmp_rowid, txMan, server_id);
-        if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) return false;
+        if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
+            if (!txMan->abort_) {
+                txMan->abort_ = true;
+                MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
+            }
+            return false;
+        }
         // 添加到新的 epoch lock request queue 中，没有取模
         // MOTAdaptor::AddEpochActiveQueue(tmp_queue, MOTAdaptor::GetLogicalEpoch());
         // MOTAdaptor::AddActiveQueue(tmp_queue, rowId);
         if (!res) {
             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR [failed] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
-            MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
+            if (!txMan->abort_) {
+                txMan->abort_ = true;
+                MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
+            }
             return false;
         } else {
             // 插入csn + queue
@@ -1404,7 +1460,13 @@ bool OccTransactionManager::GetReadLockPlor(TxnManager* txMan, uint32_t server_i
     std::shared_ptr<MOTAdaptor::LockRequestQueue> new_queue = nullptr;
     auto currRow = static_cast<Row*>(row);
 
-    if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) return false;
+    if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
+        if (!txMan->abort_) {
+            txMan->abort_ = true;
+            MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+        }
+        return false;
+    }
 
     if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
 
@@ -1424,13 +1486,22 @@ bool OccTransactionManager::GetReadLockPlor(TxnManager* txMan, uint32_t server_i
     auto time1 = now_to_us();
     if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
         auto res = tmp_queue->LockRD(tmp_rowid, txMan, server_id, false);
-        if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) return false;
+        if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
+            if (!txMan->abort_) {
+                txMan->abort_ = true;
+                MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+            }
+            return false;
+        }
         // 添加到新的 epoch lock request queue 中，没有取模
         // MOTAdaptor::AddEpochActiveQueue(tmp_queue, MOTAdaptor::GetLogicalEpoch());
 //        MOTAdaptor::AddActiveQueue(tmp_queue, rowId);
         if (!res) {
             if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [failed] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
-            MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+            if (!txMan->abort_) {
+                txMan->abort_ = true;
+                MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+            }
             return false;
         } else {
             // 插入csn + queue
@@ -1483,7 +1554,10 @@ bool OccTransactionManager::GetSwitchReadLockPlorPrevRLock(MOT::TxnManager* txMa
     uint64_t thdId = txMan->GetThdId();
 
     for (const auto &raPair : orderedSet){
-        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return false;
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            MOTAdaptor::ReadLock_switch_pcc_abort_num.fetch_add(1);
+            return false;
+        }
         const Access *ac = raPair.second;
         Row* row_from_header = ac->GetRowFromHeader();
         if (ac->m_type == RD){
@@ -1580,7 +1654,10 @@ bool OccTransactionManager::GetSwitchReadLockPlor(TxnManager* txMan, uint32_t se
     uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
 
     for (const auto &raPair : orderedSet){
-        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return false;
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            MOTAdaptor::ReadLock_switch_pcc_abort_num.fetch_add(1);
+            return false;
+        }
         const Access *ac = raPair.second;
         Row* row_from_header = ac->GetRowFromHeader();
         if (ac->m_type == RD){
@@ -1663,7 +1740,10 @@ bool OccTransactionManager::GetSwitchWriteLockPlor(TxnManager* txMan, uint32_t s
     uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
 
     for (const auto &raPair : orderedSet){
-        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return false;
+        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+            MOTAdaptor::WriteLock_switch_pcc_abort_num.fetch_add(1);
+            return false;
+        }
         const Access *ac = raPair.second;
         if (ac->m_type == WR) {
             if (ac->m_localRow->GetTable() == nullptr) {
@@ -2998,7 +3078,7 @@ RC OccTransactionManager::CommitUpdate(TxnManager *txMan, uint32_t server_id){
     m_deleteSetSize = 0;
     m_insertSetSize = 0;
     uint32_t readSetSize = 0;
-    if (!QuickVersionCheck(txMan, readSetSize)) {
+    if (!QuickVersionCheckNoValidation(txMan, readSetSize)) {
         return RC::RC_ABORT;
     }
 
@@ -3009,6 +3089,7 @@ RC OccTransactionManager::CommitUpdate(TxnManager *txMan, uint32_t server_id){
         m_rowsLocked = true;
         return RC::RC_OK;
     }
+    MOTAdaptor::CommitUpdate_abort_interactive_num.fetch_add(1);
     return RC::RC_ABORT;
 }
 

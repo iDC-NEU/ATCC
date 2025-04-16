@@ -1000,9 +1000,12 @@ public:
     static std::atomic<uint64_t> CommitPhase_origSentinel_abort_num;
     static std::atomic<uint64_t> CommitLockCheck_IsRowAvailable_abort_num;
 
+    static std::atomic<uint64_t> Commit_abort_pcc_total_interactive_num;
+    static std::atomic<uint64_t> Commit_abort_occ_total_interactive_num;
     static std::atomic<uint64_t> Commit_abort_interactive_num;
     static std::atomic<uint64_t> CommitPhase_abort_interactive_num;
     static std::atomic<uint64_t> CommitCheck_abort_interactive_num;
+    static std::atomic<uint64_t> CommitUpdate_abort_interactive_num;
     static std::atomic<uint64_t> CommitCheck_deadlock_abort_interactive_num;
     static std::atomic<uint64_t> ValidateReadInMergeForSnap_abort_interactive_num;
     static std::atomic<uint64_t> ValidateReadInMerge_abort_interactive_num;
@@ -2157,19 +2160,19 @@ public:
                 return false;
             }
 
-            reader_list_.push_back(new_request);
-            reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
-
-            snapshot_reader_list_.push_back(tid);
-            snapshot_reader_score_map_[tid] = tid_score;
-            snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
-            lock.unlock();
+//            reader_list_.push_back(new_request);
+//            reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
+//
+//            snapshot_reader_list_.push_back(tid);
+//            snapshot_reader_score_map_[tid] = tid_score;
+//            snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
+//            lock.unlock();
 
             uint64_t start_time = now_to_us();
             // PLOR 算法，若当前reader tid < 写者tid，则写者abort
             // 需要吗? 记录了读之后，需要检验是否要中止写锁吗?
             while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段
-                lock.lock();
+//                lock.lock();
                 if (!excl_sig.load()) break;
                 if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
                     AbortTransactinRequest(writer_.load());
@@ -2185,10 +2188,18 @@ public:
                     DebugMessage();
                     //                        return false;
                 }
-
-
+                if (now_to_us() - start_time > 3000000) return false;
                 std::this_thread::yield();
+                lock.lock();        // test
             }
+
+            reader_list_.push_back(new_request);
+            reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
+
+            snapshot_reader_list_.push_back(tid);
+            snapshot_reader_score_map_[tid] = tid_score;
+            snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
+
             return true;
         }
 
@@ -2236,6 +2247,7 @@ public:
                         // MOT_LOG_INFO("LockWR() csn : %s , rowid : %s", s_tid.c_str(), row_id.c_str());
 //                        return false;
                     }
+                    if (now_to_us() - start_time > 3000000) return false;
                     std::this_thread::yield();
                 }
             }
@@ -2290,6 +2302,7 @@ public:
 
             SetExcl(tid);
 
+            std::vector<uint64_t> delayed_abort_list(64);
             std::list<uint64_t> snapshot_queue(snapshot_reader_list_);
             std::unordered_map<uint64_t, uint64_t> snapshot_score_map(snapshot_reader_score_map_);
 
@@ -2303,7 +2316,9 @@ public:
                 }
                 if (reader == tid) continue;
                 if (IsSmallerThanWriter(reader, r_score)){
-                    AbortTransactinRequest(reader);
+                    // 延迟abort?
+                    delayed_abort_list.emplace_back(reader);
+//                    AbortTransactinRequest(reader);
                 } else {
                     // 等待该reader commit
                     auto r = reader;
@@ -2324,10 +2339,16 @@ public:
                             DebugMessage();
 //                            return false;
                         }
+                        if (now_to_us() - start_time > 3000000) return false;
                         std::this_thread::yield();
                         lock.lock();
                     }
                 }
+            }
+
+            // 对delayed list进行中止
+            for (auto r : delayed_abort_list) {
+                if (reader_list_map_.count(r)) AbortTransactinRequest(r);
             }
 
 //            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {

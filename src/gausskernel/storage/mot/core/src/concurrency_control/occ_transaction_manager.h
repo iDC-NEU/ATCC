@@ -170,6 +170,9 @@ private:
 
     bool QuickVersionCheck(TxnManager* txMan, uint32_t& readSetSize);
 
+    // wzy:
+    bool QuickVersionCheckNoValidation(TxnManager* txMan, uint32_t& readSetSize);
+
     bool LockHeadersNoWait(TxnManager* txMan, uint32_t& numSentinelsLock);
 
     void ReleaseHeaderLocks(TxnManager* txMan, uint32_t numOfLocks);

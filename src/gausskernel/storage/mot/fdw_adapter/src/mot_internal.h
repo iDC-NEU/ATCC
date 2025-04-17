@@ -2170,27 +2170,51 @@ public:
 
             uint64_t start_time = now_to_us();
             // PLOR 算法，若当前reader tid < 写者tid，则写者abort
-            // 需要吗? 记录了读之后，需要检验是否要中止写锁吗?
-            while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段
-//                lock.lock();
-                if (!excl_sig.load()) break;
-                if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
-                    AbortTransactinRequest(writer_.load());
+            if (!is_wound_wait_enable) {
+                while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
+                    if (!excl_sig.load()) break;
+                    if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
+                        AbortTransactinRequest(writer_.load());
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+                        return false;
+                    }
+                    lock.unlock();
+
+                    if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                        DebugMessage();
+                        //                        return false;
+                    }
+                    if (now_to_us() - start_time > 3000000) return false;
+                    std::this_thread::yield();
+                    lock.lock();        // test
                 }
-                if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                    RemoveReaderRequest(tid);
-                    RemoveWriterRequest(tid);
-                    return false;
+            } else {
+                // wound-wait block
+                while (writer_.load() != INVALID_TID) {
+                    if (!excl_sig.load() && !IsSmallerThanWriter(tid, tid_score)) break;
+                    if (excl_sig.load() && !IsSmallerThanWriter(tid, tid_score)) {
+                        AbortTransactinRequest(writer_.load());
+                        break;
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+                        return false;
+                    }
+
+                    lock.unlock();
+                    if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                        DebugMessage();
+                        // return false;
+                    }
+                    if (now_to_us() - start_time > 3000000) return false;
+                    std::this_thread::yield();
+
+                    lock.lock();        // test
                 }
-                lock.unlock();
-                
-                if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                    DebugMessage();
-                    //                        return false;
-                }
-                if (now_to_us() - start_time > 3000000) return false;
-                std::this_thread::yield();
-                lock.lock();        // test
             }
 
             reader_list_.push_back(new_request);

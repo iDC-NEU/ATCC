@@ -5512,8 +5512,7 @@ void EpochLockThreadMain_2(uint64_t id)
 }
 
 void EpochLockThreadMain(uint64_t id) {
-    if (is_wound_wait_enable) EpochLockThreadMain_WoundWait(id);
-    else EpochLockThreadMain_Wait(id);
+    EpochLockThreadMain_Wait(id);
 }
 
 

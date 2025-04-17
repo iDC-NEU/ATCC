@@ -1841,12 +1841,12 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoPlor(pre_csn, true);
                 MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
             }
-        } else if (cc_mode == 3) {
+        } else if (cc_mode == 3) {          // wound-wait
             if (txn->IsInteractive()) {
                 if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoWoundWait(pre_csn, true);
                 MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
             }
-        } else if (cc_mode == 4) {
+        } else if (cc_mode == 4) {          // plor
             if (txn->IsInteractive()) {
                 if (txn->pessimistic_flag) MOTAdaptor::UnlockInteractiveLockInfoPlor(pre_csn, true);
                 MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());

@@ -5764,44 +5764,60 @@ void DeadlockDetection()
 
 
 // wzy: CRLS 环检测
-void DeadlockDetection_CRLS() {
+void DeadlockDetection_CRLS()
+{
     std::vector<std::string> target_tids;
     std::unordered_set<std::string> target_set;
 
-//    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles(target_tids, target_set);       // 无拷贝，直接加锁
+    //    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles(target_tids, target_set);       // 无拷贝，直接加锁
 
     auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles1(target_tids, target_set);
-    if (!res) return;
-    for (std::string& target_tid : target_tids) {
-        // abort处理，添加到abort_transcation_csn_set
-        MOTAdaptor::abort_transcation_csn_set.insert(target_tid, target_tid);
-        MOTAdaptor::deadlock_abort_set.insert(target_tid, target_tid);
-        MOTAdaptor::DeadLock_abort_num.fetch_add(1);
+    if (!res)
+        return;
+    if (cc_mode == 1) {
+        for (std::string& target_tid : target_tids) {
+            // abort处理，添加到abort_transcation_csn_set
+            MOTAdaptor::abort_transcation_csn_set.insert(target_tid, target_tid);
+            MOTAdaptor::deadlock_abort_set.insert(target_tid, target_tid);
+            MOTAdaptor::DeadLock_abort_num.fetch_add(1);
 
-        // 移除queue中abort的事务
-//        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> tmp_vec = nullptr;
-//        if(MOTAdaptor::csn_requests_map.get_element(target_tid, tmp_vec) && tmp_vec) {
-//            for (const auto& queue : *tmp_vec) {
-//                queue->remove_lock_request(target_tid);
-//            }
-//        }
-//        MOTAdaptor::csn_requests_map.remove(target_tid);
+            // 移除queue中abort的事务
+            //        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> tmp_vec = nullptr;
+            //        if(MOTAdaptor::csn_requests_map.get_element(target_tid, tmp_vec) && tmp_vec) {
+            //            for (const auto& queue : *tmp_vec) {
+            //                queue->remove_lock_request(target_tid);
+            //            }
+            //        }
+            //        MOTAdaptor::csn_requests_map.remove(target_tid);
 
-        // TODO:
-        std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
-        std::shared_ptr<std::vector<std::string>> tmp_vec_1 = nullptr;
-        if(MOTAdaptor::txn_rowid_map.get_element(target_tid, tmp_vec_1) && tmp_vec_1) {
-            for (auto& tmp_rowid : *tmp_vec_1) {
-                if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
-                    tmp_queue->remove_lock_request(target_tid);
+            std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
+            std::shared_ptr<std::vector<std::string>> tmp_vec_1 = nullptr;
+            if (MOTAdaptor::txn_rowid_map.get_element(target_tid, tmp_vec_1) && tmp_vec_1) {
+                for (auto& tmp_rowid : *tmp_vec_1) {
+                    if (MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue) {
+                        tmp_queue->remove_lock_request(target_tid);
+                    }
                 }
             }
-        }
-        MOTAdaptor::txn_rowid_map.remove(target_tid);
+            MOTAdaptor::txn_rowid_map.remove(target_tid);
 
-        MOT_LOG_INFO("[Deadlock Detection] target txn =  %s", target_tid.c_str());
-        // 从wait_for图中删除target_tid
-        MOTAdaptor::wait_for_graph.removeNode(target_tid);
+            MOT_LOG_INFO("[Deadlock Detection] target txn =  %s", target_tid.c_str());
+            // 从wait_for图中删除target_tid
+            MOTAdaptor::wait_for_graph.removeNode(target_tid);
+        }
+    } else if (cc_mode == 3) {
+        for (std::string& target_tid : target_tids) {
+            // TODO: 找到环中优先级最低的进行中止
+            // abort处理，添加到abort_transcation_csn_set
+            MOTAdaptor::abort_transcation_csn_set.insert(target_tid, target_tid);
+            MOTAdaptor::deadlock_abort_set.insert(target_tid, target_tid);
+            MOTAdaptor::DeadLock_abort_num.fetch_add(1);
+
+            MOT_LOG_INFO("[Deadlock Detection] target txn =  %s", target_tid.c_str());
+            // 从wait_for图中删除target_tid
+            MOTAdaptor::wait_for_graph.removeNode(target_tid);
+        }
+
     }
 }
 

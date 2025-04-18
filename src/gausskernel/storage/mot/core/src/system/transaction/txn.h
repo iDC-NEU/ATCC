@@ -234,6 +234,7 @@ public:
 
     //////////// Wound-wait //////////////////
     RC ReadLockForSwitch_WoundWait();
+    RC ReadLockForSwitchHotRows_WoundWait();
     RC WriteLockForSwitch_WoundWait();
     RC WriteLockForSwitchHotRows_WoundWait();
     RC GetReadLock_WoundWait(MOT::Row* currRow);          // wzy:

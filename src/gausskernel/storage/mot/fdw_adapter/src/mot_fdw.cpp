@@ -1853,6 +1853,8 @@ static void MOTXactCallback(XactEvent event, void* arg)
             }
         }
 
+        if(txn->pessimistic_flag) MOT_LOG_INFO("PCC abort stage end !!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+
         MOTAdaptor::Rollback();
         txn->ClearEpochState();     // 清空state，包括pre_csn
         txn->SetTxnState(MOT::TxnState::TXN_ROLLBACK);

@@ -295,8 +295,8 @@ public:
     RC ReadPhaseWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
     bool GetReadLockWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);
 
-    RC SwitchReadPhaseWoundWait(TxnManager* txMan, uint32_t server_id);
-    bool GetSwitchReadLockWoundWait(TxnManager* txMan, uint32_t server_id);
+    RC SwitchReadPhaseWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
+    bool GetSwitchReadLockWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
     RC SwitchWritePhaseWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
     bool GetSwitchWriteLockWoundWait(TxnManager* txMan, uint32_t server_id, bool hot_rows);
 

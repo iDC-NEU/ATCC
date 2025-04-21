@@ -167,7 +167,7 @@ bool OccTransactionManager::ValidateReadSet(TxnManager* txMan)
 bool OccTransactionManager::ValidateWriteSet(TxnManager* txMan)
 {
     // wzy:
-    uint64_t currentCSN = txMan->GetCommitSequenceNumber();
+    uint64_t currentCSN = txMan->pre_csn;
     std::string csn_tmp = std::to_string(currentCSN) + ":0";
 
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
@@ -276,7 +276,7 @@ bool OccTransactionManager::LockHeadersNoWaitPlor(TxnManager* txMan, uint32_t& n
 bool OccTransactionManager::LockHeadersNoWait(TxnManager* txMan, uint32_t& numSentinelsLock)
 {
     // wzy:
-    uint64_t currentCSN = txMan->GetCommitSequenceNumber();
+    uint64_t currentCSN = txMan->pre_csn;
     std::string csn_tmp = std::to_string(currentCSN) + ":0";
 
     uint64_t sleepTime = 1;
@@ -354,7 +354,7 @@ bool OccTransactionManager::LockHeadersNoWait(TxnManager* txMan, uint32_t& numSe
 RC OccTransactionManager::LockHeaders(TxnManager* txMan, uint32_t& numSentinelsLock)
 {
     // wzy: OCC 流程
-    uint64_t currentCSN = txMan->GetCommitSequenceNumber();
+    uint64_t currentCSN = txMan->pre_csn;
     std::string csn_tmp = std::to_string(currentCSN) + ":0";
 
     RC rc = RC_OK;
@@ -705,7 +705,7 @@ final:
 bool OccTransactionManager::ValidateWriteSetPlor(TxnManager* txMan)
 {
     // wzy:
-    uint64_t currentCSN = txMan->GetCommitSequenceNumber();
+    uint64_t currentCSN = txMan->pre_csn;
     std::string csn_tmp = std::to_string(currentCSN) + ":0";
 
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
@@ -875,7 +875,7 @@ void OccTransactionManager::WriteChanges(TxnManager* txMan, uint64_t server_id)
             }
             lockCnt++;
             lock_map[row] = true;
-            if (is_debug_print_enable) MOT_LOG_INFO("csn = %llu Lock & LockStable row = %llu success row stable_csnWord = %llu", txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+            if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu Lock & LockStable row = %llu success row stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
         }
     }
 
@@ -975,10 +975,10 @@ void OccTransactionManager::WriteChanges(TxnManager* txMan, uint64_t server_id)
             else {
                 row->GetRowHeader()->ReleaseStable();
                 if (row->GetRowHeader()->IsStableLocked()) {
-                    if (is_debug_print_enable) ("Write changes error csn = %llu row = %llu stable_csnWord = %llu", txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+                    if (is_debug_print_enable) ("Write changes error pre_csn = %llu csn = %llu row = %llu stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
                     row->GetRowHeader()->ReleaseStable();
                 }
-                if (is_debug_print_enable) MOT_LOG_INFO("csn = %llu UnLockStable row = %llu success row stable_csnWord = %llu", txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+                if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu UnLockStable row = %llu success row stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
                 row->GetRowHeader()->Release();
             }
             lockCnt--;
@@ -1370,7 +1370,7 @@ bool OccTransactionManager::GetWriteLockPlor(TxnManager* txMan, uint32_t server_
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -1454,7 +1454,7 @@ bool OccTransactionManager::GetReadLockPlor(TxnManager* txMan, uint32_t server_i
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -1543,7 +1543,8 @@ bool OccTransactionManager::GetSwitchReadLockPlorPrevRLock(MOT::TxnManager* txMa
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+//    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     auto start_logical_epoch = txMan->GetStartLogicalEpoch();
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
@@ -1667,7 +1668,7 @@ bool OccTransactionManager::GetSwitchReadLockPlor(TxnManager* txMan, uint32_t se
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     auto start_logical_epoch = txMan->GetStartLogicalEpoch();
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
@@ -1754,7 +1755,7 @@ bool OccTransactionManager::GetSwitchWriteLockPlor(TxnManager* txMan, uint32_t s
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
@@ -1835,7 +1836,7 @@ bool OccTransactionManager::ValidateReadWriteConflict(TxnManager* txMan, uint32_
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
@@ -2010,7 +2011,7 @@ bool OccTransactionManager::GetWriteLockWoundWait(TxnManager* txMan, uint32_t se
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -2095,7 +2096,7 @@ bool OccTransactionManager::GetReadLockWoundWait(TxnManager* txMan, uint32_t ser
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -2183,7 +2184,7 @@ bool OccTransactionManager::GetSwitchReadLockWoundWait(TxnManager* txMan, uint32
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     auto start_logical_epoch = txMan->GetStartLogicalEpoch();
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
@@ -2314,7 +2315,7 @@ bool OccTransactionManager::GetSwitchWriteLockWoundWait(TxnManager* txMan, uint3
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
@@ -2392,7 +2393,7 @@ bool OccTransactionManager::ValidateReadWriteConflictWoundWait(TxnManager* txMan
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
@@ -2540,6 +2541,7 @@ bool OccTransactionManager::UnlockReadWriteRowWoundWait(TxnManager* txMan, uint3
 
     // 移除等待图
     MOTAdaptor::wait_for_graph.removeNode(tmp_csn);
+    if (is_debug_print_enable) MOT_LOG_INFO("RemoveNode() tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
 
     MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
     //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
@@ -2565,7 +2567,7 @@ bool OccTransactionManager::GetWriteLockDL(TxnManager* txMan, uint32_t server_id
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -2631,7 +2633,7 @@ bool OccTransactionManager::GetReadLockDL(TxnManager* txMan, uint32_t server_id,
     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
     bool result = true;
     std::string table_name, key, key_temp, csn_temp, csn_result;
-    string tmp_csn = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+    string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
@@ -2704,7 +2706,7 @@ bool OccTransactionManager::GetSwitchReadLockDLPrevRLock(MOT::TxnManager* txMan,
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     auto start_logical_epoch = txMan->GetStartLogicalEpoch();
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
@@ -2794,7 +2796,7 @@ bool OccTransactionManager::GetSwitchReadLockDL(TxnManager* txMan, uint32_t serv
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     auto start_logical_epoch = txMan->GetStartLogicalEpoch();
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
@@ -2878,7 +2880,7 @@ bool OccTransactionManager::GetSwitchWriteLockDL(TxnManager* txMan, uint32_t ser
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     uint64_t rowId;
     std::string tmp_rowid;
@@ -3320,7 +3322,8 @@ bool OccTransactionManager::UpdateWriteHeaderForPCC(TxnManager *txMan, uint32_t 
     std::string table_name, key, key_temp, csn_temp, csn_result;
     uint64_t currentCSN;
     MOT::Row* row;
-    currentCSN = txMan->GetCommitSequenceNumber();
+//    currentCSN = txMan->GetCommitSequenceNumber();
+    currentCSN = txMan->pre_csn;
     csn_temp = std::to_string(currentCSN) + ":" + std::to_string(server_id);
     for (const auto &raPair : orderedSet){
         const Access *ac = raPair.second;

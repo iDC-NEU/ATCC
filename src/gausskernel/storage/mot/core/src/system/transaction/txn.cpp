@@ -112,9 +112,9 @@ Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSenti
         SetInteractive(true);
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
-        pre_csn = start_time;       // 用于释放锁
-        uint64_t tmp_score = GetScore();
         session_id = u_sess->mot_cxt.session_id;
+        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+        uint64_t tmp_score = GetScore();
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
         if (is_debug_print_enable) {
             MOT_LOG_INFO("[First time] TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
@@ -433,9 +433,9 @@ RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolation
         SetInteractive(true);
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
-        pre_csn = start_time;
-        uint64_t tmp_score = GetScore();
         session_id = u_sess->mot_cxt.session_id;
+        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+        uint64_t tmp_score = GetScore();
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
@@ -1000,9 +1000,9 @@ TxnManager::TxnManager(SessionContext* session_context)
         SetInteractive(true);
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
-        pre_csn = start_time;
-        uint64_t tmp_score = GetScore();
         session_id = u_sess->mot_cxt.session_id;
+        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+        uint64_t tmp_score = GetScore();
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
@@ -1273,9 +1273,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
@@ -1283,9 +1283,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     // 未启用热行上锁策略则全部行上锁
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
@@ -1319,9 +1319,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1329,9 +1329,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     // 未启用热行上锁策略则全部行上锁
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1352,9 +1352,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_DL(updatedRow);     // Plor上写锁
@@ -1362,9 +1362,9 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     // 未启用热行上锁策略则全部行上锁
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        pre_csn = GetCommitSequenceNumber();
-                        uint64_t tmp_score = GetScore();
                         session_id = u_sess->mot_cxt.session_id;
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                        uint64_t tmp_score = GetScore();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_DL(updatedRow);     // Plor上写锁
@@ -2325,8 +2325,8 @@ RC TxnManager::Commit(){
 
             if (IsInteractive() && pessimistic_flag) {
                 // wzy: 在epoch commit check前解锁/abort
-                uint64_t pre_csn = GetCommitSequenceNumber();
                 session_id = u_sess->mot_cxt.session_id;
+                pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                 MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, rc != RC_OK);
             }
 
@@ -3038,7 +3038,7 @@ RC TxnManager::Commit_WoundWait(){
 
         if(m_occManager.ValidationPhaseWoundWait(this, local_ip_index) == RC_ABORT) {
             if (IsInteractive()) {
-                if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
+                if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhaseWoundWait() local failed tmp_csn : %s ", csn_temp.c_str());
                 MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
             }
             MOTAdaptor::CommitPhase_abort_num.fetch_add(1);

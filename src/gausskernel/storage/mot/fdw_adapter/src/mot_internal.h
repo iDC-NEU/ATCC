@@ -2134,7 +2134,7 @@ public:
         }
 
         bool LockRD(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
-            uint64_t tid = txMan->GetCommitSequenceNumber();
+            uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
             if (tid == writer_.load()) return true;
@@ -2229,7 +2229,7 @@ public:
 
         bool LockWR(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
             // 分配tid不相同，直接用uint64_t
-            uint64_t tid = txMan->GetCommitSequenceNumber();
+            uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
             if (writer_.load() == tid) return true;
@@ -2317,7 +2317,6 @@ public:
         }
 
         bool ValidateWR(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
-//            uint64_t tid = txMan->GetCommitSequenceNumber();
             uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
@@ -2431,7 +2430,7 @@ public:
 
         bool LockRD_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
 
-            uint64_t tid = txMan->GetCommitSequenceNumber();
+            uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
             if (tid == writer_.load()) return true;
@@ -2498,16 +2497,10 @@ public:
                 lock.lock();
             }
 
-            // 删除自己等待的
-//            if (w_tid != INVALID_TID) {
-//                std::string s_w = makeSid(w_tid, server_id);
-//                wait_for_graph.removeEdge(s_tid, s_w);
-//            }
-
             // 删除等待
             // wzy: 在环内等待的reader
             if (waiting_reader_list_map_.count(tid)) {
-                auto iter1 = snapshot_reader_list_map_.find(tid);
+                auto iter1 = waiting_reader_list_map_.find(tid);
                 if (iter1 != waiting_reader_list_map_.end()) {
                     waiting_reader_list_.erase(iter1->second);
                     waiting_reader_list_map_.erase(iter1);
@@ -2533,7 +2526,7 @@ public:
 
         bool LockWR_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
             // 分配tid不相同，直接用uint64_t
-            uint64_t tid = txMan->GetCommitSequenceNumber();
+            uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
             if (writer_.load() == tid) return true;
@@ -2563,7 +2556,6 @@ public:
             uint64_t expected = 0L;
             if (!writer_.compare_exchange_weak(expected, tid)) {
                 while (writer_.load() != tid) {
-
                     if (writer_.load() == INVALID_TID) writer_.store(tid);
                     if (tid == writer_.load()) break;
 
@@ -2711,7 +2703,7 @@ public:
                         lock.lock();
                     }
                     // 不再等待
-                    wait_for_graph.removeEdge(s_tid, s_reader);
+                    wait_for_graph.removeEdgesFrom(s_tid);
                 }
             }
 
@@ -2751,8 +2743,8 @@ public:
         // 读锁
         bool LockRDDL(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase)
         {
-            uint64_t tid = txMan->GetCommitSequenceNumber();
-            std::string s_tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+            uint64_t tid = txMan->pre_csn;
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             std::unique_lock<std::mutex> lock(latch_);
             if (switch_phase && excl.load() && writer_.load() != tid) return false;
             if (writer_.load() == tid) return true;
@@ -2801,8 +2793,8 @@ public:
         // 写锁
         bool LockWRDL(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id)
         {
-            uint64_t tid = txMan->GetCommitSequenceNumber();
-            std::string s_tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+            uint64_t tid = txMan->pre_csn;
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             std::unique_lock<std::mutex> lock(latch_);
             if (writer_.load() == tid) return true;
             if (lock_request_map_dl_.count(tid)) return true;           // 重复则不管
@@ -2847,8 +2839,8 @@ public:
 
         bool UnlockRowDL(std::string& row_id, MOT::TxnManager*& txMan, std::string& res_tid, uint32_t& server_id)
         {
-            uint64_t tid = txMan->GetCommitSequenceNumber();
-            std::string s_tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+            uint64_t tid = txMan->pre_csn;
+            std::string s_tid = to_string(tid) + ":" + to_string(server_id);
 
             std::lock_guard<std::mutex> lock(latch_);
             bool res = true;
@@ -3224,22 +3216,37 @@ public:
 
         void RemoveReaderRequest(uint64_t abort_csn) {
             // 删除abort_csn的相关请求
-            if (!reader_list_map_.count(abort_csn)) return;
-            auto iter = reader_list_map_.find(abort_csn);
-            if (iter != reader_list_map_.end()) {
-                reader_list_.erase(iter->second);
-                reader_list_map_.erase(iter);
+            if (reader_list_map_.count(abort_csn)){
+                auto iter = reader_list_map_.find(abort_csn);
+                if (iter != reader_list_map_.end()) {
+                    reader_list_.erase(iter->second);
+                    reader_list_map_.erase(iter);
+                }
             }
 
-            if (!snapshot_reader_list_map_.count(abort_csn)) return;
-            auto iter1 = snapshot_reader_list_map_.find(abort_csn);
-            if (iter1 != snapshot_reader_list_map_.end()) {
-                snapshot_reader_list_.erase(iter1->second);
-                snapshot_reader_list_map_.erase(iter1);
+            if (snapshot_reader_list_map_.count(abort_csn)) {
+                auto iter1 = snapshot_reader_list_map_.find(abort_csn);
+                if (iter1 != snapshot_reader_list_map_.end()) {
+                    snapshot_reader_list_.erase(iter1->second);
+                    snapshot_reader_list_map_.erase(iter1);
+                }
+                auto iter2 = snapshot_reader_score_map_.find(abort_csn);
+                if (iter2 != snapshot_reader_score_map_.end()) {
+                    snapshot_reader_score_map_.erase(iter2);
+                }
             }
-            auto iter2 = snapshot_reader_score_map_.find(abort_csn);
-            if (iter2 != snapshot_reader_score_map_.end()) {
-                snapshot_reader_score_map_.erase(iter2);
+
+            // wzy: 在环内等待的reader
+            if (waiting_reader_list_map_.count(abort_csn)) {
+                auto iter1 = waiting_reader_list_map_.find(abort_csn);
+                if (iter1 != waiting_reader_list_map_.end()) {
+                    waiting_reader_list_.erase(iter1->second);
+                    waiting_reader_list_map_.erase(iter1);
+                }
+                auto iter2 = waiting_reader_score_map_.find(abort_csn);
+                if (iter2 != waiting_reader_score_map_.end()) {
+                    waiting_reader_score_map_.erase(iter2);
+                }
             }
         }
 
@@ -3284,6 +3291,8 @@ public:
             uint64_t temp_m_score = m_writer_score_.load();
             std::list<shared_ptr<LockRequest>> temp_reader_queue(reader_list_);
             std::list<shared_ptr<LockRequest>> temp_writer_queue(writer_list_);
+            std::list<uint64_t> temp_waiting_reader_queue(waiting_reader_list_);
+            WaitForGraph w = MOTAdaptor::wait_for_graph;
             lock.unlock();
         }
     };
@@ -3552,13 +3561,15 @@ public:
 
         bool CLRS_Cycles1(std::vector<std::string> &target_tids, std::unordered_set<std::string> &target_set) {
             uint64_t start_time = now_to_us();
-            if (!modify.load()) return false;
-            std::unique_lock<std::mutex> graph_lock(mutex);
-            graph1 = graph;
-            vertex1 = vertex;
-            vertex_score1 = vertex_score;
-            modify.store(false);
-            graph_lock.unlock();
+
+            if (modify.load()) {
+                std::unique_lock<std::mutex> graph_lock(mutex);
+                graph1 = graph;
+                vertex1 = vertex;
+                vertex_score1 = vertex_score;
+                modify.store(false);
+                graph_lock.unlock();
+            }
 
             copy_time.fetch_add(now_to_us() - start_time);
 

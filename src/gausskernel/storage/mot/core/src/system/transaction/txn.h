@@ -874,6 +874,8 @@ public:
     uint64_t score_;
     bool abort_;
 
+    static constexpr uint64_t HIGH_MASK = (1ULL << 48) - 1;     // pre_csn
+
     static std::atomic<uint64_t> start_txn_num;
     static std::atomic<uint64_t> start_interactive_txn_num;
 };

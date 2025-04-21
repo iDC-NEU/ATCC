@@ -494,6 +494,8 @@ bool OccTransactionManager::QuickVersionCheck(TxnManager* txMan, uint32_t& readS
             case RD:
                 if (isolationLevel > READ_COMMITED) {
                     readSetSize++;
+                } else if (cc_mode == 3) {
+                    readSetSize++;  // silo SER + PCC
                 } else if (cc_mode == 4) {
                     readSetSize++;  // silo SER + PCC
                 }
@@ -540,6 +542,8 @@ bool OccTransactionManager::QuickVersionCheckNoValidation(TxnManager* txMan, uin
             case RD:
                 if (isolationLevel > READ_COMMITED) {
                     readSetSize++;
+                } else if (cc_mode == 3) {
+                    readSetSize++;  // silo SER + PCC
                 } else if (cc_mode == 4) {
                     readSetSize++;  // silo SER + PCC
                 }
@@ -2427,7 +2431,7 @@ bool OccTransactionManager::ValidateReadWriteConflictWoundWait(TxnManager* txMan
                     MOTAdaptor::wait_for_graph.removeNode(csn_temp);
                     return false;
                 } else {
-                    //                    MOT_LOG_INFO("UnlockWriteSet() unlock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
+                    if (is_debug_print_enable) MOT_LOG_INFO("ValidateReadWriteConflict() lock_request_queue success tmp_csn : %s  , tmp_rowid : %s", csn_temp.c_str(), tmp_rowid.c_str());
                 }
             } else {
                 // do nothing
@@ -2540,8 +2544,9 @@ bool OccTransactionManager::UnlockReadWriteRowWoundWait(TxnManager* txMan, uint3
     }
 
     // 移除等待图
+    uint64_t node_num = MOTAdaptor::wait_for_graph.vertex_num.load();
     MOTAdaptor::wait_for_graph.removeNode(tmp_csn);
-    if (is_debug_print_enable) MOT_LOG_INFO("RemoveNode() tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
+    if (is_debug_print_enable) MOT_LOG_INFO("RemoveNode() tmp_csn : %s , epoch : %llu , wait_for_graph before node : %llu , wait_for_graph after node : %llu", tmp_csn.c_str(), epoch_mod, node_num, MOTAdaptor::wait_for_graph.vertex_num.load());
 
     MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
     //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针

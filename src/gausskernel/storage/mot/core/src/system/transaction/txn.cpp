@@ -3036,6 +3036,8 @@ RC TxnManager::Commit_WoundWait(){
             return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
         }
 
+        if (is_debug_print_enable) MOT_LOG_INFO("CommitPhaseWoundWait() before tmp_csn : %s ", csn_temp.c_str());
+
         if(m_occManager.ValidationPhaseWoundWait(this, local_ip_index) == RC_ABORT) {
             if (IsInteractive()) {
                 if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhaseWoundWait() local failed tmp_csn : %s ", csn_temp.c_str());
@@ -3044,6 +3046,8 @@ RC TxnManager::Commit_WoundWait(){
             MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
             return RC_ABORT;
         }
+
+        if (is_debug_print_enable) MOT_LOG_INFO("CommitPhaseWoundWait() after tmp_csn : %s ", csn_temp.c_str());
 
         SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
 

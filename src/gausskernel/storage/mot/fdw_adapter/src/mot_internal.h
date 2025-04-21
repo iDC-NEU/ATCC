@@ -2463,8 +2463,8 @@ public:
             if (w_tid != INVALID_TID) {
                 std::string s_w = makeSid(w_tid, server_id);
                 // 低优先级 reader 等待读写者
-                if (!higherPriority(tid_score, writer_score_.load())) {
-                    wait_for_graph.addEdge(s_tid, s_w, tid_score, writer_score_.load());
+                if (!higherPriority(tid_score, writer_score_.load()) || excl_sig.load()) {
+                    wait_for_graph.addEdge(s_tid, s_w, tid_score, writer_score_.load(), 5);
                 }
             }
 
@@ -2549,7 +2549,7 @@ public:
             uint64_t cur_owner = writer_.load();
             if (cur_owner != INVALID_TID) {
                 std::string s_owner = makeSid(cur_owner, server_id);
-                wait_for_graph.addEdge(s_tid, s_owner, tid_score, writer_score_.load());
+                wait_for_graph.addEdge(s_tid, s_owner, tid_score, writer_score_.load(), 0);
             }
 
             // 等待成功上锁后再继续执行
@@ -2592,7 +2592,7 @@ public:
             for (auto quest : writer_list_) {
                 if (quest->csn_ == tid) continue;
                 std::string s_writer = quest->tid_;
-                wait_for_graph.addEdge(s_writer, s_tid, quest->score_, tid_score);
+                wait_for_graph.addEdge(s_writer, s_tid, quest->score_, tid_score, 1);
             }
 
             // 加入 reader list 中的每个 reader
@@ -2601,7 +2601,7 @@ public:
                 uint64_t r_score = waiting_reader_score_map_[rid];
                 if (!higherPriority(r_score, tid_score)) {
                     // 低优先级 reader：reader 等待写者
-                    wait_for_graph.addEdge(s_r, s_tid, r_score, tid_score);
+                    wait_for_graph.addEdge(s_r, s_tid, r_score, tid_score, 2);
                 }
             }
             writer_score_.store(tid_score);         // 自己获得锁
@@ -2676,7 +2676,7 @@ public:
                     // 等待该reader commit
                     auto r = reader;
                     std::string s_reader = makeSid(r, server_id);
-                    wait_for_graph.addEdge(s_tid, s_reader, tid_score, r_score);
+                    wait_for_graph.addEdge(s_tid, s_reader, tid_score, r_score, 3);
                     while (r != tid && reader_list_map_.count(r)) {
                         if (IsSmallerThanWriter(r, r_score)){
                             delayed_abort_list.emplace_back(r);
@@ -3305,6 +3305,7 @@ public:
         std::list<std::string> vertex;                  // 遍历
         std::unordered_set<std::string> vertex_set;   // 去重
         std::unordered_map<std::string, uint64_t> vertex_score;
+        std::unordered_map<std::string, uint64_t> vertex_debug_mode;        // 被插入的mode
 
         std::atomic<uint64_t> vertex_num;
         std::atomic<uint64_t> edge_num;
@@ -3357,12 +3358,40 @@ public:
             modify.store(true);
         }
 
+        // 内部调用
+        void addNode(const std::string& node, const uint64_t& score, const uint64_t& mode) {
+            if (node == "") return;
+            if (!vertex_set.count(node)){
+                vertex.push_back(node);
+                graph[node] = std::list<std::string>();
+                vertex_set.insert(node);
+                graph_set[node] = std::unordered_set<std::string>();
+                vertex_num.fetch_add(1);
+                vertex_score[node] = score;
+                vertex_debug_mode[node] = mode;
+            }
+            modify.store(true);
+        }
+
         void addEdge(const std::string& from, const std::string& to, const uint64_t& from_score, const uint64_t& to_score) {
             if (from == "" || to == "") return;
             if (from == to) return;
             std::lock_guard<std::mutex> graph_lock(mutex);
             addNode(from, from_score);
             addNode(to, to_score);
+            if (!graph_set[from].count(to)){
+                graph[from].push_back(to);
+                graph_set[from].insert(to);
+            }
+            modify.store(true);
+        }
+
+        void addEdge(const std::string& from, const std::string& to, const uint64_t& from_score, const uint64_t& to_score, const uint64_t& mode) {
+            if (from == "" || to == "") return;
+            if (from == to) return;
+            std::lock_guard<std::mutex> graph_lock(mutex);
+            addNode(from, from_score, mode);
+            addNode(to, to_score, mode);
             if (!graph_set[from].count(to)){
                 graph[from].push_back(to);
                 graph_set[from].insert(to);
@@ -3404,6 +3433,7 @@ public:
             graph.erase(node);
             graph_set.erase(node);
             vertex_score.erase(node);
+            vertex_debug_mode.erase(node);
 
             for (auto &u : vertex) {
                 graph[u].remove(node);
@@ -3446,6 +3476,22 @@ public:
                 graph_set[from].erase(to);
             }
             modify.store(true);
+        }
+
+        void removeInvalid() {
+            for (auto &v : vertex1) {
+                auto &outs = graph[v];
+                if (outs.empty()) {
+                    // TODO: from, to都没有才会被移除
+//                    graph.erase(v);
+//                    graph_set.erase(v);
+//                    vertex.remove(v);
+//                    vertex_set.erase(v);
+//                    vertex_score.erase(v);
+//                    vertex_num.fetch_sub(1);
+//                    modify.store(true);
+                }
+            }
         }
 
         void print() {
@@ -3568,6 +3614,7 @@ public:
                 vertex1 = vertex;
                 vertex_score1 = vertex_score;
                 modify.store(false);
+//                removeInvalid();        // 移除无效node/edge
                 graph_lock.unlock();
             }
 

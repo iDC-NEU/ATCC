@@ -607,7 +607,9 @@ MOT::RC MOTAdaptor::ValidateCommit()
     EnsureSafeThreadAccessInline();
     MOT::TxnManager* txn = GetSafeTxn(__FUNCTION__);
     if (!IS_PGXC_COORDINATOR) {
-        if (cc_mode == 4) {                 // wzy: Silo
+        if (cc_mode == 3) {                 // wzy: Silo
+            return txn->ValidateCommit();   //ADDBY NEU change to Commit
+        } else if (cc_mode == 4) {                 // wzy: Silo
             return txn->ValidateCommit();   //ADDBY NEU change to Commit
         }
         else return txn->Commit();      // CRDT + hybrid

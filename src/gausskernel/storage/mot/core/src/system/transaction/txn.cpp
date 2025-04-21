@@ -127,7 +127,7 @@ Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSenti
         MOT_LOG_INFO("TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
     }
 
-    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
     TryRecordTimestamp(1, startExec);//ADDBY NEU HW
 
     // wzy: 检验是否切换
@@ -552,7 +552,7 @@ void TxnManager::CommitInternalPlor(uint64_t& pre_csn)
 
     // 释放锁
     if (!GetGlobalConfiguration().m_enableRedoLog) {
-        m_occManager.ReleaseLocks(this);        // header 和 sentinel 解锁?
+        m_occManager.ReleaseLocks(this);        // header 和 sentinel 解锁
     }
 }
 
@@ -1123,7 +1123,7 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
     if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
         pessimistic_flag = true;
         first_time_pessimistic = true;
-        std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+        std::string csn_temp = std::to_string(pre_csn) + ":0";
         if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic1], csn : %s, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu", csn_temp.c_str(), retry_cnt, read_cnt, write_cnt);
         MOTAdaptor::pessimisitic_priority_txn_num.fetch_add(1);
         return true;
@@ -1134,7 +1134,7 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
                                                                       && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
             pessimistic_flag = true;
             first_time_pessimistic = true;
-            std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+            std::string csn_temp = std::to_string(pre_csn) + ":0";
             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic2], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
             MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
             return true;
@@ -1145,7 +1145,7 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
             && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= kHotCntLimit - 100) {
             pessimistic_flag = true;
             first_time_pessimistic = true;
-            std::string csn_temp = std::to_string(GetCommitSequenceNumber()) + ":0";
+            std::string csn_temp = std::to_string(pre_csn) + ":0";
             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic3], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
             MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
             return true;
@@ -1167,7 +1167,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
         access->m_stmtCount = GetStmtCount();
     }
 
-    auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+    auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
     if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return MOT::RC_ABORT;         // wzy: 被死锁检测abort
 
     AddWriteCnt();      // 统计
@@ -2608,7 +2608,7 @@ RC TxnManager::Commit_Plor(){
 
     if (this->m_accessMgr->m_rowCnt > 0 && !result){
         // wzy: 检查事务是否被abort
-        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
             if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
             return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
@@ -3030,7 +3030,7 @@ RC TxnManager::Commit_WoundWait(){
 
     if (this->m_accessMgr->m_rowCnt > 0 && !result){
         // wzy: 检查事务是否被abort
-        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
             if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
             return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
@@ -3146,7 +3146,7 @@ RC TxnManager::Commit_DL(){
 
     if (this->m_accessMgr->m_rowCnt > 0 && !result){
         // wzy: 检查事务是否被abort
-        auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+        auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
             if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
             return RC_ABORT;     // 被死锁检测abort，已经被自动解锁

@@ -1682,8 +1682,6 @@ static void MOTXactCallback(XactEvent event, void* arg)
             txn->commit_time = now_to_us_fdw();
         }
 
-
-
         if(rc == MOT::RC_OK){
             MOTAdaptor::commit_txn_num.fetch_add(1);
             MOTAdaptor::txn_total_time.fetch_add(txn->commit_time - txn->start_time);
@@ -1758,8 +1756,8 @@ static void MOTXactCallback(XactEvent event, void* arg)
         if (txnState == MOT::TxnState::TXN_PREPARE) {
             MOTAdaptor::CommitPrepared(csn);
         } else {
-            uint64_t pre_csn = txn->pre_csn;
-            MOTAdaptor::RecordCommit(pre_csn);  //CommitInternalII();
+            uint64_t m_csn = txn->GetCommitSequenceNumber();
+            MOTAdaptor::RecordCommit(m_csn);  //CommitInternalII();
             // auto epoch = txn->GetCommitEpoch();
             // if(!txn->isOnlyRead()){
             //     while(!epoch < MOTAdaptor::local_change_set_ptr1_current_epoch) usleep(200); 

@@ -677,7 +677,7 @@ void MOTAdaptor::RecordCommit(uint64_t csn)
     MOT::TxnManager* txn = GetSafeTxn(__FUNCTION__);
 
     // 记录下precsn
-    txn->pre_csn = txn->GetCommitSequenceNumber();
+//    txn->pre_csn = txn->GetCommitSequenceNumber();
     txn->SetCommitSequenceNumber(csn);
     if (!IS_PGXC_COORDINATOR) {
         txn->RecordCommit(txn->pre_csn);

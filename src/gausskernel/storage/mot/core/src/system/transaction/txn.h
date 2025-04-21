@@ -830,7 +830,7 @@ public:
 
     uint64_t GetScore() {
         score_ = 0;
-        uint64_t f = UINT64_MAX - pre_csn;
+        uint64_t f = UINT64_MAX - start_time;
         score_ |= ((uint64_t)retry_cnt << 57);
         score_ |= (f & 0x1FFFFFFFFFFFFFF);
         return score_;

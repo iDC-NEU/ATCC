@@ -2169,8 +2169,9 @@ public:
 //            lock.unlock();
 
             uint64_t start_time = now_to_us();
-            // PLOR 算法，若当前reader tid < 写者tid，则写者abort
+
             if (!is_wound_wait_enable) {
+                // PLOR 算法，若当前reader tid < 写者tid，则写者abort
                 while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
                     if (!excl_sig.load()) break;
                     if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
@@ -2385,24 +2386,39 @@ public:
         // 对OCC写操作进行检测 -> 有读者则返回false
         bool AvailableRowPlor(std::string& row_id, uint64_t& tid, std::string& s_tid, std::string& res)
         {
-            std::lock_guard<std::mutex> lock(p_latch_);
-            bool result = false;
+            bool result = true;
             if (writer_.load() == tid) return true;         // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
-            if (!reader_list_.empty()) return false;        // 没有读者
-
-            // if (!excl_sig.load()) return true;      // 没有正在提交的写者?
-            if (writer_list_.size() <= 0)
-                return true;
-            if (writer_.load() == INVALID_TID || writer_.load() == tid) {
-                return true;
-            } else {
+            std::lock_guard<std::mutex> lock(p_latch_);
+//            p_lock();
+            if (!reader_list_.empty()) result = false;        // 没有读者
+            if (writer_list_.size() > 0) result = false;
+            if (writer_.load() != INVALID_TID && writer_.load() != tid) {
                 res = writer_.load();
                 result = false;
             }
+//            p_unlock();
             return result;
         }
 
+        ////////////// Spin lock//////////////
+
+//        std::atomic<bool> lock_flag{false};
+        std::atomic_flag lock_flag = ATOMIC_FLAG_INIT;
+        void p_lock() {
+//            bool v = false;
+//            while (!lock_flag.compare_exchange_weak(v, true)) {
+//                v = false;
+//            }
+            while (lock_flag.test_and_set(std::memory_order_acquire)) { /* spin */ }
+        }
+        // 释放锁
+        void p_unlock() {
+//            lock_flag.store(false);
+            lock_flag.clear(std::memory_order_release);
+        }
+
         /////////////////// Wound-wait ////////////////////
+
         std::atomic<uint64_t> reader_score_{INVALID_TID};       // 读者score最大值
                                                                 // helper
          std::list<uint64_t> waiting_reader_list_;
@@ -2436,9 +2452,16 @@ public:
             if (tid == writer_.load()) return true;
 
             std::unique_lock<std::mutex> lock(p_latch_);
+//            p_lock();
 
-            if (reader_list_map_.count(tid)) return true;           // 重复则不管
-            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+            if (reader_list_map_.count(tid)) {
+//                p_unlock();
+                return true;           // 重复则不管
+            }
+            if (writer_list_map_.count(tid)) {
+//                p_unlock();
+                return true;           // 重复则不管
+            }
 
             auto new_request = std::make_shared<LockRequest>(txMan, server_id);
             uint64_t tid_score = new_request->score_;
@@ -2447,6 +2470,7 @@ public:
             if (writer_.load() != INVALID_TID && switch_phase) {
                 RemoveReaderRequest(tid);
                 RemoveWriterRequest(tid);
+//                p_unlock();
                 return false;
             }
 
@@ -2454,6 +2478,7 @@ public:
             if (IsSmallerThanWriter(tid, tid_score) && switch_phase) {
                 RemoveReaderRequest(tid);
                 RemoveWriterRequest(tid);
+//                p_unlock();
                 return false;
             }
             uint64_t start_time = now_to_us();
@@ -2473,28 +2498,65 @@ public:
             waiting_reader_score_map_[tid] = tid_score;
             waiting_reader_list_map_[tid] = std::prev(waiting_reader_list_.end());  // 插入迭代器
 
-            // wound-wait block
-            while (writer_.load() != INVALID_TID || excl_sig.load()) {
-                // 优先级高，且没有在验证阶段的不被阻塞
-                if (!IsSmallerThanWriter(tid, tid_score) && !excl_sig.load()) break;
-                if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                    wait_for_graph.removeNode(s_tid);
-                    RemoveReaderRequest(tid);
-                    RemoveWriterRequest(tid);
-                    return false;
-                }
-                lock.unlock();
 
-                if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                    DebugMessage();
-                    // return false;
+            if (is_wound_wait_enable) {
+                // wound-wait block
+                while (writer_.load() != INVALID_TID || excl_sig.load()) {
+                    // 优先级高，且没有在验证阶段的不被阻塞
+                    if (!IsSmallerThanWriter(tid, tid_score) && !excl_sig.load())
+                        break;
+                    if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score) && excl_sig.load()) {
+                        AbortTransactinRequest(writer_.load());
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        wait_for_graph.removeNode(s_tid);
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+//                        p_unlock();
+                        return false;
+                    }
+//                    p_unlock();
+                    lock.unlock();
+
+                    if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                        DebugMessage();
+                    }
+                    //                if (now_to_us() - start_time > 3000000) {
+                    //                    wait_for_graph.removeNode(s_tid);
+                    //                    return false;
+                    //                }
+                    std::this_thread::yield();
+
+//                    p_lock();
+                    lock.lock();
                 }
-//                if (now_to_us() - start_time > 3000000) {
-//                    wait_for_graph.removeNode(s_tid);
-//                    return false;
-//                }
-                std::this_thread::yield();
-                lock.lock();
+            } else {
+                // plor
+                while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
+                    if (!excl_sig.load()) break;
+                    if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
+                        AbortTransactinRequest(writer_.load());
+                    }
+                    if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                        RemoveReaderRequest(tid);
+                        RemoveWriterRequest(tid);
+//                        p_unlock();
+                        return false;
+                    }
+//                    p_unlock();
+                    lock.unlock();
+
+                    if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                        DebugMessage();
+                    }
+                    //                if (now_to_us() - start_time > 3000000) {
+                    //                    wait_for_graph.removeNode(s_tid);
+                    //                    return false;
+                    //                }
+                    std::this_thread::yield();
+//                    p_lock();
+                    lock.lock();
+                }
             }
 
             // 删除等待
@@ -2521,6 +2583,8 @@ public:
             snapshot_reader_score_map_[tid] = tid_score;
             snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
 
+//            p_unlock();
+
             return true;
         }
 
@@ -2532,7 +2596,12 @@ public:
             if (writer_.load() == tid) return true;
 
             std::unique_lock<std::mutex> lock(p_latch_);
-            if (writer_list_map_.count(tid)) return true;           // 重复则不管
+//            p_lock();
+
+            if (writer_list_map_.count(tid)) {
+//                p_unlock();
+                return true;           // 重复则不管
+            }
 
             auto new_request = std::make_shared<LockRequest>(txMan, server_id);
             uint64_t tid_score = new_request->score_;
@@ -2563,8 +2632,10 @@ public:
                         wait_for_graph.removeNode(s_tid);
                         RemoveReaderRequest(tid);
                         RemoveWriterRequest(tid);
+//                        p_unlock();
                         return false;
                     }
+//                    p_unlock();
                     lock.unlock();
 
                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
@@ -2577,6 +2648,7 @@ public:
                     std::this_thread::yield();
 
                     lock.lock();
+//                    p_lock();
                 }
             }
 
@@ -2605,18 +2677,24 @@ public:
                 }
             }
             writer_score_.store(tid_score);         // 自己获得锁
+
+//            p_unlock();
             return true;
         }
 
         bool UnlockRD_WoundWait(std::string& row_id, uint64_t& tid) {
+//            p_lock();
             std::lock_guard<std::mutex> lock(p_latch_);
             RemoveReaderRequest(tid);
+//            p_unlock();
             return true;
         }
 
         bool UnlockWR_WoundWait(std::string& row_id, uint64_t& tid, std::string& res_tid, uint32_t& server_id) {
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             std::lock_guard<std::mutex> lock(p_latch_);
+//            p_lock();
+
             bool res = true;
             if (writer_.load() == INVALID_TID || writer_.load() != tid) {
                 res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
@@ -2641,6 +2719,7 @@ public:
                 writer_score_.store(m_writer_score_.load());
                 writer_.store(m_writer_.load());
             }
+//            p_unlock();
             return res;
         }
 
@@ -2648,13 +2727,16 @@ public:
             uint64_t tid = txMan->pre_csn;
             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+            if (writer_.load() != tid) return false;
             std::unique_lock<std::mutex> lock(p_latch_);
 
-            if (writer_.load() != tid) return false;
+//            p_lock();
+
             uint64_t tid_score = writer_score_.load();
 
             SetExcl(tid);
 
+            int d_index = 0;
             std::vector<uint64_t> delayed_abort_list(64);
             std::list<uint64_t> snapshot_queue(snapshot_reader_list_);
             std::unordered_map<uint64_t, uint64_t> snapshot_score_map(snapshot_reader_score_map_);
@@ -2666,12 +2748,15 @@ public:
                     wait_for_graph.removeNode(s_tid);
                     RemoveReaderRequest(tid);
                     RemoveWriterRequest(tid);
+//                    p_unlock();
                     return false;
                 }
                 if (reader == tid) continue;
+                if (!reader_list_map_.count(reader)) continue;
+
                 if (IsSmallerThanWriter(reader, r_score)){
                     // 延迟abort?
-                    delayed_abort_list.emplace_back(reader);
+                    delayed_abort_list[d_index++] = reader;
                 } else {
                     // 等待该reader commit
                     auto r = reader;
@@ -2686,9 +2771,11 @@ public:
                             wait_for_graph.removeNode(s_tid);
                             RemoveReaderRequest(tid);
                             RemoveWriterRequest(tid);
+//                            p_unlock();
                             return false;
                         }
                         lock.unlock();
+//                        p_unlock();
 
                         // TODO: 触发死锁检测，或者死锁检测线程
 
@@ -2701,6 +2788,7 @@ public:
 //                        }
                         std::this_thread::yield();
                         lock.lock();
+//                        p_lock();
                     }
                     // 不再等待
                     wait_for_graph.removeEdgesFrom(s_tid);
@@ -2711,6 +2799,8 @@ public:
             for (auto r : delayed_abort_list) {
                 if (reader_list_map_.count(r)) AbortTransactinRequest(r);
             }
+
+//            p_unlock();
             return true;
         }
 
@@ -3283,6 +3373,7 @@ public:
         }
 
         void DebugMessage() {
+//            p_lock();
             std::unique_lock<std::mutex> lock(p_latch_);
             bool temp_excl = excl_sig.load();
             uint64_t temp_writer = writer_.load();
@@ -3292,13 +3383,33 @@ public:
             std::list<shared_ptr<LockRequest>> temp_reader_queue(reader_list_);
             std::list<shared_ptr<LockRequest>> temp_writer_queue(writer_list_);
             std::list<uint64_t> temp_waiting_reader_queue(waiting_reader_list_);
-            WaitForGraph w = MOTAdaptor::wait_for_graph;
+            WaitForGraph w;
+            MOTAdaptor::wait_for_graph.CopyGraph(w);
+//            p_unlock();
             lock.unlock();
         }
     };
 
     // wzy: 等待图
     class WaitForGraph {
+        ////////////// Spin lock//////////////
+
+        std::atomic_flag lock_flag = ATOMIC_FLAG_INIT;
+        void p_lock() {
+            //            bool v = false;
+            //            while (!lock_flag.compare_exchange_weak(v, true)) {
+            //                v = false;
+            //            }
+            while (lock_flag.test_and_set(std::memory_order_acquire)) { /* spin */ }
+        }
+        // 释放锁
+        void p_unlock() {
+            //            lock_flag.store(false);
+            lock_flag.clear(std::memory_order_release);
+        }
+
+        //////////////////////////////////////
+
     public:
         std::unordered_map<std::string, std::list<std::string>> graph;
         std::unordered_map<std::string, std::unordered_set<std::string>> graph_set;       // 去重
@@ -3331,12 +3442,24 @@ public:
             vertex_set.clear();
         }
 
+        void CopyGraph(WaitForGraph& to) {
+            std::lock_guard<std::mutex> graph_lock(mutex);
+//            p_lock();
+            to.graph = graph;
+            to.graph_set = graph_set;
+            to.vertex = vertex;
+            to.vertex_set = vertex_set;
+//            p_unlock();
+        }
+
         uint64_t getEdgeNum() {
             std::lock_guard<std::mutex> graph_lock(mutex);
+//            p_lock();
             uint64_t size = 0;
             for(const auto& v : vertex) {
                 size += graph[v].size();
             }
+//            p_unlock();
             return size;
         }
 
@@ -3389,6 +3512,7 @@ public:
         void addEdge(const std::string& from, const std::string& to, const uint64_t& from_score, const uint64_t& to_score, const uint64_t& mode) {
             if (from == "" || to == "") return;
             if (from == to) return;
+//            p_lock();
             std::lock_guard<std::mutex> graph_lock(mutex);
             addNode(from, from_score, mode);
             addNode(to, to_score, mode);
@@ -3397,6 +3521,7 @@ public:
                 graph_set[from].insert(to);
             }
             modify.store(true);
+//            p_unlock();
         }
 
 
@@ -3426,6 +3551,7 @@ public:
         }
 
         void removeNode(const std::string& node) {
+//            p_lock();
             std::lock_guard<std::mutex> graph_lock(mutex);
             if (vertex_set.count(node)) vertex_num.fetch_sub(1);
             vertex.remove(node);
@@ -3440,24 +3566,34 @@ public:
                 graph_set[u].erase(node);
             }
             modify.store(true);
+//            p_unlock();
         }
 
         // 只删除所有以 from 为起点的边（用于锁释放或放弃时清理自己的出边）
         void removeEdgesFrom(const std::string& from) {
+//            p_lock();
             std::lock_guard<std::mutex> lk(mutex);
-            if (!vertex_set.count(from)) return;
+            if (!vertex_set.count(from)) {
+//                p_unlock();
+                return;
+            }
             auto &outs = graph[from];
             for (const auto &to : outs) {
                 graph_set[from].erase(to);
             }
             outs.clear();
             modify.store(true);
+//            p_unlock();
         }
 
         // 只删除所有以 to 为终点的边（用于锁释放或放弃时清理指向自己的入边）
         void removeEdgesTo(const std::string& to) {
+//            p_lock();
             std::lock_guard<std::mutex> lk(mutex);
-            if (!vertex_set.count(to)) return;
+            if (!vertex_set.count(to)) {
+//                p_unlock();
+                return;
+            }
             for (auto &v : vertex) {
                 auto &outs = graph[v];
                 if (!outs.empty()) {
@@ -3467,6 +3603,7 @@ public:
                 }
             }
             modify.store(true);
+//            p_unlock();
         }
 
         void removeEdge(const std::string& from, const std::string& to){
@@ -3483,13 +3620,13 @@ public:
                 auto &outs = graph[v];
                 if (outs.empty()) {
                     // TODO: from, to都没有才会被移除
-//                    graph.erase(v);
-//                    graph_set.erase(v);
-//                    vertex.remove(v);
-//                    vertex_set.erase(v);
-//                    vertex_score.erase(v);
-//                    vertex_num.fetch_sub(1);
-//                    modify.store(true);
+                    graph.erase(v);
+                    graph_set.erase(v);
+                    vertex.remove(v);
+                    vertex_set.erase(v);
+                    vertex_score.erase(v);
+                    vertex_num.fetch_sub(1);
+                    modify.store(true);
                 }
             }
         }
@@ -3632,11 +3769,104 @@ public:
                     DFS_VISIT1(node, color, parent, target_tids, target_set);
                 }
             }
+
             detect_time.fetch_add(now_to_us() - start_time);
             detect_count.fetch_add(1);
             return !target_tids.empty();
         }
 
+        bool JOHNSON_Cycles1(std::vector<std::string> &target_tids, std::unordered_set<std::string> &target_set) {
+            uint64_t start_time = now_to_us();
+
+            if (modify.load()) {
+                std::unique_lock<std::mutex> graph_lock(mutex);
+//                p_lock();
+                graph1 = graph;
+                vertex1 = vertex;
+                vertex_score1 = vertex_score;
+                modify.store(false);
+//                p_unlock();
+                graph_lock.unlock();
+            }
+
+            copy_time.fetch_add(now_to_us() - start_time);
+
+            std::unordered_map<std::string, bool> blocked;
+            std::unordered_map<std::string, std::unordered_set<std::string>> B;
+            std::vector<std::string> stk, minStk;
+            std::unordered_map<std::string, bool> processed; // 新增：记录已处理的节点
+
+            // 解除阻塞的辅助函数
+            std::function<void(const std::string&)> unblock = [&](const std::string& u) {
+                blocked[u] = false;
+                for (auto w : B[u]) {
+                    B[u].erase(w);
+                    if (blocked[w]) unblock(w);
+                }
+            };
+
+            // 环检测的核心递归函数
+            std::function<bool(const std::string&, const std::string&)> circuit =
+                [&](const std::string& v, const std::string& s) -> bool {
+                bool found = false;
+                stk.push_back(v);
+                blocked[v] = true;
+
+                if (minStk.empty() || vertex_score1[v] < vertex_score1[minStk.back()]) {
+                    minStk.push_back(v);
+                } else {
+                    minStk.push_back(minStk.back());
+                }
+
+                for (auto w : graph1[v]) {
+                    if (w == s) {
+                        if (target_set.count(minStk.back()) == 0) {
+                            // 找到一个环，直接记录最小分节点
+                            target_tids.push_back(minStk.back());
+                            target_set.insert(minStk.back());  // 确保唯一
+                            found = true;
+                        }
+                    }
+                    else if (!blocked[w] && !processed[w]) { // 检查是否已处理
+                        if (circuit(w, s)) found = true;
+                    }
+                }
+
+                if (found) {
+                    unblock(v);
+                } else {
+                    for (auto w : graph1[v]) {
+                        B[w].insert(v);
+                    }
+                }
+
+                stk.pop_back();
+                minStk.pop_back();
+                return found;
+            };
+
+            // 遍历所有顶点
+            for (auto s : vertex1) {
+                if (processed[s]) continue;  // 如果节点已经处理过，跳过
+
+                // 重置 blocked 和 B
+                for (auto& u : vertex1) {
+                    blocked[u] = false;
+                    B[u].clear();
+                }
+                stk.clear();
+                minStk.clear();
+
+                circuit(s, s);
+
+                // 标记该节点已处理
+                processed[s] = true;
+            }
+
+            detect_time.fetch_add(now_to_us() - start_time);
+            detect_count.fetch_add(1);
+            return !target_tids.empty();
+        }
     };
 
     // wzy: 动态统计最热门row（作为可交互型row）

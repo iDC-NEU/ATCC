@@ -5523,9 +5523,10 @@ void EpochLockThreadMain_Wait(uint64_t id)
 {
     // 读取wait_for，判断是否有环，DFS
     bool sleep_flag = true;
-    if (cc_mode == 5) {
+    if (cc_mode == 3 || cc_mode == 5) {
+        MOTAdaptor::SetLockGranted(true);       // test
         DeadlockDetection_CRLS();
-        usleep(2000);
+        usleep(200);
     }
     else {
         while (true) {
@@ -5773,7 +5774,9 @@ void DeadlockDetection_CRLS()
 
     //    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles(target_tids, target_set);       // 无拷贝，直接加锁
 
-    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles1(target_tids, target_set);
+//    auto res = MOTAdaptor::wait_for_graph.CLRS_Cycles1(target_tids, target_set);
+
+    auto res = MOTAdaptor::wait_for_graph.JOHNSON_Cycles1(target_tids, target_set);
     if (!res)
         return;
     if (cc_mode == 1) {

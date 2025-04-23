@@ -1428,7 +1428,7 @@ bool OccTransactionManager::GetWriteLockPlor(TxnManager* txMan, uint32_t server_
             // 插入csn + queue
             MOTAdaptor::txn_total_lockCnt.fetch_add(1);
             MOTAdaptor::local_lock_num.fetch_add(1);
-            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
+//            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
         }
     }
@@ -1994,7 +1994,7 @@ bool OccTransactionManager::UnlockReadWriteRowPlor(TxnManager* txMan, uint32_t s
     }
     MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
     //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
-    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
+//    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
     return result;
 }
 
@@ -2069,7 +2069,7 @@ bool OccTransactionManager::GetWriteLockWoundWait(TxnManager* txMan, uint32_t se
             // 插入csn + queue
             MOTAdaptor::txn_total_lockCnt.fetch_add(1);
             MOTAdaptor::local_lock_num.fetch_add(1);
-            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
+//            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockWoundWait() lock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), tmp_rowid.c_str());
         }
     }
@@ -2550,7 +2550,7 @@ bool OccTransactionManager::UnlockReadWriteRowWoundWait(TxnManager* txMan, uint3
 
     MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
     //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
-    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
+//    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
     return result;
 }
 
@@ -2608,7 +2608,7 @@ bool OccTransactionManager::GetWriteLockDL(TxnManager* txMan, uint32_t server_id
             // 插入csn + queue
             MOTAdaptor::txn_total_lockCnt.fetch_add(1);
             MOTAdaptor::local_lock_num.fetch_add(1);
-            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
+//            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR tmp_csn : %s , epoch : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), tmp_rowid.c_str());
         }
     }
@@ -3031,7 +3031,7 @@ bool OccTransactionManager::UnlockReadWriteRowDL(TxnManager* txMan, uint32_t ser
     //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
     MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
     MOTAdaptor::wait_for_graph.removeNode(tmp_csn);         // 清除等待图
-    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
+//    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
     return result;
 }
 

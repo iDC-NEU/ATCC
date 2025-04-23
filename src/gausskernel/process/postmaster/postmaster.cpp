@@ -259,7 +259,7 @@ uint64_t kPortNum = 1, kPackageNum = 1, kNotifyNum = 1, kBatchNum = 1, kNotifyTh
 uint64_t kLockThreadNum = 5, kHotRowsFreq = 10, kInteractivePerc = 10;       // wzy
 uint64_t cc_mode = 0;           // wzy: 并发控制模式，1：混合 2：Plor 3：
 
-bool isMVCC_Active = false, kInteractive_Active = false, kPriority_Active = false, kAllPessimisticLock = false, kHotRow_Active = false, kPreLockCheck_Active = false, is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false;
+bool isMVCC_Active = false, kInteractive_Active = false, kPriority_Active = false, kAllPessimisticLock = false, kHotRow_Active = false, kPreLockCheck_Active = false, is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false, is_perf_enable = false;
 uint64_t kEpochLimit = 10, kReadCntLimit = 10, kWriteCntLimit = 10, kHotCntEpochLen = 10, kHotCntLimit = 10, kEpochWeight = 0, kReadCntWeight = 0, kWriteCntWeight = 0, kSwitchLimit = 0;
 uint64_t kPredictThread = 1;
 
@@ -11725,6 +11725,9 @@ void GetServerInfo(){
     // is_debug_print_enable
     tinyxml2::XMLElement* is_debug_print_check = root->FirstChildElement("is_debug_print_enable");
     is_debug_print_enable = std::stoi(is_debug_print_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_perf_enable_check = root->FirstChildElement("is_perf_enable");
+    is_perf_enable = std::stoi(is_perf_enable_check->GetText()) == 0 ? false : true;
 
     // 开启事务并发控制切换
     tinyxml2::XMLElement* is_CC_Switch_check = root->FirstChildElement("is_CC_Switch_enable");

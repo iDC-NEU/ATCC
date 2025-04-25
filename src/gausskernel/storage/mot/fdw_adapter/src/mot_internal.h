@@ -1020,6 +1020,10 @@ public:
     static std::atomic<uint64_t> Switch_validation_occ_abort_num;
     static std::atomic<uint64_t> Switch_validation_pcc_abort_num;
 
+    static std::atomic<uint64_t> HotRow_quick_validation_abort_num;
+    static std::atomic<uint64_t> HotRow_read_validation_abort_num;
+    static std::atomic<uint64_t> HotRow_write_validation_abort_num;
+
     static std::atomic<uint64_t> ReadLock_pcc_abort_num;
     static std::atomic<uint64_t> WriteLock_pcc_abort_num;
     static std::atomic<uint64_t> ReadLock_switch_pcc_abort_num;
@@ -2483,23 +2487,22 @@ public:
             }
             uint64_t start_time = now_to_us();
 
-            // 比较writer优先级，waitForGraph添加边
-            uint64_t w_tid = writer_.load();
-            if (w_tid != INVALID_TID) {
-                std::string s_w = makeSid(w_tid, server_id);
-                // 低优先级 reader 等待读写者
-                if (!higherPriority(tid_score, writer_score_.load()) || excl_sig.load()) {
-                    wait_for_graph.addEdge(s_tid, s_w, tid_score, writer_score_.load(), 5);
-                }
-            }
-
-            // wzy: 在环内等待的reader
-            waiting_reader_list_.push_back(tid);
-            waiting_reader_score_map_[tid] = tid_score;
-            waiting_reader_list_map_[tid] = std::prev(waiting_reader_list_.end());  // 插入迭代器
-
-
             if (is_wound_wait_enable) {
+                // 比较writer优先级，waitForGraph添加边
+                uint64_t w_tid = writer_.load();
+                if (w_tid != INVALID_TID) {
+                    std::string s_w = makeSid(w_tid, server_id);
+                    // 低优先级 reader 等待读写者
+                    if (!higherPriority(tid_score, writer_score_.load()) || excl_sig.load()) {
+                        wait_for_graph.addEdge(s_tid, s_w, tid_score, writer_score_.load(), 5);
+                    }
+                }
+
+                // wzy: 在环内等待的reader
+                waiting_reader_list_.push_back(tid);
+                waiting_reader_score_map_[tid] = tid_score;
+                waiting_reader_list_map_[tid] = std::prev(waiting_reader_list_.end());  // 插入迭代器
+
                 // wound-wait block
                 while (writer_.load() != INVALID_TID || excl_sig.load()) {
                     // 优先级高，且没有在验证阶段的不被阻塞
@@ -2530,6 +2533,23 @@ public:
 //                    p_lock();
                     lock.lock();
                 }
+
+                // 删除等待
+                // wzy: 在环内等待的reader
+                if (waiting_reader_list_map_.count(tid)) {
+                    auto iter1 = waiting_reader_list_map_.find(tid);
+                    if (iter1 != waiting_reader_list_map_.end()) {
+                        waiting_reader_list_.erase(iter1->second);
+                        waiting_reader_list_map_.erase(iter1);
+                    }
+                    auto iter2 = waiting_reader_score_map_.find(tid);
+                    if (iter2 != waiting_reader_score_map_.end()) {
+                        waiting_reader_score_map_.erase(iter2);
+                    }
+                }
+
+                // 无需等待任何事务
+                wait_for_graph.removeEdgesFrom(s_tid);
             } else {
                 // plor
                 while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
@@ -2558,23 +2578,6 @@ public:
                     lock.lock();
                 }
             }
-
-            // 删除等待
-            // wzy: 在环内等待的reader
-            if (waiting_reader_list_map_.count(tid)) {
-                auto iter1 = waiting_reader_list_map_.find(tid);
-                if (iter1 != waiting_reader_list_map_.end()) {
-                    waiting_reader_list_.erase(iter1->second);
-                    waiting_reader_list_map_.erase(iter1);
-                }
-                auto iter2 = waiting_reader_score_map_.find(tid);
-                if (iter2 != waiting_reader_score_map_.end()) {
-                    waiting_reader_score_map_.erase(iter2);
-                }
-            }
-
-            // 无需等待任何事务
-            wait_for_graph.removeEdgesFrom(s_tid);
 
             reader_list_.push_back(new_request);
             reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
@@ -2667,17 +2670,19 @@ public:
                 wait_for_graph.addEdge(s_writer, s_tid, quest->score_, tid_score, 1);
             }
 
-            // 加入 reader list 中的每个 reader
-            for (auto rid : waiting_reader_list_) {
-                std::string s_r = makeSid(rid, server_id);
-                uint64_t r_score = waiting_reader_score_map_[rid];
-                if (!higherPriority(r_score, tid_score)) {
-                    // 低优先级 reader：reader 等待写者
-                    wait_for_graph.addEdge(s_r, s_tid, r_score, tid_score, 2);
+            if (is_wound_wait_enable) {
+                // 加入 reader list 中的每个 reader
+                for (auto rid : waiting_reader_list_) {
+                    std::string s_r = makeSid(rid, server_id);
+                    uint64_t r_score = waiting_reader_score_map_[rid];
+                    if (!higherPriority(r_score, tid_score)) {
+                        // 低优先级 reader：reader 等待写者
+                        wait_for_graph.addEdge(s_r, s_tid, r_score, tid_score, 2);
+                    }
                 }
             }
-            writer_score_.store(tid_score);         // 自己获得锁
 
+            writer_score_.store(tid_score);         // 自己获得锁
 //            p_unlock();
             return true;
         }
@@ -3923,7 +3928,8 @@ public:
             std::lock_guard<std::mutex> lock(active_rows_mutex);
             std::unique_lock<std::mutex> hot_lock(hot_rows_mutex_);
             uint64_t tmp_epoch = (epoch_ + 1) % 2;     // 更新到下一轮
-            hot_rows_set_[tmp_epoch]->clear();      // 清空内容
+            // TODO: 如果会继承上一批的热点数据呢
+//            hot_rows_set_[tmp_epoch]->clear();      // 清空内容
             uint64_t f = 0;
             for (std::string r : active_rows) {
                 row_freq_map_.get_element(r, f);

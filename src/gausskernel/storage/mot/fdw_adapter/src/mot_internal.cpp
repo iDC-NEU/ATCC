@@ -2846,6 +2846,10 @@ std::atomic<uint64_t> MOTAdaptor::Switch_validation_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::Switch_validation_occ_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::Switch_validation_pcc_abort_num{0};
 
+std::atomic<uint64_t> MOTAdaptor::HotRow_quick_validation_abort_num{0};
+std::atomic<uint64_t> MOTAdaptor::HotRow_read_validation_abort_num{0};
+std::atomic<uint64_t> MOTAdaptor::HotRow_write_validation_abort_num{0};
+
 std::atomic<uint64_t> MOTAdaptor::ReadLock_pcc_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::WriteLock_pcc_abort_num{0};
 std::atomic<uint64_t> MOTAdaptor::ReadLock_switch_pcc_abort_num{0};
@@ -3745,6 +3749,7 @@ void OUTPUTLOG(string s){
 
         now_to_us());
 }
+
 void OUTPUTLOGAbort_txn() {
     MOT_LOG_INFO(" ====================== [ OUTPUTLOG Abort INFO ] size of abort_transcation_csn_set : %llu , deadlock_abort_set size : %llu, DeadLock_abort_num : %llu , LockCheck_abort_num : %llu , Commit_abort_num : %llu \
                    \n===== Total : Abort_num %llu , Abort_interactive_txn_num %llu , Abort_pcc_interactive_txn_num %llu ,Remote_Abort_interactive_txn_num %llu\
@@ -3755,7 +3760,8 @@ void OUTPUTLOGAbort_txn() {
                     \n===== Local TxnTotal : CommitPhase_abort_num %llu , CommitCheck_abort_num %llu , Abort_transcation_csn_set_abort_num %llu \
                     \n===== Remote TxnTotal : CommitPhase_abort_num %llu , CommitCheck_abort_num %llu \
                     \n===== Switch to PCC : Switch_validation_abort_num %llu , Switch_validation_occ_abort_num %llu Switch_validation_pcc_abort_num %llu\
-                    \n===== Lock in PCC: ReadLock_pcc_abort_num %llu , WriteLock_pcc_abort_num %llu ReadLock_switch_pcc_abort_num %llu , WriteLock_switch_pcc_abort_num %llu \
+                    \n===== Lock in PCC : ReadLock_pcc_abort_num %llu , WriteLock_pcc_abort_num %llu ReadLock_switch_pcc_abort_num %llu , WriteLock_switch_pcc_abort_num %llu \
+                    \n===== HotLock in PCC : HotRow_quick_validation_abort_num %llu , HotRow_read_validation_abort_num %llu , HotRow_write_validation_abort_num %llu\
                     \n===== Silo Abort: Silo_validation_abort %llu , Silo_quick_validation_abort_num %llu , Silo_lockheader_abort_num %llu, Silo_lockheader_abort_by_interactive_num %llu, write_validation_abort_num %llu, read_validation_abort_num %llu",
 
 
@@ -3769,6 +3775,7 @@ void OUTPUTLOGAbort_txn() {
         MOTAdaptor::Remote_ValidateAndSetWriteForRemote_abort_num.load(), MOTAdaptor::Remote_CommitCheck_abort_num.load(),
         MOTAdaptor::Switch_validation_abort_num.load(), MOTAdaptor::Switch_validation_occ_abort_num.load(), MOTAdaptor::Switch_validation_pcc_abort_num.load(),
         MOTAdaptor::ReadLock_pcc_abort_num.load(), MOTAdaptor::WriteLock_pcc_abort_num.load(), MOTAdaptor::ReadLock_switch_pcc_abort_num.load(), MOTAdaptor::WriteLock_switch_pcc_abort_num.load(),
+        MOTAdaptor::HotRow_quick_validation_abort_num.load(), MOTAdaptor::HotRow_read_validation_abort_num.load(), MOTAdaptor::HotRow_write_validation_abort_num.load(),
         MOTAdaptor::Silo_validation_abort_num.load(), MOTAdaptor::Silo_quick_validation_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_by_interactive_num.load(), MOTAdaptor::Silo_write_validation_abort_num.load(), MOTAdaptor::Silo_read_validation_abort_num.load());
 }
 

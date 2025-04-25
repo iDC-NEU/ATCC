@@ -640,6 +640,8 @@ const char* pq_getmsgstring_interactive(StringInfo msg)
         ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION), errmsg("invalid string in message")));
     }
 
+    u_sess->storage_cxt.interactiveTxn = 0;
+
     // wzy: 1be作为开头，存储重做次数
     if (strncmp("1be", str, 3) == 0) {
         int retry_val = 0;
@@ -657,7 +659,8 @@ const char* pq_getmsgstring_interactive(StringInfo msg)
         str[4] = 'n'; // 加入 'n'
 
         // 更新 interactiveTxn
-        int cur_cnt = interactive_count.fetch_add(1);
+//        int cur_cnt = interactive_count.fetch_add(1);
+        int cur_cnt = 100;
         u_sess->storage_cxt.interactiveTxn = cur_cnt;
         t_thrd.storage_cxt.thrd_interactiveTxn = cur_cnt;
 

@@ -664,17 +664,18 @@ RC OccTransactionManager::ValidateOccPlor(TxnManager* txMan)
     MOT_ASSERT(rowCount == orderedSet.size());
 
     /* Perform Quick Version check */
-    if (!QuickVersionCheck(txMan, readSetSize)) {
-        MOTAdaptor::Silo_quick_validation_abort_num.fetch_add(1);
+    if (!QuickVersionCheckNoValidation(txMan, readSetSize)) {
+        MOTAdaptor::HotRow_quick_validation_abort_num.fetch_add(1);
         rc = RC_ABORT;
         goto final;
     }
 
     if (is_debug_print_enable) MOT_LOG_INFO("Validate OCC for Plor rowCnt=%u RD=%u WR=%u\n", tx->m_rowCnt, tx->m_rowCnt - m_writeSetSize, m_writeSetSize);
 
-    // Validate rows in the read set and write set
+    // 只对冷数据做读集检查
     if (readSetSize > 0) {
-        if (!ValidateReadSet(txMan)) {
+        if (!ValidateReadSetPlor(txMan)) {
+            MOTAdaptor::HotRow_read_validation_abort_num.fetch_add(1);
             rc = RC_ABORT;
             goto final;
         }
@@ -682,6 +683,7 @@ RC OccTransactionManager::ValidateOccPlor(TxnManager* txMan)
 
     // 只对冷数据做写集检查
     if (!ValidateWriteSetPlor(txMan)) {
+        MOTAdaptor::HotRow_write_validation_abort_num.fetch_add(1);
         rc = RC_ABORT;
         goto final;
     }
@@ -705,6 +707,24 @@ final:
     return rc;
 }
 
+// 为冷数据读集检验
+bool OccTransactionManager::ValidateReadSetPlor(TxnManager* txMan)
+{
+    TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
+    for (const auto& raPair : orderedSet) {
+        const Access* ac = raPair.second;
+        if (ac->m_type != RD) {
+            continue;
+        }
+        if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+
+        if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_tid, 0) || ac->m_origSentinel->IsLocked()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // 为冷数据进行写集检测
 bool OccTransactionManager::ValidateWriteSetPlor(TxnManager* txMan)
 {
@@ -718,6 +738,8 @@ bool OccTransactionManager::ValidateWriteSetPlor(TxnManager* txMan)
         if (ac->m_type == RD) {
             continue;
         }
+
+        if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
 
         if (kHotRow_Active && ac->m_type != INS && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
             if (!CheckVersion(ac)) {

@@ -258,6 +258,7 @@ public:
     // wzy: 单行为交互性
     bool UnlockWriteSetRow(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
 
+    bool ValidateReadSetPlor(TxnManager* txMan);
     bool ValidateWriteSetPlor(TxnManager* txMan);
 
     RC LockPhase(TxnManager* txMan, uint32_t server_id, void* currRow);

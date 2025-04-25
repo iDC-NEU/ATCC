@@ -787,6 +787,7 @@ public:
         score_ = 0;
         abort_ = false;
         hot_cnt = 0;
+        interactive = false;
         hot_rowid_records.clear();
     }
 

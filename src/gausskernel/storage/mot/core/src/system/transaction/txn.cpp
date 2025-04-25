@@ -1088,6 +1088,8 @@ bool TxnManager::Init(uint64_t _thread_id, uint64_t connection_id, bool isLightT
 
 // wzy: 检测当前事务是否符合切换策略
 bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
+    if (!IsInteractive()) return false;
+
     if (first_time_pessimistic) first_time_pessimistic = false;
     if (pessimistic_flag) return true;
     // TODO: 开启RL模型
@@ -1110,15 +1112,15 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
     }
 
     // TODO: 对近期事务的统计
-    double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
-    uint64_t temp_commit_txn_num1 = MOTAdaptor::temp_commit_txn_num.load();
-    if(temp_commit_txn_num1 != 0) {
-        txn_temp_avg_time = MOTAdaptor::txn_temp_total_time.load() / temp_commit_txn_num1;
-        txn_temp_avg_epoch = MOTAdaptor::txn_temp_total_epoch.load() / temp_commit_txn_num1;
-        txn_temp_avg_readCnt = MOTAdaptor::txn_temp_total_readCnt.load() / temp_commit_txn_num1;
-        txn_temp_avg_writeCnt = MOTAdaptor::txn_temp_total_writeCnt.load() / temp_commit_txn_num1;
-        txn_temp_avg_hotCnt = MOTAdaptor::txn_temp_total_hotCnt.load() / temp_commit_txn_num1;
-    }
+//    double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
+//    uint64_t temp_commit_txn_num1 = MOTAdaptor::temp_commit_txn_num.load();
+//    if(temp_commit_txn_num1 != 0) {
+//        txn_temp_avg_time = MOTAdaptor::txn_temp_total_time.load() / temp_commit_txn_num1;
+//        txn_temp_avg_epoch = MOTAdaptor::txn_temp_total_epoch.load() / temp_commit_txn_num1;
+//        txn_temp_avg_readCnt = MOTAdaptor::txn_temp_total_readCnt.load() / temp_commit_txn_num1;
+//        txn_temp_avg_writeCnt = MOTAdaptor::txn_temp_total_writeCnt.load() / temp_commit_txn_num1;
+//        txn_temp_avg_hotCnt = MOTAdaptor::txn_temp_total_hotCnt.load() / temp_commit_txn_num1;
+//    }
 
     if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
         pessimistic_flag = true;
@@ -1129,7 +1131,7 @@ bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
         return true;
     }
 
-    if (kHotCntLimit > 0) {
+    if (kHotCntLimit > 0 && kHotCntLimit < 100) {
         if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
                                                                       && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
             pessimistic_flag = true;
@@ -2649,7 +2651,6 @@ RC TxnManager::Commit_Plor(){
             // 移动到Lock释放后，避免死锁，乐观和悲观Plor执行的同步提交，释放锁
             // rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
 
-            // TODO: 对热点数据进行读写检验，复用silo代码，失败则释放锁
             if (kHotRow_Active) {
                 auto time1 = now_to_us();
                 rc = m_occManager.ValidateOccPlor(this);

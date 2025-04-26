@@ -3601,6 +3601,8 @@ void InitEpochTimerManager(){
 
 void OUTPUTLOG(string s){
     auto epoch_mod = MOTAdaptor::GetLogicalEpoch() % MOTAdaptor::max_length;
+    if (epoch_mod % 10000 != 0) return;
+
     double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
     double txn_avg_switch_time = 0, txn_avg_read_lock_time = 0, txn_avg_write_lock_time = 0, txn_avg_validate_time = 0, txn_avg_validate_hotOcc_time = 0;
     double txn_avg_switch_rlock_time = 0, txn_avg_switch_wlock_time = 0, txn_avg_switch_sentinel_time = 0;
@@ -5664,6 +5666,12 @@ void ReGetServerInfo() {
     // is_debug_print_enable
     tinyxml2::XMLElement* is_debug_print_check = root->FirstChildElement("is_debug_print_enable");
     is_debug_print_enable = std::stoi(is_debug_print_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_perf_enable_check = root->FirstChildElement("is_perf_enable");
+    is_perf_enable = std::stoi(is_perf_enable_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_retry_priority_check = root->FirstChildElement("is_retry_priority_enable");
+    is_retry_priority_enable = std::stoi(is_retry_priority_check->GetText()) == 0 ? false : true;
 
     // 开启事务并发控制切换
     tinyxml2::XMLElement* is_CC_Switch_check = root->FirstChildElement("is_CC_Switch_enable");

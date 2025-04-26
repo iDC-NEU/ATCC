@@ -830,10 +830,17 @@ public:
     }
 
     uint64_t GetScore() {
-        score_ = 0;
-        uint64_t f = UINT64_MAX - start_time;
-        score_ |= ((uint64_t)retry_cnt << 57);
-        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+        if (is_retry_priority_enable) {
+            score_ = 0;
+            uint64_t f = UINT64_MAX - start_time;
+            score_ |= ((uint64_t)retry_cnt << 57);
+            score_ |= (f & 0x1FFFFFFFFFFFFFF);
+        } else {
+            score_ = 0;
+            uint64_t f = UINT64_MAX - start_time;
+            score_ |= ((uint64_t)0 << 57);
+            score_ |= (f & 0x1FFFFFFFFFFFFFF);
+        }
         return score_;
     }
 

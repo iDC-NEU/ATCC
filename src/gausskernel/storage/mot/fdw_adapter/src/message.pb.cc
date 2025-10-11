@@ -26,6 +26,8 @@ extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::interna
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_MasterMetadata_message_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Ping_message_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Pong_message_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_RLTraj_message_2eproto;
+extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RLTraj_State_message_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RaftAcceptRequest_message_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RaftAcceptResponse_message_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_message_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RaftCommitRequest_message_2eproto;
@@ -61,6 +63,14 @@ class LockInfoDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<LockInfo> _instance;
 } _LockInfo_default_instance_;
+class RLTraj_StateDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RLTraj_State> _instance;
+} _RLTraj_State_default_instance_;
+class RLTrajDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<RLTraj> _instance;
+} _RLTraj_default_instance_;
 class MessageDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<Message> _instance;
@@ -68,6 +78,7 @@ class MessageDefaultTypeInternal {
   const ::merge::Response* response_;
   const ::merge::Transaction* txn_;
   const ::merge::LockInfo* lockinfo_;
+  const ::merge::RLTraj* rltraj_;
 } _Message_default_instance_;
 class RequestDefaultTypeInternal {
  public:
@@ -328,12 +339,13 @@ static void InitDefaultsscc_info_Message_message_2eproto() {
   ::merge::Message::InitAsDefaultInstance();
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<4> scc_info_Message_message_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 4, 0, InitDefaultsscc_info_Message_message_2eproto}, {
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<5> scc_info_Message_message_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 5, 0, InitDefaultsscc_info_Message_message_2eproto}, {
       &scc_info_Request_message_2eproto.base,
       &scc_info_Response_message_2eproto.base,
       &scc_info_Transaction_message_2eproto.base,
-      &scc_info_LockInfo_message_2eproto.base,}};
+      &scc_info_LockInfo_message_2eproto.base,
+      &scc_info_RLTraj_message_2eproto.base,}};
 
 static void InitDefaultsscc_info_Ping_message_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -362,6 +374,35 @@ static void InitDefaultsscc_info_Pong_message_2eproto() {
 
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Pong_message_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_Pong_message_2eproto}, {}};
+
+static void InitDefaultsscc_info_RLTraj_message_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::merge::_RLTraj_default_instance_;
+    new (ptr) ::merge::RLTraj();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::merge::RLTraj::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_RLTraj_message_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_RLTraj_message_2eproto}, {
+      &scc_info_RLTraj_State_message_2eproto.base,}};
+
+static void InitDefaultsscc_info_RLTraj_State_message_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::merge::_RLTraj_State_default_instance_;
+    new (ptr) ::merge::RLTraj_State();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::merge::RLTraj_State::InitAsDefaultInstance();
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_RLTraj_State_message_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_RLTraj_State_message_2eproto}, {}};
 
 static void InitDefaultsscc_info_RaftAcceptRequest_message_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -592,7 +633,7 @@ static void InitDefaultsscc_info_Transaction_Row_Column_message_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Transaction_Row_Column_message_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_Transaction_Row_Column_message_2eproto}, {}};
 
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_message_2eproto[28];
+static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_message_2eproto[30];
 static constexpr ::PROTOBUF_NAMESPACE_ID::EnumDescriptor const** file_level_enum_descriptors_message_2eproto = nullptr;
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_message_2eproto = nullptr;
 
@@ -650,6 +691,25 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_message_2eproto::offsets[] PRO
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, txnid_),
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, islock_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, txn_state_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, latency_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, read_size_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, write_size_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, hot_visited_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, retry_cnt_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, cc_option_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj, state_),
+  PROTOBUF_FIELD_OFFSET(::merge::RLTraj, session_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::merge::Message, _internal_metadata_),
   ~0u,  // no _extensions_
   PROTOBUF_FIELD_OFFSET(::merge::Message, _oneof_case_[0]),
@@ -658,6 +718,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_message_2eproto::offsets[] PRO
   offsetof(::merge::MessageDefaultTypeInternal, response_),
   offsetof(::merge::MessageDefaultTypeInternal, txn_),
   offsetof(::merge::MessageDefaultTypeInternal, lockinfo_),
+  offsetof(::merge::MessageDefaultTypeInternal, rltraj_),
   PROTOBUF_FIELD_OFFSET(::merge::Message, type_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::merge::Request, _internal_metadata_),
@@ -851,29 +912,31 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOB
   { 18, -1, sizeof(::merge::Transaction)},
   { 31, -1, sizeof(::merge::LockInfo_Row)},
   { 40, -1, sizeof(::merge::LockInfo)},
-  { 52, -1, sizeof(::merge::Message)},
-  { 62, -1, sizeof(::merge::Request)},
-  { 78, -1, sizeof(::merge::Ping)},
-  { 85, -1, sizeof(::merge::Signal)},
-  { 91, -1, sizeof(::merge::LookupMasterRequest)},
-  { 98, -1, sizeof(::merge::ForwardEpochRequest)},
-  { 106, -1, sizeof(::merge::EpochReplicationAck)},
-  { 112, -1, sizeof(::merge::RaftPropose)},
-  { 118, -1, sizeof(::merge::RaftAcceptRequest)},
-  { 126, -1, sizeof(::merge::RaftCommitRequest)},
-  { 134, -1, sizeof(::merge::StatsRequest)},
-  { 142, -1, sizeof(::merge::ChangeServerStateRequest)},
-  { 153, -1, sizeof(::merge::Response)},
-  { 165, -1, sizeof(::merge::Pong)},
-  { 174, -1, sizeof(::merge::MasterMetadata)},
-  { 181, -1, sizeof(::merge::KeyMasterMetadata)},
-  { 188, -1, sizeof(::merge::LookupMasterResponse)},
-  { 195, -1, sizeof(::merge::RaftAcceptResponse)},
-  { 204, -1, sizeof(::merge::RaftCommitResponse)},
-  { 213, -1, sizeof(::merge::StatsResponse)},
-  { 221, -1, sizeof(::merge::ChangeServerStateResponse)},
-  { 231, -1, sizeof(::merge::ServerMessage_Msg)},
-  { 238, -1, sizeof(::merge::ServerMessage)},
+  { 52, -1, sizeof(::merge::RLTraj_State)},
+  { 64, -1, sizeof(::merge::RLTraj)},
+  { 71, -1, sizeof(::merge::Message)},
+  { 82, -1, sizeof(::merge::Request)},
+  { 98, -1, sizeof(::merge::Ping)},
+  { 105, -1, sizeof(::merge::Signal)},
+  { 111, -1, sizeof(::merge::LookupMasterRequest)},
+  { 118, -1, sizeof(::merge::ForwardEpochRequest)},
+  { 126, -1, sizeof(::merge::EpochReplicationAck)},
+  { 132, -1, sizeof(::merge::RaftPropose)},
+  { 138, -1, sizeof(::merge::RaftAcceptRequest)},
+  { 146, -1, sizeof(::merge::RaftCommitRequest)},
+  { 154, -1, sizeof(::merge::StatsRequest)},
+  { 162, -1, sizeof(::merge::ChangeServerStateRequest)},
+  { 173, -1, sizeof(::merge::Response)},
+  { 185, -1, sizeof(::merge::Pong)},
+  { 194, -1, sizeof(::merge::MasterMetadata)},
+  { 201, -1, sizeof(::merge::KeyMasterMetadata)},
+  { 208, -1, sizeof(::merge::LookupMasterResponse)},
+  { 215, -1, sizeof(::merge::RaftAcceptResponse)},
+  { 224, -1, sizeof(::merge::RaftCommitResponse)},
+  { 233, -1, sizeof(::merge::StatsResponse)},
+  { 241, -1, sizeof(::merge::ChangeServerStateResponse)},
+  { 251, -1, sizeof(::merge::ServerMessage_Msg)},
+  { 258, -1, sizeof(::merge::ServerMessage)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -882,6 +945,8 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_Transaction_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_LockInfo_Row_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_LockInfo_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_RLTraj_State_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_RLTraj_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_Message_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_Request_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::merge::_Ping_default_instance_),
@@ -923,68 +988,74 @@ const char descriptor_table_protodef_message_2eproto[] PROTOBUF_SECTION_VARIABLE
   "SN\030\004 \001(\004\022\021\n\tserver_id\030\005 \001(\004\022\r\n\005txnid\030\006 \001"
   "(\004\022\016\n\006isLock\030\007 \001(\010\032A\n\003Row\022\021\n\ttableName\030\001"
   " \001(\t\022\013\n\003key\030\002 \001(\014\022\014\n\004type\030\003 \001(\r\022\014\n\004data\030"
-  "\004 \001(\014\"\241\001\n\007Message\022!\n\007request\030\001 \001(\0132\016.mer"
-  "ge.RequestH\000\022#\n\010response\030\002 \001(\0132\017.merge.R"
-  "esponseH\000\022!\n\003txn\030\003 \001(\0132\022.merge.Transacti"
-  "onH\000\022#\n\010lockinfo\030\004 \001(\0132\017.merge.LockInfoH"
-  "\000B\006\n\004type\"\352\003\n\007Request\022\033\n\004ping\030\001 \001(\0132\013.me"
-  "rge.PingH\000\022\037\n\006signal\030\002 \001(\0132\r.merge.Signa"
-  "lH\000\0223\n\rlookup_master\030\003 \001(\0132\032.merge.Looku"
-  "pMasterRequestH\000\0223\n\rforward_epoch\030\004 \001(\0132"
-  "\032.merge.ForwardEpochRequestH\000\022;\n\025epoch_r"
-  "eplication_ack\030\005 \001(\0132\032.merge.EpochReplic"
-  "ationAckH\000\022*\n\014raft_propose\030\006 \001(\0132\022.merge"
-  ".RaftProposeH\000\022/\n\013raft_accept\030\007 \001(\0132\030.me"
-  "rge.RaftAcceptRequestH\000\022/\n\013raft_commit\030\010"
-  " \001(\0132\030.merge.RaftCommitRequestH\000\022$\n\005stat"
-  "s\030\t \001(\0132\023.merge.StatsRequestH\000\022>\n\023change"
-  "_server_state\030\n \001(\0132\037.merge.ChangeServer"
-  "StateRequestH\000B\006\n\004type\" \n\004Ping\022\014\n\004from\030\001"
-  " \001(\005\022\n\n\002to\030\002 \001(\005\"\026\n\006Signal\022\014\n\004from\030\001 \001(\005"
-  "\"4\n\023LookupMasterRequest\022\017\n\007txn_ids\030\001 \003(\004"
-  "\022\014\n\004keys\030\002 \003(\014\"A\n\023ForwardEpochRequest\022\014\n"
-  "\004from\030\001 \001(\005\022\n\n\002to\030\002 \001(\005\022\020\n\010epoch_id\030\003 \001("
-  "\004\"\'\n\023EpochReplicationAck\022\020\n\010epoch_id\030\001 \001"
-  "(\004\"\034\n\013RaftPropose\022\r\n\005value\030\001 \001(\004\"\?\n\021Raft"
-  "AcceptRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022"
-  "\020\n\010epoch_id\030\003 \001(\004\"\?\n\021RaftCommitRequest\022\014"
-  "\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_id\030\003 \001"
-  "(\004\"7\n\014StatsRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002"
-  " \001(\r\022\r\n\005level\030\003 \001(\r\"}\n\030ChangeServerState"
-  "Request\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006tar"
-  "get\030\003 \001(\r\022\r\n\005state\030\004 \001(\r\022\026\n\016pull_server_"
-  "id\030\005 \001(\r\022\020\n\010epoch_id\030\006 \001(\004\"\261\002\n\010Response\022"
-  "\033\n\004pong\030\001 \001(\0132\013.merge.PongH\000\0224\n\rlookup_m"
-  "aster\030\002 \001(\0132\033.merge.LookupMasterResponse"
-  "H\000\0220\n\013raft_accept\030\003 \001(\0132\031.merge.RaftAcce"
-  "ptResponseH\000\0220\n\013raft_commit\030\004 \001(\0132\031.merg"
-  "e.RaftCommitResponseH\000\022%\n\005stats\030\005 \001(\0132\024."
-  "merge.StatsResponseH\000\022\?\n\023change_server_s"
-  "tate\030\006 \001(\0132 .merge.ChangeServerStateResp"
-  "onseH\000B\006\n\004type\"@\n\004Pong\022\014\n\004from\030\001 \001(\005\022\n\n\002"
-  "to\030\002 \001(\005\022\014\n\004time\030\003 \001(\003\022\020\n\010epoch_id\030\004 \001(\003"
-  "\"5\n\016MasterMetadata\022\016\n\006master\030\001 \001(\r\022\023\n\013ep"
-  "och_count\030\002 \001(\r\"I\n\021KeyMasterMetadata\022\013\n\003"
-  "key\030\001 \001(\014\022\'\n\010metadata\030\002 \001(\0132\025.merge.Mast"
-  "erMetadata\"Z\n\024LookupMasterResponse\022\020\n\010ep"
-  "och_id\030\001 \003(\004\0220\n\016lookup_results\030\002 \003(\0132\030.m"
-  "erge.KeyMasterMetadata\"P\n\022RaftAcceptResp"
-  "onse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_"
-  "id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\"P\n\022RaftCommitRe"
-  "sponse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoc"
-  "h_id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\";\n\rStatsRespo"
-  "nse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\004\022\020\n\010epoch_i"
-  "d\030\003 \001(\004\"f\n\031ChangeServerStateResponse\022\014\n\004"
-  "from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006target\030\003 \001(\r\022\020"
-  "\n\010epoch_id\030\004 \001(\004\022\r\n\005state\030\005 \001(\r\"\214\001\n\rServ"
-  "erMessage\022\017\n\007send_ip\030\001 \001(\t\022\022\n\nreceive_ip"
-  "\030\002 \001(\t\022\014\n\004port\030\003 \001(\t\022%\n\003msg\030\004 \003(\0132\030.merg"
-  "e.ServerMessage.Msg\032!\n\003Msg\022\013\n\003key\030\001 \001(\t\022"
-  "\r\n\005value\030\002 \001(\tb\006proto3"
+  "\004 \001(\014\"\315\001\n\006RLTraj\022\"\n\005state\030\001 \003(\0132\023.merge."
+  "RLTraj.State\022\017\n\007session\030\002 \001(\004\032\215\001\n\005State\022"
+  "\021\n\ttxn_state\030\001 \001(\005\022\017\n\007latency\030\002 \001(\004\022\021\n\tr"
+  "ead_size\030\003 \001(\005\022\022\n\nwrite_size\030\004 \001(\005\022\023\n\013ho"
+  "t_visited\030\005 \001(\005\022\021\n\tretry_cnt\030\006 \001(\005\022\021\n\tcc"
+  "_option\030\007 \001(\005\"\302\001\n\007Message\022!\n\007request\030\001 \001"
+  "(\0132\016.merge.RequestH\000\022#\n\010response\030\002 \001(\0132\017"
+  ".merge.ResponseH\000\022!\n\003txn\030\003 \001(\0132\022.merge.T"
+  "ransactionH\000\022#\n\010lockinfo\030\004 \001(\0132\017.merge.L"
+  "ockInfoH\000\022\037\n\006rltraj\030\005 \001(\0132\r.merge.RLTraj"
+  "H\000B\006\n\004type\"\352\003\n\007Request\022\033\n\004ping\030\001 \001(\0132\013.m"
+  "erge.PingH\000\022\037\n\006signal\030\002 \001(\0132\r.merge.Sign"
+  "alH\000\0223\n\rlookup_master\030\003 \001(\0132\032.merge.Look"
+  "upMasterRequestH\000\0223\n\rforward_epoch\030\004 \001(\013"
+  "2\032.merge.ForwardEpochRequestH\000\022;\n\025epoch_"
+  "replication_ack\030\005 \001(\0132\032.merge.EpochRepli"
+  "cationAckH\000\022*\n\014raft_propose\030\006 \001(\0132\022.merg"
+  "e.RaftProposeH\000\022/\n\013raft_accept\030\007 \001(\0132\030.m"
+  "erge.RaftAcceptRequestH\000\022/\n\013raft_commit\030"
+  "\010 \001(\0132\030.merge.RaftCommitRequestH\000\022$\n\005sta"
+  "ts\030\t \001(\0132\023.merge.StatsRequestH\000\022>\n\023chang"
+  "e_server_state\030\n \001(\0132\037.merge.ChangeServe"
+  "rStateRequestH\000B\006\n\004type\" \n\004Ping\022\014\n\004from\030"
+  "\001 \001(\005\022\n\n\002to\030\002 \001(\005\"\026\n\006Signal\022\014\n\004from\030\001 \001("
+  "\005\"4\n\023LookupMasterRequest\022\017\n\007txn_ids\030\001 \003("
+  "\004\022\014\n\004keys\030\002 \003(\014\"A\n\023ForwardEpochRequest\022\014"
+  "\n\004from\030\001 \001(\005\022\n\n\002to\030\002 \001(\005\022\020\n\010epoch_id\030\003 \001"
+  "(\004\"\'\n\023EpochReplicationAck\022\020\n\010epoch_id\030\001 "
+  "\001(\004\"\034\n\013RaftPropose\022\r\n\005value\030\001 \001(\004\"\?\n\021Raf"
+  "tAcceptRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r"
+  "\022\020\n\010epoch_id\030\003 \001(\004\"\?\n\021RaftCommitRequest\022"
+  "\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_id\030\003 "
+  "\001(\004\"7\n\014StatsRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030"
+  "\002 \001(\r\022\r\n\005level\030\003 \001(\r\"}\n\030ChangeServerStat"
+  "eRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006ta"
+  "rget\030\003 \001(\r\022\r\n\005state\030\004 \001(\r\022\026\n\016pull_server"
+  "_id\030\005 \001(\r\022\020\n\010epoch_id\030\006 \001(\004\"\261\002\n\010Response"
+  "\022\033\n\004pong\030\001 \001(\0132\013.merge.PongH\000\0224\n\rlookup_"
+  "master\030\002 \001(\0132\033.merge.LookupMasterRespons"
+  "eH\000\0220\n\013raft_accept\030\003 \001(\0132\031.merge.RaftAcc"
+  "eptResponseH\000\0220\n\013raft_commit\030\004 \001(\0132\031.mer"
+  "ge.RaftCommitResponseH\000\022%\n\005stats\030\005 \001(\0132\024"
+  ".merge.StatsResponseH\000\022\?\n\023change_server_"
+  "state\030\006 \001(\0132 .merge.ChangeServerStateRes"
+  "ponseH\000B\006\n\004type\"@\n\004Pong\022\014\n\004from\030\001 \001(\005\022\n\n"
+  "\002to\030\002 \001(\005\022\014\n\004time\030\003 \001(\003\022\020\n\010epoch_id\030\004 \001("
+  "\003\"5\n\016MasterMetadata\022\016\n\006master\030\001 \001(\r\022\023\n\013e"
+  "poch_count\030\002 \001(\r\"I\n\021KeyMasterMetadata\022\013\n"
+  "\003key\030\001 \001(\014\022\'\n\010metadata\030\002 \001(\0132\025.merge.Mas"
+  "terMetadata\"Z\n\024LookupMasterResponse\022\020\n\010e"
+  "poch_id\030\001 \003(\004\0220\n\016lookup_results\030\002 \003(\0132\030."
+  "merge.KeyMasterMetadata\"P\n\022RaftAcceptRes"
+  "ponse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch"
+  "_id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\"P\n\022RaftCommitR"
+  "esponse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epo"
+  "ch_id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\";\n\rStatsResp"
+  "onse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\004\022\020\n\010epoch_"
+  "id\030\003 \001(\004\"f\n\031ChangeServerStateResponse\022\014\n"
+  "\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006target\030\003 \001(\r\022"
+  "\020\n\010epoch_id\030\004 \001(\004\022\r\n\005state\030\005 \001(\r\"\214\001\n\rSer"
+  "verMessage\022\017\n\007send_ip\030\001 \001(\t\022\022\n\nreceive_i"
+  "p\030\002 \001(\t\022\014\n\004port\030\003 \001(\t\022%\n\003msg\030\004 \003(\0132\030.mer"
+  "ge.ServerMessage.Msg\032!\n\003Msg\022\013\n\003key\030\001 \001(\t"
+  "\022\r\n\005value\030\002 \001(\tb\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_message_2eproto_deps[1] = {
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_message_2eproto_sccs[28] = {
+static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_message_2eproto_sccs[30] = {
   &scc_info_ChangeServerStateRequest_message_2eproto.base,
   &scc_info_ChangeServerStateResponse_message_2eproto.base,
   &scc_info_EpochReplicationAck_message_2eproto.base,
@@ -998,6 +1069,8 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_mes
   &scc_info_Message_message_2eproto.base,
   &scc_info_Ping_message_2eproto.base,
   &scc_info_Pong_message_2eproto.base,
+  &scc_info_RLTraj_message_2eproto.base,
+  &scc_info_RLTraj_State_message_2eproto.base,
   &scc_info_RaftAcceptRequest_message_2eproto.base,
   &scc_info_RaftAcceptResponse_message_2eproto.base,
   &scc_info_RaftCommitRequest_message_2eproto.base,
@@ -1017,10 +1090,10 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_mes
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_message_2eproto_once;
 static bool descriptor_table_message_2eproto_initialized = false;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_message_2eproto = {
-  &descriptor_table_message_2eproto_initialized, descriptor_table_protodef_message_2eproto, "message.proto", 2902,
-  &descriptor_table_message_2eproto_once, descriptor_table_message_2eproto_sccs, descriptor_table_message_2eproto_deps, 28, 0,
+  &descriptor_table_message_2eproto_initialized, descriptor_table_protodef_message_2eproto, "message.proto", 3143,
+  &descriptor_table_message_2eproto_once, descriptor_table_message_2eproto_sccs, descriptor_table_message_2eproto_deps, 30, 0,
   schemas, file_default_instances, TableStruct_message_2eproto::offsets,
-  file_level_metadata_message_2eproto, 28, file_level_enum_descriptors_message_2eproto, file_level_service_descriptors_message_2eproto,
+  file_level_metadata_message_2eproto, 30, file_level_enum_descriptors_message_2eproto, file_level_service_descriptors_message_2eproto,
 };
 
 // Force running AddDescriptors() at dynamic initialization time.
@@ -2605,6 +2678,560 @@ void LockInfo::InternalSwap(LockInfo* other) {
 
 // ===================================================================
 
+void RLTraj_State::InitAsDefaultInstance() {
+}
+class RLTraj_State::_Internal {
+ public:
+};
+
+RLTraj_State::RLTraj_State()
+  : ::PROTOBUF_NAMESPACE_ID::Message(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:merge.RLTraj.State)
+}
+RLTraj_State::RLTraj_State(const RLTraj_State& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      _internal_metadata_(nullptr) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::memcpy(&latency_, &from.latency_,
+    static_cast<size_t>(reinterpret_cast<char*>(&cc_option_) -
+    reinterpret_cast<char*>(&latency_)) + sizeof(cc_option_));
+  // @@protoc_insertion_point(copy_constructor:merge.RLTraj.State)
+}
+
+void RLTraj_State::SharedCtor() {
+  ::memset(&latency_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&cc_option_) -
+      reinterpret_cast<char*>(&latency_)) + sizeof(cc_option_));
+}
+
+RLTraj_State::~RLTraj_State() {
+  // @@protoc_insertion_point(destructor:merge.RLTraj.State)
+  SharedDtor();
+}
+
+void RLTraj_State::SharedDtor() {
+}
+
+void RLTraj_State::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const RLTraj_State& RLTraj_State::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RLTraj_State_message_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void RLTraj_State::Clear() {
+// @@protoc_insertion_point(message_clear_start:merge.RLTraj.State)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&latency_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&cc_option_) -
+      reinterpret_cast<char*>(&latency_)) + sizeof(cc_option_));
+  _internal_metadata_.Clear();
+}
+
+const char* RLTraj_State::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // int32 txn_state = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
+          txn_state_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // uint64 latency = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          latency_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 read_size = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 24)) {
+          read_size_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 write_size = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 32)) {
+          write_size_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 hot_visited = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 40)) {
+          hot_visited_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 retry_cnt = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 48)) {
+          retry_cnt_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // int32 cc_option = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 56)) {
+          cc_option_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* RLTraj_State::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:merge.RLTraj.State)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 txn_state = 1;
+  if (this->txn_state() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_txn_state(), target);
+  }
+
+  // uint64 latency = 2;
+  if (this->latency() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(2, this->_internal_latency(), target);
+  }
+
+  // int32 read_size = 3;
+  if (this->read_size() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_read_size(), target);
+  }
+
+  // int32 write_size = 4;
+  if (this->write_size() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_write_size(), target);
+  }
+
+  // int32 hot_visited = 5;
+  if (this->hot_visited() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_hot_visited(), target);
+  }
+
+  // int32 retry_cnt = 6;
+  if (this->retry_cnt() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(6, this->_internal_retry_cnt(), target);
+  }
+
+  // int32 cc_option = 7;
+  if (this->cc_option() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(7, this->_internal_cc_option(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields(), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:merge.RLTraj.State)
+  return target;
+}
+
+size_t RLTraj_State::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:merge.RLTraj.State)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 latency = 2;
+  if (this->latency() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
+        this->_internal_latency());
+  }
+
+  // int32 txn_state = 1;
+  if (this->txn_state() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_txn_state());
+  }
+
+  // int32 read_size = 3;
+  if (this->read_size() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_read_size());
+  }
+
+  // int32 write_size = 4;
+  if (this->write_size() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_write_size());
+  }
+
+  // int32 hot_visited = 5;
+  if (this->hot_visited() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_hot_visited());
+  }
+
+  // int32 retry_cnt = 6;
+  if (this->retry_cnt() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_retry_cnt());
+  }
+
+  // int32 cc_option = 7;
+  if (this->cc_option() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
+        this->_internal_cc_option());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void RLTraj_State::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:merge.RLTraj.State)
+  GOOGLE_DCHECK_NE(&from, this);
+  const RLTraj_State* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RLTraj_State>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:merge.RLTraj.State)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:merge.RLTraj.State)
+    MergeFrom(*source);
+  }
+}
+
+void RLTraj_State::MergeFrom(const RLTraj_State& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:merge.RLTraj.State)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.latency() != 0) {
+    _internal_set_latency(from._internal_latency());
+  }
+  if (from.txn_state() != 0) {
+    _internal_set_txn_state(from._internal_txn_state());
+  }
+  if (from.read_size() != 0) {
+    _internal_set_read_size(from._internal_read_size());
+  }
+  if (from.write_size() != 0) {
+    _internal_set_write_size(from._internal_write_size());
+  }
+  if (from.hot_visited() != 0) {
+    _internal_set_hot_visited(from._internal_hot_visited());
+  }
+  if (from.retry_cnt() != 0) {
+    _internal_set_retry_cnt(from._internal_retry_cnt());
+  }
+  if (from.cc_option() != 0) {
+    _internal_set_cc_option(from._internal_cc_option());
+  }
+}
+
+void RLTraj_State::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:merge.RLTraj.State)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RLTraj_State::CopyFrom(const RLTraj_State& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:merge.RLTraj.State)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RLTraj_State::IsInitialized() const {
+  return true;
+}
+
+void RLTraj_State::InternalSwap(RLTraj_State* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  swap(latency_, other->latency_);
+  swap(txn_state_, other->txn_state_);
+  swap(read_size_, other->read_size_);
+  swap(write_size_, other->write_size_);
+  swap(hot_visited_, other->hot_visited_);
+  swap(retry_cnt_, other->retry_cnt_);
+  swap(cc_option_, other->cc_option_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata RLTraj_State::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+void RLTraj::InitAsDefaultInstance() {
+}
+class RLTraj::_Internal {
+ public:
+};
+
+RLTraj::RLTraj()
+  : ::PROTOBUF_NAMESPACE_ID::Message(), _internal_metadata_(nullptr) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:merge.RLTraj)
+}
+RLTraj::RLTraj(const RLTraj& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      _internal_metadata_(nullptr),
+      state_(from.state_) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  session_ = from.session_;
+  // @@protoc_insertion_point(copy_constructor:merge.RLTraj)
+}
+
+void RLTraj::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_RLTraj_message_2eproto.base);
+  session_ = PROTOBUF_ULONGLONG(0);
+}
+
+RLTraj::~RLTraj() {
+  // @@protoc_insertion_point(destructor:merge.RLTraj)
+  SharedDtor();
+}
+
+void RLTraj::SharedDtor() {
+}
+
+void RLTraj::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const RLTraj& RLTraj::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_RLTraj_message_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void RLTraj::Clear() {
+// @@protoc_insertion_point(message_clear_start:merge.RLTraj)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  state_.Clear();
+  session_ = PROTOBUF_ULONGLONG(0);
+  _internal_metadata_.Clear();
+}
+
+const char* RLTraj::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // repeated .merge.RLTraj.State state = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_state(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else goto handle_unusual;
+        continue;
+      // uint64 session = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
+          session_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag, &_internal_metadata_, ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* RLTraj::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:merge.RLTraj)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .merge.RLTraj.State state = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_state_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_state(i), target, stream);
+  }
+
+  // uint64 session = 2;
+  if (this->session() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(2, this->_internal_session(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields(), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:merge.RLTraj)
+  return target;
+}
+
+size_t RLTraj::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:merge.RLTraj)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .merge.RLTraj.State state = 1;
+  total_size += 1UL * this->_internal_state_size();
+  for (const auto& msg : this->state_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // uint64 session = 2;
+  if (this->session() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
+        this->_internal_session());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void RLTraj::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:merge.RLTraj)
+  GOOGLE_DCHECK_NE(&from, this);
+  const RLTraj* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<RLTraj>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:merge.RLTraj)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:merge.RLTraj)
+    MergeFrom(*source);
+  }
+}
+
+void RLTraj::MergeFrom(const RLTraj& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:merge.RLTraj)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  state_.MergeFrom(from.state_);
+  if (from.session() != 0) {
+    _internal_set_session(from._internal_session());
+  }
+}
+
+void RLTraj::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:merge.RLTraj)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void RLTraj::CopyFrom(const RLTraj& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:merge.RLTraj)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RLTraj::IsInitialized() const {
+  return true;
+}
+
+void RLTraj::InternalSwap(RLTraj* other) {
+  using std::swap;
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  state_.InternalSwap(&other->state_);
+  swap(session_, other->session_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata RLTraj::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
 void Message::InitAsDefaultInstance() {
   ::merge::_Message_default_instance_.request_ = const_cast< ::merge::Request*>(
       ::merge::Request::internal_default_instance());
@@ -2614,6 +3241,8 @@ void Message::InitAsDefaultInstance() {
       ::merge::Transaction::internal_default_instance());
   ::merge::_Message_default_instance_.lockinfo_ = const_cast< ::merge::LockInfo*>(
       ::merge::LockInfo::internal_default_instance());
+  ::merge::_Message_default_instance_.rltraj_ = const_cast< ::merge::RLTraj*>(
+      ::merge::RLTraj::internal_default_instance());
 }
 class Message::_Internal {
  public:
@@ -2621,6 +3250,7 @@ class Message::_Internal {
   static const ::merge::Response& response(const Message* msg);
   static const ::merge::Transaction& txn(const Message* msg);
   static const ::merge::LockInfo& lockinfo(const Message* msg);
+  static const ::merge::RLTraj& rltraj(const Message* msg);
 };
 
 const ::merge::Request&
@@ -2638,6 +3268,10 @@ Message::_Internal::txn(const Message* msg) {
 const ::merge::LockInfo&
 Message::_Internal::lockinfo(const Message* msg) {
   return *msg->type_.lockinfo_;
+}
+const ::merge::RLTraj&
+Message::_Internal::rltraj(const Message* msg) {
+  return *msg->type_.rltraj_;
 }
 void Message::set_allocated_request(::merge::Request* request) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
@@ -2695,6 +3329,20 @@ void Message::set_allocated_lockinfo(::merge::LockInfo* lockinfo) {
   }
   // @@protoc_insertion_point(field_set_allocated:merge.Message.lockinfo)
 }
+void Message::set_allocated_rltraj(::merge::RLTraj* rltraj) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaNoVirtual();
+  clear_type();
+  if (rltraj) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena = nullptr;
+    if (message_arena != submessage_arena) {
+      rltraj = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, rltraj, submessage_arena);
+    }
+    set_has_rltraj();
+    type_.rltraj_ = rltraj;
+  }
+  // @@protoc_insertion_point(field_set_allocated:merge.Message.rltraj)
+}
 Message::Message()
   : ::PROTOBUF_NAMESPACE_ID::Message(), _internal_metadata_(nullptr) {
   SharedCtor();
@@ -2720,6 +3368,10 @@ Message::Message(const Message& from)
     }
     case kLockinfo: {
       _internal_mutable_lockinfo()->::merge::LockInfo::MergeFrom(from._internal_lockinfo());
+      break;
+    }
+    case kRltraj: {
+      _internal_mutable_rltraj()->::merge::RLTraj::MergeFrom(from._internal_rltraj());
       break;
     }
     case TYPE_NOT_SET: {
@@ -2773,6 +3425,10 @@ void Message::clear_type() {
       delete type_.lockinfo_;
       break;
     }
+    case kRltraj: {
+      delete type_.rltraj_;
+      break;
+    }
     case TYPE_NOT_SET: {
       break;
     }
@@ -2823,6 +3479,13 @@ const char* Message::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::in
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_lockinfo(), ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // .merge.RLTraj rltraj = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 42)) {
+          ptr = ctx->ParseMessage(_internal_mutable_rltraj(), ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -2884,6 +3547,14 @@ failure:
         4, _Internal::lockinfo(this), target, stream);
   }
 
+  // .merge.RLTraj rltraj = 5;
+  if (_internal_has_rltraj()) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        5, _Internal::rltraj(this), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields(), target, stream);
@@ -2927,6 +3598,13 @@ size_t Message::ByteSizeLong() const {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *type_.lockinfo_);
+      break;
+    }
+    // .merge.RLTraj rltraj = 5;
+    case kRltraj: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *type_.rltraj_);
       break;
     }
     case TYPE_NOT_SET: {
@@ -2979,6 +3657,10 @@ void Message::MergeFrom(const Message& from) {
     }
     case kLockinfo: {
       _internal_mutable_lockinfo()->::merge::LockInfo::MergeFrom(from._internal_lockinfo());
+      break;
+    }
+    case kRltraj: {
+      _internal_mutable_rltraj()->::merge::RLTraj::MergeFrom(from._internal_rltraj());
       break;
     }
     case TYPE_NOT_SET: {
@@ -9126,6 +9808,12 @@ template<> PROTOBUF_NOINLINE ::merge::LockInfo_Row* Arena::CreateMaybeMessage< :
 }
 template<> PROTOBUF_NOINLINE ::merge::LockInfo* Arena::CreateMaybeMessage< ::merge::LockInfo >(Arena* arena) {
   return Arena::CreateInternal< ::merge::LockInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::merge::RLTraj_State* Arena::CreateMaybeMessage< ::merge::RLTraj_State >(Arena* arena) {
+  return Arena::CreateInternal< ::merge::RLTraj_State >(arena);
+}
+template<> PROTOBUF_NOINLINE ::merge::RLTraj* Arena::CreateMaybeMessage< ::merge::RLTraj >(Arena* arena) {
+  return Arena::CreateInternal< ::merge::RLTraj >(arena);
 }
 template<> PROTOBUF_NOINLINE ::merge::Message* Arena::CreateMaybeMessage< ::merge::Message >(Arena* arena) {
   return Arena::CreateInternal< ::merge::Message >(arena);

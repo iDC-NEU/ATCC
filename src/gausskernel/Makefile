@@ -249,6 +249,11 @@ LIBS += -l${PROTOBUF_LIB_NAME}
 ################################################################################
 LIBS += -lzmq
 
+################################################################################
+# onnxruntime
+################################################################################
+LIBS += -lonnxruntime
+
 ##################################################################################
 # kerberos
 ##################################################################################
@@ -314,6 +319,10 @@ LDFLAGS += -L$(LIBLLVM_LIB_PATH) -L$(LIBTINFO_LIB_PATH) \
   # append lz4 for compression: lz4
   LDFLAGS += -L$(LZ4_LIB_PATH)
   CXXFLAGS+= -I$(LZ4_INCLUDE_PATH)
+
+# append onnxruntime
+  LDFLAGS += -L$(ONNXRUNTIME_LIB_PATH)
+  CXXFLAGS+= -I$(ONNXRUNTIME_INCLUDE_PATH)
 
   # append cjson for json parser in c: cjson
   LDFLAGS += -L$(CJSON_LIB_PATH)
@@ -651,6 +660,7 @@ endif
 	cp -d $(CJSON_LIB_PATH)/libcjson* '$(DESTDIR)$(libdir)/'
 	cp $(GRPC_LIB_PATH)/* '$(DESTDIR)$(libdir)/'
 	cp -r $(ZEROMQ_LIB_PATH)/* '$(DESTDIR)$(libdir)/'
+	cp -r $(ONNXRUNTIME_LIB_PATH)/* '$(DESTDIR)$(libdir)/'
 	cp -r $(PROTOBUF_LIB_PATH)/* '$(DESTDIR)$(libdir)/'
 ifneq (, $(findstring __USE_NUMA, $(CFLAGS)))
 	cp $(NUMA_LIB_PATH)/* '$(DESTDIR)$(libdir)/'

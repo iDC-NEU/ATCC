@@ -43,6 +43,7 @@ endif
 #Target directory definitions.Scan them recursively.
 SRC_TARGET_DIRS = \
 		concurrency_control \
+		hybrid_cc \
 		infra \
 		memory \
 		storage \

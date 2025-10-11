@@ -34,6 +34,8 @@
 #include <list>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <memory>
 
 #include "global.h"
 #include "redo_log.h"
@@ -96,6 +98,30 @@ public:
 private:
     std::unordered_map<Sentinel*, Row*> read_cache;
     std::mutex mutex;
+};
+
+// 存放state-action，作为轨迹
+class StateAction{
+public:
+    uint64_t execution_time;
+    int retry_cnt;
+    int read_cnt;
+    int write_cnt;
+    int hot_cnt;
+    int action;         // 0: OCC, 1: PCC
+
+    StateAction() {
+
+    }
+
+    StateAction(uint64_t execution_time, int retry_cnt, int read_cnt, int write_cnt, int hot_cnt, int action) :
+    execution_time(execution_time), retry_cnt(retry_cnt), read_cnt(read_cnt), write_cnt(write_cnt), hot_cnt(hot_cnt), action(action) {
+
+    }
+
+    ~StateAction() {
+
+    }
 };
 
 /**
@@ -260,9 +286,9 @@ public:
     /////////////////////////////////////////////////
 
     RC SendLockInfo(MOT::Row* currRow);          // wzy:
-
     void UnlockLockInfo(uint64_t csn, bool abort);      // wzy:
 
+    /////////////////////////////////////////
     // RC Commit(uint64_t &thread_id);
     void LiteCommit();
 
@@ -789,11 +815,14 @@ public:
         hot_cnt = 0;
         interactive = false;
         hot_rowid_records.clear();
+        traj_index = 0;
     }
 
     RC SwitchToPCC();
 
     // wzy: 指定为悲观事务
+    void InitInteractiveTxn();
+
     void SetInteractive(bool value)
     {
         interactive = value;
@@ -816,38 +845,29 @@ public:
         write_cnt++;
     }
 
-    uint64_t GetReadCnt(){
+    int GetReadCnt(){
         return read_cnt;
     }
 
-    uint64_t GetHotCnt(){
+    int GetHotCnt(){
         return hot_cnt;
     }
 
-    uint64_t GetWriteCnt(){
+    int GetWriteCnt(){
 
         return write_cnt;
     }
 
-    uint64_t GetScore() {
-        if (is_retry_priority_enable) {
-            score_ = 0;
-            uint64_t f = UINT64_MAX - start_time;
-            score_ |= ((uint64_t)retry_cnt << 57);
-            score_ |= (f & 0x1FFFFFFFFFFFFFF);
-        } else {
-            score_ = 0;
-            uint64_t f = UINT64_MAX - start_time;
-            score_ |= ((uint64_t)0 << 57);
-            score_ |= (f & 0x1FFFFFFFFFFFFFF);
-        }
-        return score_;
-    }
+    uint64_t GetScore();
 
     bool ValidateTxnPessimistic(uint64_t curr_epoch);
 
-    // TODO: 寄存轨迹
-
+    // wzy: 存放轨迹
+    void AddTraj(int action) {
+        uint64_t execution_time = now_to_us() - start_time;
+        (*traj)[traj_index++] = std::unique_ptr<StateAction>(
+            new StateAction(execution_time, retry_cnt, read_cnt, write_cnt, hot_cnt, action));
+    }
 
 private:
 
@@ -863,9 +883,6 @@ private:
     bool interactive;  // wzy: 指定为交互性事务
     ReadMVCC read_cache;
 
-    uint64_t read_cnt;  // wzy: 统计交互性事务执行到目前的成本
-    uint64_t write_cnt;
-
 
 public:
     bool pessimistic_flag;        // wzy: 设置为悲观执行
@@ -873,9 +890,14 @@ public:
     uint64_t start_time;
     uint64_t commit_time;
     int retry_cnt;                // 重做次数
+    int read_cnt;  // wzy: 统计交互性事务执行到目前的成本
+    int write_cnt;
     int hot_cnt;
 
     std::unordered_set<uint64_t> hot_rowid_records;
+
+    int traj_index;
+    std::unique_ptr<std::vector<std::unique_ptr<StateAction>>> traj;        // 存放轨迹
 
     uint32_t session_id;              // session id
     uint64_t pre_csn;

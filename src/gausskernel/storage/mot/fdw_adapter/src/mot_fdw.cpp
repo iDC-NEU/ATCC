@@ -1676,7 +1676,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
             if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitPlor();       // interactive plor
             else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
             txn->commit_time = now_to_us_fdw();
-        } else if (cc_mode == 5) {              // silo + plor no epoch
+        } else if (cc_mode == 5) {              // silo + plor dl no epoch
             if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitDL();       // interactive plor
             else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
             txn->commit_time = now_to_us_fdw();
@@ -1780,6 +1780,9 @@ static void MOTXactCallback(XactEvent event, void* arg)
         MOTAdaptor::EndTransaction();               // 在这儿释放sentinel的锁
         MOTAdaptor::txn_state_map_plor_.remove(txn->start_time);    // 清除状态
 
+        // TODO: 开启RL model，发送traj
+        if (is_rl_model_enable) MOTAdaptor::InsertTrajToQueue(txn);
+
         txn->ClearEpochState();         // 清空state，包括pre_csn
         txn->SetTxnState(MOT::TxnState::TXN_END_TRANSACTION);
         // if(!txn->isOnlyRead()){
@@ -1815,6 +1818,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
         elog(DEBUG2, "XACT_EVENT_ABORT, tid %lu", tid);
 
         txn->commit_time = now_to_us_fdw();
+        txn->abort_ = true;
         MOTAdaptor::txn_abort_time.fetch_add(txn->commit_time - txn->start_time);
 
         // wzy: 进行解锁，需要本地和远端一并解锁（因为交互型事务远端没有end transaction通知）

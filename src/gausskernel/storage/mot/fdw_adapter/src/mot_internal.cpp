@@ -86,6 +86,8 @@
 // wzy: 测试
 #include "postmaster/tinyxml2.h"
 
+
+
 /** @define masks for CSN word   */
 #define CSN_BITS 0x1FFFFFFFFFFFFFFFUL
 
@@ -2653,7 +2655,7 @@ std::unordered_map<std::shared_ptr<MOTAdaptor::LockRequestQueue>, std::list<std:
 std::mutex MOTAdaptor::active_queue_list_mutex;
 
 MOTAdaptor::DynamicHotRow MOTAdaptor::dynamic_hot_rows;             // wzy: hot row
-
+MOTAdaptor::ActionEngine MOTAdaptor::adviser;
 
 bool MOTAdaptor::timerStop = false;
 volatile bool 
@@ -2893,13 +2895,9 @@ BlockingConcurrentQueue<std::unique_ptr<merge::Message>> lock_queue;    // wzy: 
 
 // TODO:
 ////////////////////////////// wzy: RL模型开启 //////////////////////////////////////
-// RL模型predict queue，线程从该queue取消息发送过去
-// RL模型predict reply，线程接收reply并存放到queue中，集中接收action
-BlockingConcurrentQueue<std::unique_ptr<merge::Message>> predict_req_queue, predict_resp_queue;
-
-// 对每个session uint32_t 存储? 前后state链表，定期发送train
-aum::concurrent_unordered_map<std::string, std::unique_ptr<MOTAdaptor::RLState>, std::string> rl_state_map;
-aum::concurrent_unordered_map<std::string, std::unique_ptr<merge::Message>, std::string> train_state_list;
+// RL模型traj_queue存放traj原始形态，通过protobuf编码
+BlockingConcurrentQueue<std::unique_ptr<pack_params>> traj_queue;
+BlockingConcurrentQueue<std::unique_ptr<merge::Message>> send_traj_queue;
 
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -2980,7 +2978,84 @@ bool MOTAdaptor::IncLocalChangeSetNum(uint64_t epoch, uint64_t index_pack, uint6
     return MOTAdaptor::AddNum(epoch, index_pack, value);
 }
 
+/////////////// RL state ///////////////
+bool EnqueueTraj(std::unique_ptr<pack_params> && ptr, std::unique_ptr<pack_params> && ptr1) {
+    traj_queue.enqueue(std::move(ptr));
+    traj_queue.enqueue(std::move(ptr1));
+}
 
+bool TryDequeueTraj(std::unique_ptr<pack_params> &v) {
+    if (traj_queue.try_dequeue(v)) {
+        return true;
+    }
+    return false;
+}
+
+bool MOTAdaptor::InsertTrajToQueue(MOT::TxnManager* txMan) {
+    // TODO: 在此处Gzip为str，再加入queue
+    auto& traj = txMan->traj;
+    if (!traj || traj->empty()) {
+        // 没有轨迹可发，也可以返回 false
+        return false;
+    }
+    auto msg = std::make_unique<merge::Message>();
+    auto* rl = msg->mutable_rltraj();
+    // 填充每个 StateAction
+    int i = 0;
+    for (const auto& sa_ptr : *traj) {
+        auto* st = rl->add_state();
+        i++;
+        // 1 commit, -1 abort, 0 running
+        st->set_txn_state(0);
+        if (i == txMan->traj_index) st->set_txn_state(txMan->abort_ ? -1 : 1);
+        st->set_latency(sa_ptr->execution_time);
+        st->set_retry_cnt(sa_ptr->retry_cnt);
+        st->set_read_size(sa_ptr->read_cnt);
+        st->set_write_size(sa_ptr->write_cnt);
+        st->set_hot_visited(sa_ptr->hot_cnt);
+        st->set_cc_option(sa_ptr->action);
+    }
+    // rl->set_session(txMan->session_id);
+    rl->set_session(MOTAdaptor::adviser.current_idx_.load());
+
+    auto time1 = now_to_us();
+    auto* serialized_txn_str_ptr = Gzip(std::move(msg));
+    auto time2 = now_to_us();
+    txMan->SetZipSize(serialized_txn_str_ptr->size());
+    txMan->SetZipTime(time2 - time1);
+
+    EnqueueTraj(std::move(std::make_unique<pack_params>(serialized_txn_str_ptr, txMan->GetCommitEpoch(), 0, false)), std::move(std::make_unique<pack_params>(nullptr, 0, 0)));
+    return true;
+}
+
+
+// TODO: 线程tryDequeue traj, Gzip, and send to RL model
+void SendTrajThreadMain(uint64_t id) {
+    MOT_LOG_INFO("线程开始工作 Send Traj id: %llu %llu", id, kBatchNum);
+    SetCPU();
+    zmq::context_t context(1);
+    zmq::message_t reply(5);
+    int queue_length = 0;
+    zmq::socket_t socket_send(context, ZMQ_PUB);
+    socket_send.setsockopt(ZMQ_SNDHWM, &queue_length, sizeof(queue_length));
+    socket_send.bind("tcp://*:5560");           //to rl server
+    std::unique_ptr<pack_params> params;
+    std::unique_ptr<zmq::message_t> msg;
+    while(init_ok.load() == false) usleep(200);
+    MOT_LOG_INFO("线程开始工作 break; Sned  %llu %s", id, (kServerIp[local_ip_index] + ":5557/5558").c_str());
+
+    while(true) {
+        if(TryDequeueTraj(params)) {
+            if(params == nullptr || params->str == nullptr) continue;
+            msg = std::make_unique<zmq::message_t>(
+                static_cast<void*>(const_cast<char*>(params->str->data())), params->str->size(), string_free, static_cast<void*>(params->str));
+            socket_send.send(*(msg));
+            if (is_debug_print_enable) MOT_LOG_INFO("发送一条RL Traj消息");
+        }
+    }
+}
+
+////////////////////////////
 
 
 bool MOTAdaptor::InsertTxntoLocalChangeSet(MOT::TxnManager* txMan, const uint64_t& index_pack, const uint64_t& index_unique){
@@ -5619,9 +5694,20 @@ void TryGetServerInfo() {
     zmq::socket_t socket_listen(listen_context, ZMQ_PULL);
     socket_listen.bind("tcp://*:1556");         // 端口
     for (;;) {
-        std::unique_ptr<zmq::message_t> message_ptr = std::make_unique<zmq::message_t>();
-        socket_listen.recv(&(*message_ptr));
-        ReGetServerInfo();        // 更新配置信息
+        zmq::message_t message;
+        socket_listen.recv(&message);
+        std::string msg_str(static_cast<char*>(message.data()), message.size());
+        // 用 atoi，只要 msg_str 全是数字就会返回对应的 int，其他情况返回 0
+        int v = std::atoi(msg_str.c_str());
+
+        if (v >= 1) {
+            // 收到有效的新版号
+            GetModel(v);
+        }
+        else if (v == 0) {
+            // 收到 0
+            ReGetServerInfo();
+        }
     }
 }
 
@@ -5708,7 +5794,12 @@ void ReGetServerInfo() {
     MOTAdaptor::dynamic_hot_rows.freq_ = kHotRowsFreq;
 }
 
-
+void GetModel(int v) {
+    std::string model_path = "/~/RLmodel/model" + std::to_string(v);
+    int slot = v % 2;
+    MOTAdaptor::adviser.loadModel(slot, model_path.c_str());
+    MOTAdaptor::adviser.current_idx_.store(slot);
+}
 
 /////////////// wzy: 死锁检测    // delete
 bool HasCycle(std::string& target_tid)

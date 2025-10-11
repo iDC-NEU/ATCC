@@ -47,7 +47,7 @@ struct TableStruct_message_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxillaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[28]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[30]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -94,6 +94,12 @@ extern PingDefaultTypeInternal _Ping_default_instance_;
 class Pong;
 class PongDefaultTypeInternal;
 extern PongDefaultTypeInternal _Pong_default_instance_;
+class RLTraj;
+class RLTrajDefaultTypeInternal;
+extern RLTrajDefaultTypeInternal _RLTraj_default_instance_;
+class RLTraj_State;
+class RLTraj_StateDefaultTypeInternal;
+extern RLTraj_StateDefaultTypeInternal _RLTraj_State_default_instance_;
 class RaftAcceptRequest;
 class RaftAcceptRequestDefaultTypeInternal;
 extern RaftAcceptRequestDefaultTypeInternal _RaftAcceptRequest_default_instance_;
@@ -154,6 +160,8 @@ template<> ::merge::MasterMetadata* Arena::CreateMaybeMessage<::merge::MasterMet
 template<> ::merge::Message* Arena::CreateMaybeMessage<::merge::Message>(Arena*);
 template<> ::merge::Ping* Arena::CreateMaybeMessage<::merge::Ping>(Arena*);
 template<> ::merge::Pong* Arena::CreateMaybeMessage<::merge::Pong>(Arena*);
+template<> ::merge::RLTraj* Arena::CreateMaybeMessage<::merge::RLTraj>(Arena*);
+template<> ::merge::RLTraj_State* Arena::CreateMaybeMessage<::merge::RLTraj_State>(Arena*);
 template<> ::merge::RaftAcceptRequest* Arena::CreateMaybeMessage<::merge::RaftAcceptRequest>(Arena*);
 template<> ::merge::RaftAcceptResponse* Arena::CreateMaybeMessage<::merge::RaftAcceptResponse>(Arena*);
 template<> ::merge::RaftCommitRequest* Arena::CreateMaybeMessage<::merge::RaftCommitRequest>(Arena*);
@@ -1138,6 +1146,350 @@ class LockInfo :
 };
 // -------------------------------------------------------------------
 
+class RLTraj_State :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:merge.RLTraj.State) */ {
+ public:
+  RLTraj_State();
+  virtual ~RLTraj_State();
+
+  RLTraj_State(const RLTraj_State& from);
+  RLTraj_State(RLTraj_State&& from) noexcept
+    : RLTraj_State() {
+    *this = ::std::move(from);
+  }
+
+  inline RLTraj_State& operator=(const RLTraj_State& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RLTraj_State& operator=(RLTraj_State&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const RLTraj_State& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const RLTraj_State* internal_default_instance() {
+    return reinterpret_cast<const RLTraj_State*>(
+               &_RLTraj_State_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(RLTraj_State& a, RLTraj_State& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(RLTraj_State* other) {
+    if (other == this) return;
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline RLTraj_State* New() const final {
+    return CreateMaybeMessage<RLTraj_State>(nullptr);
+  }
+
+  RLTraj_State* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<RLTraj_State>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const RLTraj_State& from);
+  void MergeFrom(const RLTraj_State& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(RLTraj_State* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "merge.RLTraj.State";
+  }
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return nullptr;
+  }
+  inline void* MaybeArenaPtr() const {
+    return nullptr;
+  }
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_message_2eproto);
+    return ::descriptor_table_message_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLatencyFieldNumber = 2,
+    kTxnStateFieldNumber = 1,
+    kReadSizeFieldNumber = 3,
+    kWriteSizeFieldNumber = 4,
+    kHotVisitedFieldNumber = 5,
+    kRetryCntFieldNumber = 6,
+    kCcOptionFieldNumber = 7,
+  };
+  // uint64 latency = 2;
+  void clear_latency();
+  ::PROTOBUF_NAMESPACE_ID::uint64 latency() const;
+  void set_latency(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_latency() const;
+  void _internal_set_latency(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  public:
+
+  // int32 txn_state = 1;
+  void clear_txn_state();
+  ::PROTOBUF_NAMESPACE_ID::int32 txn_state() const;
+  void set_txn_state(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_txn_state() const;
+  void _internal_set_txn_state(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 read_size = 3;
+  void clear_read_size();
+  ::PROTOBUF_NAMESPACE_ID::int32 read_size() const;
+  void set_read_size(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_read_size() const;
+  void _internal_set_read_size(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 write_size = 4;
+  void clear_write_size();
+  ::PROTOBUF_NAMESPACE_ID::int32 write_size() const;
+  void set_write_size(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_write_size() const;
+  void _internal_set_write_size(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 hot_visited = 5;
+  void clear_hot_visited();
+  ::PROTOBUF_NAMESPACE_ID::int32 hot_visited() const;
+  void set_hot_visited(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_hot_visited() const;
+  void _internal_set_hot_visited(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 retry_cnt = 6;
+  void clear_retry_cnt();
+  ::PROTOBUF_NAMESPACE_ID::int32 retry_cnt() const;
+  void set_retry_cnt(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_retry_cnt() const;
+  void _internal_set_retry_cnt(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // int32 cc_option = 7;
+  void clear_cc_option();
+  ::PROTOBUF_NAMESPACE_ID::int32 cc_option() const;
+  void set_cc_option(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_cc_option() const;
+  void _internal_set_cc_option(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:merge.RLTraj.State)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
+  ::PROTOBUF_NAMESPACE_ID::uint64 latency_;
+  ::PROTOBUF_NAMESPACE_ID::int32 txn_state_;
+  ::PROTOBUF_NAMESPACE_ID::int32 read_size_;
+  ::PROTOBUF_NAMESPACE_ID::int32 write_size_;
+  ::PROTOBUF_NAMESPACE_ID::int32 hot_visited_;
+  ::PROTOBUF_NAMESPACE_ID::int32 retry_cnt_;
+  ::PROTOBUF_NAMESPACE_ID::int32 cc_option_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class RLTraj :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:merge.RLTraj) */ {
+ public:
+  RLTraj();
+  virtual ~RLTraj();
+
+  RLTraj(const RLTraj& from);
+  RLTraj(RLTraj&& from) noexcept
+    : RLTraj() {
+    *this = ::std::move(from);
+  }
+
+  inline RLTraj& operator=(const RLTraj& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RLTraj& operator=(RLTraj&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const RLTraj& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const RLTraj* internal_default_instance() {
+    return reinterpret_cast<const RLTraj*>(
+               &_RLTraj_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(RLTraj& a, RLTraj& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(RLTraj* other) {
+    if (other == this) return;
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline RLTraj* New() const final {
+    return CreateMaybeMessage<RLTraj>(nullptr);
+  }
+
+  RLTraj* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<RLTraj>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const RLTraj& from);
+  void MergeFrom(const RLTraj& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(RLTraj* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "merge.RLTraj";
+  }
+  private:
+  inline ::PROTOBUF_NAMESPACE_ID::Arena* GetArenaNoVirtual() const {
+    return nullptr;
+  }
+  inline void* MaybeArenaPtr() const {
+    return nullptr;
+  }
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_message_2eproto);
+    return ::descriptor_table_message_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  typedef RLTraj_State State;
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStateFieldNumber = 1,
+    kSessionFieldNumber = 2,
+  };
+  // repeated .merge.RLTraj.State state = 1;
+  int state_size() const;
+  private:
+  int _internal_state_size() const;
+  public:
+  void clear_state();
+  ::merge::RLTraj_State* mutable_state(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::merge::RLTraj_State >*
+      mutable_state();
+  private:
+  const ::merge::RLTraj_State& _internal_state(int index) const;
+  ::merge::RLTraj_State* _internal_add_state();
+  public:
+  const ::merge::RLTraj_State& state(int index) const;
+  ::merge::RLTraj_State* add_state();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::merge::RLTraj_State >&
+      state() const;
+
+  // uint64 session = 2;
+  void clear_session();
+  ::PROTOBUF_NAMESPACE_ID::uint64 session() const;
+  void set_session(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_session() const;
+  void _internal_set_session(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:merge.RLTraj)
+ private:
+  class _Internal;
+
+  ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::merge::RLTraj_State > state_;
+  ::PROTOBUF_NAMESPACE_ID::uint64 session_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
 class Message :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:merge.Message) */ {
  public:
@@ -1179,6 +1531,7 @@ class Message :
     kResponse = 2,
     kTxn = 3,
     kLockinfo = 4,
+    kRltraj = 5,
     TYPE_NOT_SET = 0,
   };
 
@@ -1188,7 +1541,7 @@ class Message :
                &_Message_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    7;
 
   friend void swap(Message& a, Message& b) {
     a.Swap(&b);
@@ -1256,6 +1609,7 @@ class Message :
     kResponseFieldNumber = 2,
     kTxnFieldNumber = 3,
     kLockinfoFieldNumber = 4,
+    kRltrajFieldNumber = 5,
   };
   // .merge.Request request = 1;
   bool has_request() const;
@@ -1317,6 +1671,21 @@ class Message :
   ::merge::LockInfo* _internal_mutable_lockinfo();
   public:
 
+  // .merge.RLTraj rltraj = 5;
+  bool has_rltraj() const;
+  private:
+  bool _internal_has_rltraj() const;
+  public:
+  void clear_rltraj();
+  const ::merge::RLTraj& rltraj() const;
+  ::merge::RLTraj* release_rltraj();
+  ::merge::RLTraj* mutable_rltraj();
+  void set_allocated_rltraj(::merge::RLTraj* rltraj);
+  private:
+  const ::merge::RLTraj& _internal_rltraj() const;
+  ::merge::RLTraj* _internal_mutable_rltraj();
+  public:
+
   void clear_type();
   TypeCase type_case() const;
   // @@protoc_insertion_point(class_scope:merge.Message)
@@ -1326,6 +1695,7 @@ class Message :
   void set_has_response();
   void set_has_txn();
   void set_has_lockinfo();
+  void set_has_rltraj();
 
   inline bool has_type() const;
   inline void clear_has_type();
@@ -1337,6 +1707,7 @@ class Message :
     ::merge::Response* response_;
     ::merge::Transaction* txn_;
     ::merge::LockInfo* lockinfo_;
+    ::merge::RLTraj* rltraj_;
   } type_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::uint32 _oneof_case_[1];
@@ -1401,7 +1772,7 @@ class Request :
                &_Request_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    8;
 
   friend void swap(Request& a, Request& b) {
     a.Swap(&b);
@@ -1708,7 +2079,7 @@ class Ping :
                &_Ping_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    9;
 
   friend void swap(Ping& a, Ping& b) {
     a.Swap(&b);
@@ -1847,7 +2218,7 @@ class Signal :
                &_Signal_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    10;
 
   friend void swap(Signal& a, Signal& b) {
     a.Swap(&b);
@@ -1975,7 +2346,7 @@ class LookupMasterRequest :
                &_LookupMasterRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    11;
 
   friend void swap(LookupMasterRequest& a, LookupMasterRequest& b) {
     a.Swap(&b);
@@ -2143,7 +2514,7 @@ class ForwardEpochRequest :
                &_ForwardEpochRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    12;
 
   friend void swap(ForwardEpochRequest& a, ForwardEpochRequest& b) {
     a.Swap(&b);
@@ -2293,7 +2664,7 @@ class EpochReplicationAck :
                &_EpochReplicationAck_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    13;
 
   friend void swap(EpochReplicationAck& a, EpochReplicationAck& b) {
     a.Swap(&b);
@@ -2421,7 +2792,7 @@ class RaftPropose :
                &_RaftPropose_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    14;
 
   friend void swap(RaftPropose& a, RaftPropose& b) {
     a.Swap(&b);
@@ -2549,7 +2920,7 @@ class RaftAcceptRequest :
                &_RaftAcceptRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    15;
 
   friend void swap(RaftAcceptRequest& a, RaftAcceptRequest& b) {
     a.Swap(&b);
@@ -2699,7 +3070,7 @@ class RaftCommitRequest :
                &_RaftCommitRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    16;
 
   friend void swap(RaftCommitRequest& a, RaftCommitRequest& b) {
     a.Swap(&b);
@@ -2849,7 +3220,7 @@ class StatsRequest :
                &_StatsRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    17;
 
   friend void swap(StatsRequest& a, StatsRequest& b) {
     a.Swap(&b);
@@ -2999,7 +3370,7 @@ class ChangeServerStateRequest :
                &_ChangeServerStateRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    18;
 
   friend void swap(ChangeServerStateRequest& a, ChangeServerStateRequest& b) {
     a.Swap(&b);
@@ -3192,7 +3563,7 @@ class Response :
                &_Response_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    19;
 
   friend void swap(Response& a, Response& b) {
     a.Swap(&b);
@@ -3427,7 +3798,7 @@ class Pong :
                &_Pong_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    20;
 
   friend void swap(Pong& a, Pong& b) {
     a.Swap(&b);
@@ -3588,7 +3959,7 @@ class MasterMetadata :
                &_MasterMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    21;
 
   friend void swap(MasterMetadata& a, MasterMetadata& b) {
     a.Swap(&b);
@@ -3727,7 +4098,7 @@ class KeyMasterMetadata :
                &_KeyMasterMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    22;
 
   friend void swap(KeyMasterMetadata& a, KeyMasterMetadata& b) {
     a.Swap(&b);
@@ -3879,7 +4250,7 @@ class LookupMasterResponse :
                &_LookupMasterResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    23;
 
   friend void swap(LookupMasterResponse& a, LookupMasterResponse& b) {
     a.Swap(&b);
@@ -4041,7 +4412,7 @@ class RaftAcceptResponse :
                &_RaftAcceptResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    24;
 
   friend void swap(RaftAcceptResponse& a, RaftAcceptResponse& b) {
     a.Swap(&b);
@@ -4202,7 +4573,7 @@ class RaftCommitResponse :
                &_RaftCommitResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    25;
 
   friend void swap(RaftCommitResponse& a, RaftCommitResponse& b) {
     a.Swap(&b);
@@ -4363,7 +4734,7 @@ class StatsResponse :
                &_StatsResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    24;
+    26;
 
   friend void swap(StatsResponse& a, StatsResponse& b) {
     a.Swap(&b);
@@ -4513,7 +4884,7 @@ class ChangeServerStateResponse :
                &_ChangeServerStateResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    27;
 
   friend void swap(ChangeServerStateResponse& a, ChangeServerStateResponse& b) {
     a.Swap(&b);
@@ -4685,7 +5056,7 @@ class ServerMessage_Msg :
                &_ServerMessage_Msg_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    28;
 
   friend void swap(ServerMessage_Msg& a, ServerMessage_Msg& b) {
     a.Swap(&b);
@@ -4838,7 +5209,7 @@ class ServerMessage :
                &_ServerMessage_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    29;
 
   friend void swap(ServerMessage& a, ServerMessage& b) {
     a.Swap(&b);
@@ -5893,6 +6264,213 @@ inline void LockInfo::set_islock(bool value) {
 
 // -------------------------------------------------------------------
 
+// RLTraj_State
+
+// int32 txn_state = 1;
+inline void RLTraj_State::clear_txn_state() {
+  txn_state_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_txn_state() const {
+  return txn_state_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::txn_state() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.txn_state)
+  return _internal_txn_state();
+}
+inline void RLTraj_State::_internal_set_txn_state(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  txn_state_ = value;
+}
+inline void RLTraj_State::set_txn_state(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_txn_state(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.txn_state)
+}
+
+// uint64 latency = 2;
+inline void RLTraj_State::clear_latency() {
+  latency_ = PROTOBUF_ULONGLONG(0);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 RLTraj_State::_internal_latency() const {
+  return latency_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 RLTraj_State::latency() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.latency)
+  return _internal_latency();
+}
+inline void RLTraj_State::_internal_set_latency(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  
+  latency_ = value;
+}
+inline void RLTraj_State::set_latency(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  _internal_set_latency(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.latency)
+}
+
+// int32 read_size = 3;
+inline void RLTraj_State::clear_read_size() {
+  read_size_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_read_size() const {
+  return read_size_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::read_size() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.read_size)
+  return _internal_read_size();
+}
+inline void RLTraj_State::_internal_set_read_size(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  read_size_ = value;
+}
+inline void RLTraj_State::set_read_size(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_read_size(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.read_size)
+}
+
+// int32 write_size = 4;
+inline void RLTraj_State::clear_write_size() {
+  write_size_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_write_size() const {
+  return write_size_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::write_size() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.write_size)
+  return _internal_write_size();
+}
+inline void RLTraj_State::_internal_set_write_size(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  write_size_ = value;
+}
+inline void RLTraj_State::set_write_size(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_write_size(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.write_size)
+}
+
+// int32 hot_visited = 5;
+inline void RLTraj_State::clear_hot_visited() {
+  hot_visited_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_hot_visited() const {
+  return hot_visited_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::hot_visited() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.hot_visited)
+  return _internal_hot_visited();
+}
+inline void RLTraj_State::_internal_set_hot_visited(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  hot_visited_ = value;
+}
+inline void RLTraj_State::set_hot_visited(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_hot_visited(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.hot_visited)
+}
+
+// int32 retry_cnt = 6;
+inline void RLTraj_State::clear_retry_cnt() {
+  retry_cnt_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_retry_cnt() const {
+  return retry_cnt_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::retry_cnt() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.retry_cnt)
+  return _internal_retry_cnt();
+}
+inline void RLTraj_State::_internal_set_retry_cnt(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  retry_cnt_ = value;
+}
+inline void RLTraj_State::set_retry_cnt(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_retry_cnt(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.retry_cnt)
+}
+
+// int32 cc_option = 7;
+inline void RLTraj_State::clear_cc_option() {
+  cc_option_ = 0;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::_internal_cc_option() const {
+  return cc_option_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::int32 RLTraj_State::cc_option() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.State.cc_option)
+  return _internal_cc_option();
+}
+inline void RLTraj_State::_internal_set_cc_option(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  
+  cc_option_ = value;
+}
+inline void RLTraj_State::set_cc_option(::PROTOBUF_NAMESPACE_ID::int32 value) {
+  _internal_set_cc_option(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.State.cc_option)
+}
+
+// -------------------------------------------------------------------
+
+// RLTraj
+
+// repeated .merge.RLTraj.State state = 1;
+inline int RLTraj::_internal_state_size() const {
+  return state_.size();
+}
+inline int RLTraj::state_size() const {
+  return _internal_state_size();
+}
+inline void RLTraj::clear_state() {
+  state_.Clear();
+}
+inline ::merge::RLTraj_State* RLTraj::mutable_state(int index) {
+  // @@protoc_insertion_point(field_mutable:merge.RLTraj.state)
+  return state_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::merge::RLTraj_State >*
+RLTraj::mutable_state() {
+  // @@protoc_insertion_point(field_mutable_list:merge.RLTraj.state)
+  return &state_;
+}
+inline const ::merge::RLTraj_State& RLTraj::_internal_state(int index) const {
+  return state_.Get(index);
+}
+inline const ::merge::RLTraj_State& RLTraj::state(int index) const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.state)
+  return _internal_state(index);
+}
+inline ::merge::RLTraj_State* RLTraj::_internal_add_state() {
+  return state_.Add();
+}
+inline ::merge::RLTraj_State* RLTraj::add_state() {
+  // @@protoc_insertion_point(field_add:merge.RLTraj.state)
+  return _internal_add_state();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::merge::RLTraj_State >&
+RLTraj::state() const {
+  // @@protoc_insertion_point(field_list:merge.RLTraj.state)
+  return state_;
+}
+
+// uint64 session = 2;
+inline void RLTraj::clear_session() {
+  session_ = PROTOBUF_ULONGLONG(0);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 RLTraj::_internal_session() const {
+  return session_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 RLTraj::session() const {
+  // @@protoc_insertion_point(field_get:merge.RLTraj.session)
+  return _internal_session();
+}
+inline void RLTraj::_internal_set_session(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  
+  session_ = value;
+}
+inline void RLTraj::set_session(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  _internal_set_session(value);
+  // @@protoc_insertion_point(field_set:merge.RLTraj.session)
+}
+
+// -------------------------------------------------------------------
+
 // Message
 
 // .merge.Request request = 1;
@@ -6093,6 +6671,56 @@ inline ::merge::LockInfo* Message::_internal_mutable_lockinfo() {
 inline ::merge::LockInfo* Message::mutable_lockinfo() {
   // @@protoc_insertion_point(field_mutable:merge.Message.lockinfo)
   return _internal_mutable_lockinfo();
+}
+
+// .merge.RLTraj rltraj = 5;
+inline bool Message::_internal_has_rltraj() const {
+  return type_case() == kRltraj;
+}
+inline bool Message::has_rltraj() const {
+  return _internal_has_rltraj();
+}
+inline void Message::set_has_rltraj() {
+  _oneof_case_[0] = kRltraj;
+}
+inline void Message::clear_rltraj() {
+  if (_internal_has_rltraj()) {
+    delete type_.rltraj_;
+    clear_has_type();
+  }
+}
+inline ::merge::RLTraj* Message::release_rltraj() {
+  // @@protoc_insertion_point(field_release:merge.Message.rltraj)
+  if (_internal_has_rltraj()) {
+    clear_has_type();
+      ::merge::RLTraj* temp = type_.rltraj_;
+    type_.rltraj_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::merge::RLTraj& Message::_internal_rltraj() const {
+  return _internal_has_rltraj()
+      ? *type_.rltraj_
+      : *reinterpret_cast< ::merge::RLTraj*>(&::merge::_RLTraj_default_instance_);
+}
+inline const ::merge::RLTraj& Message::rltraj() const {
+  // @@protoc_insertion_point(field_get:merge.Message.rltraj)
+  return _internal_rltraj();
+}
+inline ::merge::RLTraj* Message::_internal_mutable_rltraj() {
+  if (!_internal_has_rltraj()) {
+    clear_type();
+    set_has_rltraj();
+    type_.rltraj_ = CreateMaybeMessage< ::merge::RLTraj >(
+        GetArenaNoVirtual());
+  }
+  return type_.rltraj_;
+}
+inline ::merge::RLTraj* Message::mutable_rltraj() {
+  // @@protoc_insertion_point(field_mutable:merge.Message.rltraj)
+  return _internal_mutable_rltraj();
 }
 
 inline bool Message::has_type() const {
@@ -8579,6 +9207,10 @@ ServerMessage::msg() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

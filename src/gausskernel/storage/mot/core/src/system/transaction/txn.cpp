@@ -106,25 +106,17 @@ RC TxnManager::InsertRow(Row* row)
 Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSentinel, RC& rc)
 {
     // wzy: 应对后置设置交互性事务
-    // 为什么segment fault?
     uint32_t s_id = u_sess->mot_cxt.session_id;
-    if (u_sess->storage_cxt.interactiveTxn > 0 && !IsInteractive()) {
-        SetInteractive(true);
-        retry_cnt = u_sess->storage_cxt.retryCnt;
-        SetCommitSequenceNumber(start_time);
-        session_id = u_sess->mot_cxt.session_id;
-        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-        uint64_t tmp_score = GetScore();
-        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+    if (u_sess->storage_cxt.interactiveTxn > 0 && (!IsInteractive() || pre_csn == 0)) {
+        InitInteractiveTxn();
         if (is_debug_print_enable) {
             MOT_LOG_INFO("[First time] TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
-            MOT_LOG_INFO("[First time] TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu, score : %%lu", IsInteractive(), retry_cnt, pre_csn, tmp_score);
+            MOT_LOG_INFO("[First time] TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, pre_csn : %llu, score : %%lu", IsInteractive(), retry_cnt, pre_csn, score_);
         }
     }
 
     if (is_debug_print_enable) {
-        MOT_LOG_INFO("TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
-        MOT_LOG_INFO("TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
+        MOT_LOG_INFO("TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d, is_interactive: %d, retry_cnt : %d, pre_csn : %llu", IsInteractive(), s_id, IsInteractive(), retry_cnt, pre_csn);
     }
 
     auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
@@ -394,6 +386,20 @@ RC TxnManager::StartTransaction(uint64_t transactionId, int isolationLevel)
     return RC_OK;
 }
 
+void TxnManager::InitInteractiveTxn() {
+    SetInteractive(true);
+    retry_cnt = u_sess->storage_cxt.retryCnt;
+    SetCommitSequenceNumber(start_time);
+    session_id = u_sess->mot_cxt.session_id;
+    pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+    GetScore();
+    MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+//    traj = std::make_unique<std::vector<std::unique_ptr<MOT::StateAction>>>();
+    traj.reset(new std::vector<std::unique_ptr<StateAction>>());
+    traj->resize(10);
+    traj_index = 0;
+}
+
 RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolationLevel, bool interactive_)
 {
     m_transactionId = transactionId;
@@ -430,13 +436,17 @@ RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolation
     hot_rowid_records.clear();
 
     if (u_sess->storage_cxt.interactiveTxn > 0) {
+        InitInteractiveTxn();
         SetInteractive(true);
         retry_cnt = u_sess->storage_cxt.retryCnt;
         SetCommitSequenceNumber(start_time);
         session_id = u_sess->mot_cxt.session_id;
         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-        uint64_t tmp_score = GetScore();
+        GetScore();
         MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+//        traj = std::make_unique<std::vector<std::unique_ptr<StateAction>>>();
+//        traj->resize(10);
+//        traj_index = 0;
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
 //        MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
@@ -997,13 +1007,7 @@ TxnManager::TxnManager(SessionContext* session_context)
     write_cnt = read_cnt = 0;
 
     if (u_sess->storage_cxt.interactiveTxn > 0) {
-        SetInteractive(true);
-        retry_cnt = u_sess->storage_cxt.retryCnt;
-        SetCommitSequenceNumber(start_time);
-        session_id = u_sess->mot_cxt.session_id;
-        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-        uint64_t tmp_score = GetScore();
-        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
+        InitInteractiveTxn();
 //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
     } else {
 //        MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
@@ -1086,15 +1090,46 @@ bool TxnManager::Init(uint64_t _thread_id, uint64_t connection_id, bool isLightT
     return true;
 }
 
+uint64_t TxnManager::GetScore()
+{
+    if (is_retry_priority_enable) {
+        score_ = 0;
+        uint64_t f = UINT64_MAX - start_time;
+        score_ |= ((uint64_t)retry_cnt << 57);
+        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+    } else {
+        score_ = 0;
+        uint64_t f = UINT64_MAX - start_time;
+        score_ |= ((uint64_t)0 << 57);
+        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+    }
+    return score_;
+}
+
+
+
 // wzy: 检测当前事务是否符合切换策略
 bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
     if (!IsInteractive()) return false;
 
     if (first_time_pessimistic) first_time_pessimistic = false;
     if (pessimistic_flag) return true;
-    // TODO: 开启RL模型
 
-    // TODO: 全悲观测试
+    // TODO: 开启RL模型
+    if (is_rl_model_enable) {
+        // test 随机action，保存当前state-action
+        uint64_t execution_time = now_to_us() - start_time;
+        int action = MOTAdaptor::adviser.computeAction(this, execution_time);
+        AddTraj(action);
+        if (action == 1) {
+            first_time_pessimistic = true;
+            pessimistic_flag = true;
+            return true;
+        }
+        return false;
+    }
+
+    // 全悲观测试
     if (kAllPessimisticLock) {
         first_time_pessimistic = true;
         pessimistic_flag = true;
@@ -1275,9 +1310,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
@@ -1286,8 +1319,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
                         session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
@@ -1321,9 +1353,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1331,9 +1361,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     // 未启用热行上锁策略则全部行上锁
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1354,9 +1382,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_DL(updatedRow);     // Plor上写锁
@@ -1364,9 +1390,7 @@ RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
                     // 未启用热行上锁策略则全部行上锁
                     if (GetCommitSequenceNumber() == 0) {
                         SetCommitSequenceNumber(now_to_us());
-                        session_id = u_sess->mot_cxt.session_id;
-                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-                        uint64_t tmp_score = GetScore();
+                        InitInteractiveTxn();
                     }
                     updatedRow->SetRowInteractive(true);
                     rc = GetWriteLock_DL(updatedRow);     // Plor上写锁
@@ -3324,7 +3348,6 @@ void TxnManager::UnlockLockInfo(uint64_t csn, bool abort)
 {
     m_occManager.UnlockPhase(this, local_ip_index, csn, abort);
 }
-
 
 
 }  // namespace MOT

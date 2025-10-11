@@ -41,6 +41,19 @@ message LockInfo{
   bool isLock = 7;        //1-lock 0-unlock
 }
 
+message RLTraj{
+    message State {
+        int32 txn_state = 1;        // 0: running  1:commit  -1:abort  2: 没有pre state   -2: 空消息
+        uint64 latency = 2;
+        int32 read_size = 3;
+        int32 write_size = 4;
+        int32 hot_visited = 5;
+        int32 retry_cnt = 6;
+        int32 cc_option = 7;    // 对应的 action 0: OCC   1: 2PL
+    }
+    repeated State state = 1;
+    uint64 session = 2;         // session编号
+}
 
 message Message {
   oneof type {
@@ -48,6 +61,7 @@ message Message {
     Response response = 2;
     Transaction txn = 3;
     LockInfo lockinfo = 4;
+    RLTraj rltraj = 5;
   }
 }
 

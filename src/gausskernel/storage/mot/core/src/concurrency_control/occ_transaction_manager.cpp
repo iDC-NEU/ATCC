@@ -904,7 +904,7 @@
                  row->GetRowHeader()->Lock();
                  row->GetRowHeader()->LockStable();
              }
-             else {
+             else {      // TODO: 为什么Lock后会lock stable失败呢？
                  row->GetRowHeader()->Lock();
                  row->GetRowHeader()->LockStable();
              }
@@ -1434,7 +1434,7 @@
      if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue){    // 未找到则创建新lock request
          new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
      }
-     if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR [before] tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
+ 
      auto time1 = now_to_us();
      if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
          auto res = tmp_queue->LockWR(tmp_rowid, txMan, server_id);
@@ -1460,7 +1460,7 @@
              MOTAdaptor::txn_total_lockCnt.fetch_add(1);
              MOTAdaptor::local_lock_num.fetch_add(1);
  //            MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
-             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR [success] tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
+             if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockWR tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
          }
      }
      auto time2 = now_to_us();
@@ -1518,8 +1518,7 @@
      if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue){    // 未找到则创建新lock request
          new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
      }
-
-     if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [before] tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
+ 
      auto time1 = now_to_us();
      if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
          auto res = tmp_queue->LockRD(tmp_rowid, txMan, server_id, false);
@@ -1544,7 +1543,7 @@
              // 插入csn + queue
              MOTAdaptor::txn_total_lockCnt.fetch_add(1);
              MOTAdaptor::local_lock_num.fetch_add(1);
-             if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [success] tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
+             if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD tmp_csn : %s , epoch : %llu , pre_csn : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), txMan->pre_csn, tmp_rowid.c_str());
          }
      }
      auto time2 = now_to_us();
@@ -1978,7 +1977,7 @@
              }
  
              if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
-                 auto res = tmp_queue->UnlockWR(tmp_rowid, txMan->pre_csn, res_csn, server_id);
+                 auto res = tmp_queue->UnlockWR(tmp_rowid, csn, res_csn, server_id);
                  MOTAdaptor::local_unlock_num.fetch_add(1);
                  if(abort) {
                      if (is_debug_print_enable) MOT_LOG_INFO("UnlockWR() abort lock_request_queue grant_csn : %s, tmp_csn : %s  , tmp_rowid : %s", res_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
@@ -2009,7 +2008,7 @@
              tmp_rowid = table_name + ":" + to_string(rowId);
              tmp_queue = nullptr;
              if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
-                 auto res = tmp_queue->UnlockRD(tmp_rowid, txMan->pre_csn);
+                 auto res = tmp_queue->UnlockRD(tmp_rowid, csn);
  //                MOTAdaptor::RemoveActiveQueue(tmp_queue, rowId);    // 移除活跃队列
                  MOTAdaptor::local_unlock_num.fetch_add(1);
                  if(!res && !abort) {

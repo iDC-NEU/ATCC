@@ -1668,7 +1668,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
             if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitPlor();       // interactive plor
             else rc = MOTAdaptor::ValidateCommit();                     // store-procedure OCC
             txn->commit_time = now_to_us_fdw();
-        } else if (cc_mode == 3) {              // crdt + pcc
+        } else if (cc_mode == 3) {              // silo + pcc
             if (txn->pessimistic_flag) rc = MOTAdaptor::ValidateCommitWoundWait();       // interactive PCC
             else rc = MOTAdaptor::ValidateCommit();                      // store-procedure OCC
             txn->commit_time = now_to_us_fdw();

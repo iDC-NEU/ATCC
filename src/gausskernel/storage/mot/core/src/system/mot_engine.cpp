@@ -45,6 +45,8 @@
  #include "cycles.h"
  #include "debug_utils.h"
  #include "recovery_manager_factory.h"
+ #include "hybrid_cc/hybrid_cc_logger.h"
+ #include "hybrid_cc/hybrid_cc_manager.h"
  
  // For mtSessionThreadInfo thread local
  #include "kvthread.hh"
@@ -410,6 +412,11 @@
          result = InitializeCheckpointManager();
          CHECK_INIT_STATUS(result, "Failed to Initialize the checkpoint manager");
          m_initAppStack.push(INIT_CHECKPOINT_MANAGER_PHASE);
+ 
+         // HYBRID_CC: Initialize HybridCC components
+         result = InitializeHybridCcComponents();
+         CHECK_INIT_STATUS(result, "Failed to Initialize HybridCC components");
+         m_initAppStack.push(INIT_HYBRID_CC_PHASE);
      } while (0);
  
      if (result) {
@@ -513,6 +520,10 @@
  
      while (!m_initAppStack.empty()) {
          switch (m_initAppStack.top()) {
+             case INIT_HYBRID_CC_PHASE:
+                 DestroyHybridCcComponents();
+                 break;
+ 
              case INIT_CHECKPOINT_MANAGER_PHASE:
                  DestroyCheckpointManager();
                  break;
@@ -822,6 +833,38 @@
          MOT_LOG_INFO("Startup: Redo-log is disabled");
      }
      return true;
+ }
+ 
+ bool MOTEngine::InitializeHybridCcComponents()
+ {
+     MOT_LOG_TRACE("Initializing HybridCC components");
+ 
+     // Initialize HybridCC Logger
+     std::string logFilePath = "/tmp/mot_hybrid_cc.log";
+     if (!HybridCcLogger::GetInstance().Init(logFilePath)) {
+         MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC logger");
+         return false;
+     }
+     MOT_LOG_INFO("Startup: HybridCC logger initialized successfully");
+ 
+     // Initialize HybridCC Manager with LDT file
+     std::string ldtFilePath = "/tmp/mot_ldt.json";
+     if (!HybridCcManager::GetInstance().Init(ldtFilePath)) {
+         MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC manager");
+         return false;
+     }
+     MOT_LOG_INFO("Startup: HybridCC manager initialized successfully");
+ 
+     return true;
+ }
+ 
+ void MOTEngine::DestroyHybridCcComponents()
+ {
+     MOT_LOG_TRACE("Shutdown: Destroying HybridCC components");
+     
+     // Note: Singleton instances will be automatically destroyed when the program exits
+     // No explicit cleanup needed for HybridCcLogger and HybridCcManager
+     MOT_LOG_INFO("Shutdown: HybridCC components destroyed");
  }
  
  void MOTEngine::DestroyConfiguration()

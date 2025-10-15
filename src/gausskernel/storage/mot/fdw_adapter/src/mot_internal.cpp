@@ -3839,7 +3839,8 @@ void OUTPUTLOGAbort_txn() {
                     \n===== Switch to PCC : Switch_validation_abort_num %llu , Switch_validation_occ_abort_num %llu Switch_validation_pcc_abort_num %llu\
                     \n===== Lock in PCC : ReadLock_pcc_abort_num %llu , WriteLock_pcc_abort_num %llu ReadLock_switch_pcc_abort_num %llu , WriteLock_switch_pcc_abort_num %llu \
                     \n===== HotLock in PCC : HotRow_quick_validation_abort_num %llu , HotRow_read_validation_abort_num %llu , HotRow_write_validation_abort_num %llu\
-                    \n===== Silo Abort: Silo_validation_abort %llu , Silo_quick_validation_abort_num %llu , Silo_lockheader_abort_num %llu, Silo_lockheader_abort_by_interactive_num %llu, write_validation_abort_num %llu, read_validation_abort_num %llu",
+                    \n===== Silo Abort: Silo_validation_abort %llu , Silo_quick_validation_abort_num %llu , Silo_lockheader_abort_num %llu, Silo_lockheader_abort_by_interactive_num %llu, write_validation_abort_num %llu, read_validation_abort_num %llu \
+                    \n===== WaitForGraph: wait_for_graph node : %llu",
 
 
         MOTAdaptor::abort_transcation_csn_set.size(), MOTAdaptor::deadlock_abort_set.size(), MOTAdaptor::DeadLock_abort_num.load(), MOTAdaptor::LockCheck_abort_num.load(), MOTAdaptor::Commit_abort_num.load(),
@@ -3853,7 +3854,8 @@ void OUTPUTLOGAbort_txn() {
         MOTAdaptor::Switch_validation_abort_num.load(), MOTAdaptor::Switch_validation_occ_abort_num.load(), MOTAdaptor::Switch_validation_pcc_abort_num.load(),
         MOTAdaptor::ReadLock_pcc_abort_num.load(), MOTAdaptor::WriteLock_pcc_abort_num.load(), MOTAdaptor::ReadLock_switch_pcc_abort_num.load(), MOTAdaptor::WriteLock_switch_pcc_abort_num.load(),
         MOTAdaptor::HotRow_quick_validation_abort_num.load(), MOTAdaptor::HotRow_read_validation_abort_num.load(), MOTAdaptor::HotRow_write_validation_abort_num.load(),
-        MOTAdaptor::Silo_validation_abort_num.load(), MOTAdaptor::Silo_quick_validation_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_by_interactive_num.load(), MOTAdaptor::Silo_write_validation_abort_num.load(), MOTAdaptor::Silo_read_validation_abort_num.load());
+        MOTAdaptor::Silo_validation_abort_num.load(), MOTAdaptor::Silo_quick_validation_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_by_interactive_num.load(), MOTAdaptor::Silo_write_validation_abort_num.load(), MOTAdaptor::Silo_read_validation_abort_num.load(),
+        MOTAdaptor::wait_for_graph.vertex_num.load());
 }
 
 

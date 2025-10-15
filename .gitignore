@@ -1,3 +1,11 @@
 /.gitee/
 /.vscode/
 /.idea/
+
+*.a
+*.so
+*.so.[0-9]*
+*.dll
+*.dylib
+*.o
+

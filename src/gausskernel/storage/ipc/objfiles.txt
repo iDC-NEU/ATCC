@@ -1,0 +1,1 @@
+src/gausskernel/storage/ipc/ipc.o src/gausskernel/storage/ipc/ipci.o src/gausskernel/storage/ipc/pmsignal.o src/gausskernel/storage/ipc/procarray.o src/gausskernel/storage/ipc/procsignal.o src/gausskernel/storage/ipc/shmem.o src/gausskernel/storage/ipc/shmqueue.o src/gausskernel/storage/ipc/sinval.o src/gausskernel/storage/ipc/sinvaladt.o src/gausskernel/storage/ipc/standby.o

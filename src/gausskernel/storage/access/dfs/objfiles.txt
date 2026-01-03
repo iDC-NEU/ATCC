@@ -1,0 +1,5 @@
+src/gausskernel/storage/access/dfs/orc/orc_reader.o src/gausskernel/storage/access/dfs/orc/orc_writer.o src/gausskernel/storage/access/dfs/orc/OrcObsFile.o
+src/gausskernel/storage/access/dfs/text/text_parser.o
+src/gausskernel/storage/access/dfs/csv/csv_parser.o
+src/gausskernel/storage/access/dfs/parquet/parquet_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_file_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_column_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_input_stream_adapter.o
+src/gausskernel/storage/access/dfs/dfs_uri.o src/gausskernel/storage/access/dfs/dfs_am.o src/gausskernel/storage/access/dfs/dfs_delete.o src/gausskernel/storage/access/dfs/dfs_insert.o src/gausskernel/storage/access/dfs/dfs_parinsert.o src/gausskernel/storage/access/dfs/dfs_query.o src/gausskernel/storage/access/dfs/dfs_query_check.o src/gausskernel/storage/access/dfs/dfs_query_reader.o src/gausskernel/storage/access/dfs/dfs_update.o src/gausskernel/storage/access/dfs/dfsdesc.o src/gausskernel/storage/access/dfs/dfs_stream_factory.o src/gausskernel/storage/access/dfs/common_parser.o src/gausskernel/storage/access/dfs/common_reader.o

@@ -1,0 +1,1 @@
+src/gausskernel/storage/bulkload/dist_fdw.o src/gausskernel/storage/bulkload/foreignroutine.o src/gausskernel/storage/bulkload/vecforeignroutine.o src/gausskernel/storage/bulkload/importerror.o src/gausskernel/storage/bulkload/roach_adpter.o src/gausskernel/storage/bulkload/parser.o

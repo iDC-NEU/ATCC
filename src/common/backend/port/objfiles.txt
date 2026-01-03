@@ -1,0 +1,1 @@
+src/common/backend/port/dynloader.o src/common/backend/port/pg_sema.o src/common/backend/port/pg_shmem.o src/common/backend/port/pg_latch.o

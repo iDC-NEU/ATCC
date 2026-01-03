@@ -1,0 +1,1 @@
+src/gausskernel/storage/access/dfs/orc/orc_reader.o src/gausskernel/storage/access/dfs/orc/orc_writer.o src/gausskernel/storage/access/dfs/orc/OrcObsFile.o

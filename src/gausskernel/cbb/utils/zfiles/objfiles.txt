@@ -1,0 +1,1 @@
+src/gausskernel/cbb/utils/zfiles/zip_file.o src/gausskernel/cbb/utils/zfiles/gz_file.o

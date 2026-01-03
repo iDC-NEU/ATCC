@@ -1,0 +1,2 @@
+src/gausskernel/dbmind/kernel/index_advisor.o src/gausskernel/dbmind/kernel/hypopg_index.o
+

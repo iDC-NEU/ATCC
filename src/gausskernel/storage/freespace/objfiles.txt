@@ -1,0 +1,1 @@
+src/gausskernel/storage/freespace/freespace.o src/gausskernel/storage/freespace/fsmpage.o src/gausskernel/storage/freespace/indexfsm.o

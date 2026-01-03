@@ -1,0 +1,1 @@
+src/common/backend/utils/sort/logtape.o src/common/backend/utils/sort/sortsupport.o src/common/backend/utils/sort/tuplesort.o src/common/backend/utils/sort/tuplestore.o src/common/backend/utils/sort/batchsort.o src/common/backend/utils/sort/batchstore.o src/common/backend/utils/sort/rowstore.o

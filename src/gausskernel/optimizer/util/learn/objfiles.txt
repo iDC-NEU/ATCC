@@ -1,0 +1,1 @@
+src/gausskernel/optimizer/util/learn/encoding.o src/gausskernel/optimizer/util/learn/comm.o src/gausskernel/optimizer/util/learn/ml_model.o src/gausskernel/optimizer/util/learn/plan_tree_model.o

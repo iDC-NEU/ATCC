@@ -1,0 +1,1 @@
+src/gausskernel/cbb/instruments/unique_sql/instr_unique_sql.o

@@ -1,0 +1,1 @@
+src/gausskernel/storage/cstore/compression/compress_kits.o src/gausskernel/storage/cstore/compression/cstore_compress.o src/gausskernel/storage/cstore/compression/cstore_compress_copy.o src/gausskernel/storage/cstore/compression/time_series_compress.o

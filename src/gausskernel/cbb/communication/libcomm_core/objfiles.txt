@@ -1,0 +1,1 @@
+src/gausskernel/cbb/communication/libcomm_core/mc_tcp.o src/gausskernel/cbb/communication/libcomm_core/mc_poller_epoll.o

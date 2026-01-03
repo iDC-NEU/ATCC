@@ -1,0 +1,1 @@
+src/gausskernel/security/keymanagement/FIKMSmessage.o src/gausskernel/security/keymanagement/HttpRestfulClient.o src/gausskernel/security/keymanagement/KeyManager.o src/gausskernel/security/keymanagement/KeyRecord.o src/gausskernel/security/keymanagement/TDEKeysFile.o src/gausskernel/security/keymanagement/TDEKeysRecords.pb.o

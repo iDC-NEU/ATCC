@@ -1,0 +1,1 @@
+src/common/backend/utils/error/assert.o src/common/backend/utils/error/elog.o src/common/backend/utils/error/be_module.o src/common/backend/utils/error/plog.o src/common/backend/utils/error/fatal_err.o

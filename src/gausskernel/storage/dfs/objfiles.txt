@@ -1,0 +1,2 @@
+src/gausskernel/storage/dfs/obs/obs_connector.o
+src/gausskernel/storage/dfs/dfscache_mgr.o src/gausskernel/storage/dfs/dfs_connector.o

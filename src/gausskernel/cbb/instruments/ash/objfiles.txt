@@ -1,0 +1,1 @@
+src/gausskernel/cbb/instruments/ash/ash.o src/gausskernel/cbb/instruments/ash/wait_event_info.o

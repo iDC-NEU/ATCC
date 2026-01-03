@@ -1,0 +1,2 @@
+src/gausskernel/storage/replication/heartbeat/libpq/pqcomm.o src/gausskernel/storage/replication/heartbeat/libpq/fe-connect.o
+src/gausskernel/storage/replication/heartbeat/heartbeat_conn.o src/gausskernel/storage/replication/heartbeat/heartbeat_client.o src/gausskernel/storage/replication/heartbeat/heartbeat_server.o

@@ -1,0 +1,1 @@
+src/common/backend/regex/regcomp.o src/common/backend/regex/regerror.o src/common/backend/regex/regexec.o src/common/backend/regex/regfree.o src/common/backend/regex/regprefix.o

@@ -1,0 +1,1 @@
+src/gausskernel/storage/replication/logical/decode.o src/gausskernel/storage/replication/logical/logical.o src/gausskernel/storage/replication/logical/logicalfuncs.o src/gausskernel/storage/replication/logical/reorderbuffer.o src/gausskernel/storage/replication/logical/snapbuild.o

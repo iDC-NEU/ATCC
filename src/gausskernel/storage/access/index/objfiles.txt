@@ -1,0 +1,1 @@
+src/gausskernel/storage/access/index/genam.o src/gausskernel/storage/access/index/indexam.o

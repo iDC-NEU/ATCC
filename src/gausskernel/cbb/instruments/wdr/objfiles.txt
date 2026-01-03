@@ -1,0 +1,1 @@
+src/gausskernel/cbb/instruments/wdr/dblink_query.o src/gausskernel/cbb/instruments/wdr/generate_report.o src/gausskernel/cbb/instruments/wdr/snapshot.o

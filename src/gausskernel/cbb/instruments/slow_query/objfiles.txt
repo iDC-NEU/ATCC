@@ -1,0 +1,1 @@
+src/gausskernel/cbb/instruments/slow_query/instr_slow_query.o src/gausskernel/cbb/instruments/slow_query/instr_slow_query_log.o src/gausskernel/cbb/instruments/slow_query/gs_stat.o

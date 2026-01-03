@@ -1,0 +1,1 @@
+src/gausskernel/cbb/extension/connector/connector.o src/gausskernel/cbb/extension/connector/odbc_connector.o src/gausskernel/cbb/extension/connector/odbc.o

@@ -1,0 +1,1 @@
+src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.o src/gausskernel/storage/mot/fdw_adapter/src/mot_fdw.o src/gausskernel/storage/mot/fdw_adapter/src/mot_fdw_xlog.o src/gausskernel/storage/mot/fdw_adapter/src/mot_match_index.o src/gausskernel/storage/mot/fdw_adapter/src/mot_fdw_error.o src/gausskernel/storage/mot/fdw_adapter/src/message.pb.o

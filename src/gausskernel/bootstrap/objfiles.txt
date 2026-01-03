@@ -1,0 +1,1 @@
+src/gausskernel/bootstrap/bootparse.o src/gausskernel/bootstrap/bootstrap.o

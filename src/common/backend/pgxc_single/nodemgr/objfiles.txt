@@ -1,0 +1,1 @@
+src/common/backend/pgxc_single/nodemgr/nodemgr.o src/common/backend/pgxc_single/nodemgr/groupmgr.o

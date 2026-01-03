@@ -1,0 +1,1 @@
+src/common/backend/client_logic/client_logic.o src/common/backend/client_logic/cache.o src/common/backend/client_logic/cstrings_map.o

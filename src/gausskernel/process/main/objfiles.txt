@@ -1,0 +1,1 @@
+src/gausskernel/process/main/main.o

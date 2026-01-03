@@ -1,0 +1,12 @@
+src/gausskernel/cbb/instruments/utils/unique_query.o src/gausskernel/cbb/instruments/utils/list.o
+src/gausskernel/cbb/instruments/unique_sql/instr_unique_sql.o
+src/gausskernel/cbb/instruments/workload/instr_workload.o
+src/gausskernel/cbb/instruments/event/instr_waitevent.o
+src/gausskernel/cbb/instruments/user/instr_user.o
+src/gausskernel/cbb/instruments/percentile/percentile.o
+src/gausskernel/cbb/instruments/wdr/dblink_query.o src/gausskernel/cbb/instruments/wdr/generate_report.o src/gausskernel/cbb/instruments/wdr/snapshot.o
+src/gausskernel/cbb/instruments/slow_query/instr_slow_query.o src/gausskernel/cbb/instruments/slow_query/instr_slow_query_log.o src/gausskernel/cbb/instruments/slow_query/gs_stat.o
+src/gausskernel/cbb/instruments/ash/ash.o src/gausskernel/cbb/instruments/ash/wait_event_info.o
+src/gausskernel/cbb/instruments/capture_view/capture_view.o
+src/gausskernel/cbb/instruments/statement/instr_statement.o src/gausskernel/cbb/instruments/statement/instr_handle_mgr.o
+

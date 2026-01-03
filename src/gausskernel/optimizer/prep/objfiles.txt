@@ -1,0 +1,1 @@
+src/gausskernel/optimizer/prep/prepjointree.o src/gausskernel/optimizer/prep/prepnonjointree.o src/gausskernel/optimizer/prep/prepqual.o src/gausskernel/optimizer/prep/preprownum.o src/gausskernel/optimizer/prep/preptlist.o src/gausskernel/optimizer/prep/prepunion.o

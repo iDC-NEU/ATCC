@@ -1,0 +1,1 @@
+src/gausskernel/optimizer/rewrite/rewriteRemove.o src/gausskernel/optimizer/rewrite/rewriteDefine.o src/gausskernel/optimizer/rewrite/rewriteHandler.o src/gausskernel/optimizer/rewrite/rewriteManip.o src/gausskernel/optimizer/rewrite/rewriteSupport.o src/gausskernel/optimizer/rewrite/rewriteRlsPolicy.o

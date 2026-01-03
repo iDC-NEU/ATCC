@@ -1,0 +1,1 @@
+src/gausskernel/storage/page/bufpage.o src/gausskernel/storage/page/checksum.o src/gausskernel/storage/page/itemptr.o src/gausskernel/storage/page/pagecompress.o src/gausskernel/storage/page/checksum_impl.o

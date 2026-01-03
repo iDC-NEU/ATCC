@@ -1,0 +1,4 @@
+src/gausskernel/security/keymanagement/FIKMSmessage.o src/gausskernel/security/keymanagement/HttpRestfulClient.o src/gausskernel/security/keymanagement/KeyManager.o src/gausskernel/security/keymanagement/KeyRecord.o src/gausskernel/security/keymanagement/TDEKeysFile.o src/gausskernel/security/keymanagement/TDEKeysRecords.pb.o
+src/gausskernel/security/iprange/iprange.o
+src/gausskernel/security/gs_policy/gs_string.o src/gausskernel/security/gs_policy/policy_common.o src/gausskernel/security/gs_policy/gs_policy_utils.o src/gausskernel/security/gs_policy/gs_policy_masking.o src/gausskernel/security/gs_policy/gs_policy_audit.o src/gausskernel/security/gs_policy/curl_utils.o
+

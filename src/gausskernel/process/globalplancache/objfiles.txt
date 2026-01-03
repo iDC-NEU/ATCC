@@ -1,0 +1,1 @@
+src/gausskernel/process/globalplancache/globalplancache.o src/gausskernel/process/globalplancache/globalplancache_view.o src/gausskernel/process/globalplancache/globalplancache_util.o src/gausskernel/process/globalplancache/globalplancache_inval.o

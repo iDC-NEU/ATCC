@@ -1,0 +1,1 @@
+src/gausskernel/storage/access/hbstore/hbucket_am.o src/gausskernel/storage/access/hbstore/hbindex_am.o

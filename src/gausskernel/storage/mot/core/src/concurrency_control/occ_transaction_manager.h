@@ -289,6 +289,7 @@ public:
     bool ValidateReadWriteConflict(TxnManager *txMan, uint32_t server_id);
     RC UnlockReadWriteLockPlor(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
     bool UnlockReadWriteRowPlor(TxnManager* txMan, uint32_t server_id, uint64_t csn, bool abort);
+    bool BoostPriority(TxnManager* txMan, uint32_t server_id);
 
     /////////////////////// Wound-wait ///////////////////////////
     RC WritePhaseWoundWait(TxnManager* txMan, uint32_t server_id, void* currRow);

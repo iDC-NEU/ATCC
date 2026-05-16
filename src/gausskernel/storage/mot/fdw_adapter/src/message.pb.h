@@ -659,6 +659,7 @@ class Transaction :
     kTxnidFieldNumber = 6,
     kLockInfoCountFieldNumber = 8,
     kIsInteractiveFieldNumber = 7,
+    kIsAbortFieldNumber = 9,
   };
   // repeated .merge.Transaction.Row row = 1;
   int row_size() const;
@@ -741,6 +742,15 @@ class Transaction :
   void _internal_set_isinteractive(bool value);
   public:
 
+  // bool isAbort = 9;
+  void clear_isabort();
+  bool isabort() const;
+  void set_isabort(bool value);
+  private:
+  bool _internal_isabort() const;
+  void _internal_set_isabort(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:merge.Transaction)
  private:
   class _Internal;
@@ -754,6 +764,7 @@ class Transaction :
   ::PROTOBUF_NAMESPACE_ID::uint64 txnid_;
   ::PROTOBUF_NAMESPACE_ID::uint64 lockinfocount_;
   bool isinteractive_;
+  bool isabort_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_message_2eproto;
 };
@@ -1055,7 +1066,8 @@ class LockInfo :
     kCSNFieldNumber = 4,
     kServerIdFieldNumber = 5,
     kTxnidFieldNumber = 6,
-    kIsLockFieldNumber = 7,
+    kScoreFieldNumber = 7,
+    kIsLockFieldNumber = 8,
   };
   // repeated .merge.LockInfo.Row row = 1;
   int row_size() const;
@@ -1120,7 +1132,16 @@ class LockInfo :
   void _internal_set_txnid(::PROTOBUF_NAMESPACE_ID::uint64 value);
   public:
 
-  // bool isLock = 7;
+  // uint64 score = 7;
+  void clear_score();
+  ::PROTOBUF_NAMESPACE_ID::uint64 score() const;
+  void set_score(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_score() const;
+  void _internal_set_score(::PROTOBUF_NAMESPACE_ID::uint64 value);
+  public:
+
+  // bool isLock = 8;
   void clear_islock();
   bool islock() const;
   void set_islock(bool value);
@@ -1140,6 +1161,7 @@ class LockInfo :
   ::PROTOBUF_NAMESPACE_ID::uint64 csn_;
   ::PROTOBUF_NAMESPACE_ID::uint64 server_id_;
   ::PROTOBUF_NAMESPACE_ID::uint64 txnid_;
+  ::PROTOBUF_NAMESPACE_ID::uint64 score_;
   bool islock_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_message_2eproto;
@@ -5895,6 +5917,26 @@ inline void Transaction::set_lockinfocount(::PROTOBUF_NAMESPACE_ID::uint64 value
   // @@protoc_insertion_point(field_set:merge.Transaction.lockInfoCount)
 }
 
+// bool isAbort = 9;
+inline void Transaction::clear_isabort() {
+  isabort_ = false;
+}
+inline bool Transaction::_internal_isabort() const {
+  return isabort_;
+}
+inline bool Transaction::isabort() const {
+  // @@protoc_insertion_point(field_get:merge.Transaction.isAbort)
+  return _internal_isabort();
+}
+inline void Transaction::_internal_set_isabort(bool value) {
+  
+  isabort_ = value;
+}
+inline void Transaction::set_isabort(bool value) {
+  _internal_set_isabort(value);
+  // @@protoc_insertion_point(field_set:merge.Transaction.isAbort)
+}
+
 // -------------------------------------------------------------------
 
 // LockInfo_Row
@@ -6242,7 +6284,27 @@ inline void LockInfo::set_txnid(::PROTOBUF_NAMESPACE_ID::uint64 value) {
   // @@protoc_insertion_point(field_set:merge.LockInfo.txnid)
 }
 
-// bool isLock = 7;
+// uint64 score = 7;
+inline void LockInfo::clear_score() {
+  score_ = PROTOBUF_ULONGLONG(0);
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 LockInfo::_internal_score() const {
+  return score_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::uint64 LockInfo::score() const {
+  // @@protoc_insertion_point(field_get:merge.LockInfo.score)
+  return _internal_score();
+}
+inline void LockInfo::_internal_set_score(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  
+  score_ = value;
+}
+inline void LockInfo::set_score(::PROTOBUF_NAMESPACE_ID::uint64 value) {
+  _internal_set_score(value);
+  // @@protoc_insertion_point(field_set:merge.LockInfo.score)
+}
+
+// bool isLock = 8;
 inline void LockInfo::clear_islock() {
   islock_ = false;
 }

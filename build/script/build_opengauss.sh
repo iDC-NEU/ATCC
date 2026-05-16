@@ -20,11 +20,12 @@ if [ ! -f opengauss.spec ] || [ ! -f mpp_package.sh ]; then
 fi
 
 #(1) remove files that will be released as part of opengauss
-now=$(date +%Y%m%d.%H%M%S)
-test -d $ROOT_DIR/src/distribute && mv $ROOT_DIR/src/distribute $ROOT_DIR/src/distribute.$now
-test -d $ROOT_DIR/src/bin/gds && mv $ROOT_DIR/src/bin/gds $ROOT_DIR/src/bin/gds.$now
-test -d $ROOT_DIR/contrib/secbox && mv $ROOT_DIR/contrib/secbox $ROOT_DIR/contrib/secbox.$now
-test -d $ROOT_DIR/contrib/carbondata && mv $ROOT_DIR/contrib/carbondata $ROOT_DIR/contrib/carbondata.$now
+# [修改说明]: 注释掉下面这段 mv 操作，防止每次运行脚本都把上次编译好的目录移走，从而实现增量编译。
+#now=$(date +%Y%m%d.%H%M%S)
+#test -d $ROOT_DIR/src/distribute && mv $ROOT_DIR/src/distribute $ROOT_DIR/src/distribute.$now
+#test -d $ROOT_DIR/src/bin/gds && mv $ROOT_DIR/src/bin/gds $ROOT_DIR/src/bin/gds.$now
+#test -d $ROOT_DIR/contrib/secbox && mv $ROOT_DIR/contrib/secbox $ROOT_DIR/contrib/secbox.$now
+#test -d $ROOT_DIR/contrib/carbondata && mv $ROOT_DIR/contrib/carbondata $ROOT_DIR/contrib/carbondata.$now
 
 #(2) prepare
 cp opengauss.spec gauss.spec

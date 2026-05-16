@@ -23,6 +23,7 @@ message Transaction{
   uint64 txnid = 6;
   bool isInteractive = 7;
   uint64 lockInfoCount = 8;
+  bool isAbort = 9;   // 支持wound-wait远端释放锁
 }
 
 message LockInfo{
@@ -38,7 +39,8 @@ message LockInfo{
   uint64 CSN = 4;
   uint64 server_id = 5;
   uint64 txnid = 6;
-  bool isLock = 7;        //1-lock 0-unlock
+  uint64 score = 7;
+  bool isLock = 8;        //1-lock 0-unlock
 }
 
 message RLTraj{

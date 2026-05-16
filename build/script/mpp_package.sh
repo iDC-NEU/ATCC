@@ -677,7 +677,8 @@ function install_gaussdb()
     fi
 
     #configure
-    make distclean -sj >> "$LOG_FILE" 2>&1
+    # [修改点 1]: 注释掉 distclean，防止清除配置和所有产物
+    #make distclean -sj >> "$LOG_FILE" 2>&1
 
     echo "Begin configure." >> "$LOG_FILE" 2>&1
     chmod 755 configure
@@ -741,16 +742,18 @@ function install_gaussdb()
     echo "End configure" >> "$LOG_FILE" 2>&1
 
     echo "Begin make install MPPDB server" >> "$LOG_FILE" 2>&1
-    make clean >> "$LOG_FILE" 2>&1
+
+    # [修改点 2]: 注释掉 make clean，保留上次编译的 .o 文件
+    #make clean >> "$LOG_FILE" 2>&1
 
     export GAUSSHOME=${BUILD_DIR}
     export LD_LIBRARY_PATH=${BUILD_DIR}/lib:${BUILD_DIR}/lib/postgresql:${LD_LIBRARY_PATH}
-    make -sj 8>> "$LOG_FILE" 2>&1
-    make install -sj 8>> "$LOG_FILE" 2>&1
+    make -sj >> "$LOG_FILE" 2>&1
+    make install -sj >> "$LOG_FILE" 2>&1
     if [ $? -ne 0 ]; then
-        make install -sj 8>> "$LOG_FILE" 2>&1
+        make install -sj >> "$LOG_FILE" 2>&1
         if [ $? -ne 0 ]; then
-            make install -sj 8>> "$LOG_FILE" 2>&1
+            make install -sj >> "$LOG_FILE" 2>&1
             if [ $? -ne 0 ]; then
                 die "make install failed."
             fi

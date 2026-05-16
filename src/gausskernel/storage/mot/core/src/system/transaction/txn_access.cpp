@@ -496,8 +496,6 @@ RC TxnAccess::AccessLookup(const AccessType type, Sentinel* const originalSentin
         return RC::RC_LOCAL_ROW_NOT_FOUND;
     }
 
-    // TODO: 在这儿先上锁了? 再读取?
-
     // wzy: 读操作统一从access中获取row
     r_local_Row = curr_acc->GetTxnRow();
     return RC::RC_LOCAL_ROW_FOUND;

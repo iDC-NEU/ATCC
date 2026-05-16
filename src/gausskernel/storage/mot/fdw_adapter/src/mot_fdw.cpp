@@ -1638,7 +1638,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
     }
     else if (event == XACT_EVENT_COMMIT) {
 
-        // MOT_LOG_INFO("XACT_EVENT_COMMIT %llu", txn->GetStartEpoch());
+         MOT_LOG_INFO("XACT_EVENT_COMMIT %llu csn: %llu", txn->GetStartEpoch(), txn->GetCommitSequenceNumber());
         if (txnState == MOT::TxnState::TXN_END_TRANSACTION) {
             elog(DEBUG2, "XACT_EVENT_COMMIT, transaction already in end state, skipping, tid %lu", tid);
             return;
@@ -1660,6 +1660,7 @@ static void MOTXactCallback(XactEvent event, void* arg)
 
         elog(DEBUG2, "XACT_EVENT_COMMIT, tid %lu", tid);
 
+        uint64_t before_commit_epoch = MOTAdaptor::GetPhysicalEpoch();
         // wzy
         if (cc_mode == 0 || cc_mode == 1) {     // crdt + pcc + dl
             rc = MOTAdaptor::ValidateCommit();  //Commit();
@@ -1718,7 +1719,6 @@ static void MOTXactCallback(XactEvent event, void* arg)
             }
         } else {
             if (txn->IsInteractive()) {
-                // MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, false);
                 if (txn->pessimistic_flag) {
                     MOTAdaptor::Commit_abort_pcc_total_interactive_num.fetch_add(1);
                     MOT_LOG_INFO("PCC Abort in commit phase!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
@@ -1727,6 +1727,11 @@ static void MOTXactCallback(XactEvent event, void* arg)
                 }
             }
         }
+        if (txn->IsInteractive()) {
+            txn->FinalizeAndPush();
+        }
+
+        MOT_LOG_INFO("PCC commit phase end!!! retry : %llu, csn : %llu, pre_csn : %llu, start_epoch : %llu, before_commit_epoch : %llu, commit_epoch : %llu", txn->retry_cnt, txn->GetCommitSequenceNumber(), txn->pre_csn, txn->GetStartEpoch(), before_commit_epoch, txn->GetCommitEpoch());
         
         TryRecordTimestamp(3, finishCommit);//ADDBY NEU HW
 
@@ -1780,9 +1785,6 @@ static void MOTXactCallback(XactEvent event, void* arg)
         MOTAdaptor::EndTransaction();               // 在这儿释放sentinel的锁
         MOTAdaptor::txn_state_map_plor_.remove(txn->start_time);    // 清除状态
 
-        // TODO: 开启RL model，发送traj
-        if (is_rl_model_enable) MOTAdaptor::InsertTrajToQueue(txn);
-
         txn->ClearEpochState();         // 清空state，包括pre_csn
         txn->SetTxnState(MOT::TxnState::TXN_END_TRANSACTION);
         // if(!txn->isOnlyRead()){
@@ -1827,15 +1829,16 @@ static void MOTXactCallback(XactEvent event, void* arg)
             MOTAdaptor::interactive_txn_abort_time.fetch_add(txn->commit_time - txn->start_time);
             MOTAdaptor::Abort_interactive_txn_num.fetch_add(1);
             if(txn->pessimistic_flag) {
-                MOT_LOG_INFO("PCC abort!!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+                MOT_LOG_INFO("PCC abort!!! retry : %llu, csn : %llu, pre_csn : %llu", txn->retry_cnt, txn->GetCommitSequenceNumber(), txn->pre_csn);
                 MOTAdaptor::Abort_pcc_interactive_txn_num.fetch_add(1);
             }
         }
 
         uint64_t pre_csn = txn->pre_csn;  // wzy: pre_csn用于解锁
         if (cc_mode == 0 || cc_mode == 1) {
+            pre_csn = txn->pre_csn;
             if (txn->IsInteractive()) {
-                MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, true);
+                MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, true);     // 所有事务中止的解锁操作都交给后台线程
                 MOTAdaptor::RemoveActiveTxn(txn->GetInternalTransactionId());
             }
         } else if (cc_mode == 2) {
@@ -1855,7 +1858,11 @@ static void MOTXactCallback(XactEvent event, void* arg)
             }
         }
 
-        if(txn->pessimistic_flag) MOT_LOG_INFO("PCC abort stage end !!! retry : %llu, csn : %llu", txn->retry_cnt, txn->pre_csn);
+        if (txn->IsInteractive()) {
+            txn->FinalizeAndPush();
+        }
+
+        if(txn->pessimistic_flag) MOT_LOG_INFO("PCC abort stage end !!! retry : %llu, csn : %llu", txn->retry_cnt, txn->GetCommitSequenceNumber());
 
         MOTAdaptor::Rollback();
         txn->ClearEpochState();     // 清空state，包括pre_csn
@@ -2613,8 +2620,9 @@ void FDWEpochMessageCacheManagerThreadMain(uint64_t id){
 }
 void FDWEpochMessageManagerThreadMain(uint64_t id){
 //    EpochMessageManagerThreadMain(id);
-    // TODO: [ 测试 ] 激活死锁检测
-    EpochLockThreadMain(id);
+    // 死锁检测， wound-wait中止释放锁处理
+    if (cc_mode == 4) BackgroundLogConsumer();
+    else EpochLockThreadMain(id);
 }
 
 void FDWEpochNotifyThreadMain(uint64_t id){
@@ -2648,9 +2656,9 @@ void FDWEpochUnseriThreadMain(uint64_t id){
 }
 void FDWEpochUnpackThreadMain(uint64_t id){
 //    EpochUnpackThreadMain(id);
-    // TODO: [ 测试 ] 激活版本回收，
-    TryGetServerInfo();
-//    EpochCleanVersionThreadMain(id);
+    // [ 测试 ] 激活版本回收，
+//    TryGetServerInfo();
+    EpochCleanVersionThreadMain(id);
 }
 void FDWEpochMergeThreadMain(uint64_t id){
     EpochMergeThreadMain(id);

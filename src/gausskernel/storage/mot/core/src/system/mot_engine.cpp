@@ -835,28 +835,28 @@
      return true;
  }
  
- bool MOTEngine::InitializeHybridCcComponents()
- {
-     MOT_LOG_TRACE("Initializing HybridCC components");
- 
-     // Initialize HybridCC Logger
-     std::string logFilePath = "/tmp/mot_hybrid_cc.log";
-     if (!HybridCcLogger::GetInstance().Init(logFilePath)) {
-         MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC logger");
-         return false;
-     }
-     MOT_LOG_INFO("Startup: HybridCC logger initialized successfully");
- 
-     // Initialize HybridCC Manager with LDT file
-     std::string ldtFilePath = "/tmp/mot_ldt.json";
-     if (!HybridCcManager::GetInstance().Init(ldtFilePath)) {
-         MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC manager");
-         return false;
-     }
-     MOT_LOG_INFO("Startup: HybridCC manager initialized successfully");
- 
-     return true;
- }
+bool MOTEngine::InitializeHybridCcComponents()
+{
+    MOT_LOG_TRACE("Initializing HybridCC components");
+
+    // Initialize HybridCC Logger (only for data collection)
+    std::string logFilePath = "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input/mot_hybrid_cc.csv";
+    if (!HybridCcLogger::GetInstance().Init(logFilePath)) {
+        MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC logger");
+        return false;
+    }
+    MOT_LOG_INFO("Startup: HybridCC logger initialized successfully (data collection mode)");
+
+    // Skip HybridCC Manager initialization - we only want to collect logs, not apply LDT decisions
+    std::string ldtFilePath = "/home/zwx/openGauss-server/src/gausskernel/storage/mot/mot_ldt.json";
+    if (!HybridCcManager::GetInstance().Init(ldtFilePath)) {
+        MOT_REPORT_ERROR(MOT_ERROR_INVALID_STATE, "MOT Engine Startup", "Failed to initialize HybridCC manager");
+        return false;
+    }
+    MOT_LOG_INFO("Startup: HybridCC manager initialized successfully");
+
+    return true;
+}
  
  void MOTEngine::DestroyHybridCcComponents()
  {

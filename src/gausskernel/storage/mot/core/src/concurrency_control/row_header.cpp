@@ -453,7 +453,7 @@ bool RowHeader::ValidateAndSetWriteForCommitInteractive(uint64_t m_csn, uint64_t
                 std::string str = std::to_string(GetCSN()) + ":" + std::to_string(GetServerId());
                 MOTAdaptor::abort_transcation_csn_set.insert(str, str);
             }
-            SetCSN(m_csn);
+            SetCSN(m_csn);          // 1769008171513358
             SetStartEpoch(start_epoch);
             SetCommitEpoch(commit_epoch);
             SetServerId(server_id);

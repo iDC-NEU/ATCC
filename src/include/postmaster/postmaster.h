@@ -26,6 +26,7 @@ extern uint64_t kPortNum, kPackageNum, kNotifyNum, kBatchNum, kNotifyThreadNum, 
     kSleepTime, local_ip_index, kCacheMaxLength, kDelayEpochNum, kServerTimeOut_us, kRaftTimeOut_us, kStartCheckStateNum, kLimiteTxnNum, kDelayTime,
     kDelayRatio, kRaftStopEpoch, kRaftRestrtEpoch, kRaftStopServerId, kRaftLeaderId, kRaftStartCheckEpoch;
 extern uint64_t kLockThreadNum, kHotRowsFreq, kInteractivePerc, cc_mode; // wzy
+extern int kTrainAction;
 extern bool isMVCC_Active, kInteractive_Active, kPriority_Active, kHotRow_Active, kAllPessimisticLock, kPreLockCheck_Active,
     is_CC_Switch_enable, is_wound_wait_enable, is_debug_print_enable, is_perf_enable, is_retry_priority_enable, is_rl_model_enable;            // wzy
 extern uint64_t kEpochLimit, kReadCntLimit, kWriteCntLimit, kHotCntEpochLen, kHotCntLimit, kEpochWeight, kReadCntWeight, kWriteCntWeight, kSwitchLimit;

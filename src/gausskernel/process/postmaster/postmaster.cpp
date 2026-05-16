@@ -258,6 +258,7 @@ uint64_t kPortNum = 1, kPackageNum = 1, kNotifyNum = 1, kBatchNum = 1, kNotifyTh
     kRaftLeaderId = 0, kRaftStartCheckEpoch = 100;
 uint64_t kLockThreadNum = 5, kHotRowsFreq = 10, kInteractivePerc = 10;       // wzy
 uint64_t cc_mode = 0;           // wzy: 并发控制模式，1：混合 2：Plor 3：
+int kTrainAction = 0;
 
 bool isMVCC_Active = false, kInteractive_Active = false, kPriority_Active = false, kAllPessimisticLock = false, kHotRow_Active = false, kPreLockCheck_Active = false,
      is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false, is_perf_enable = false, is_retry_priority_enable = true, is_rl_model_enable = false;
@@ -11692,6 +11693,9 @@ void GetServerInfo(){
     //////////////// wzy: 混合
     tinyxml2::XMLElement* cc_mode_ = root->FirstChildElement("CC_mode");
     cc_mode= std::stoull(cc_mode_->GetText());
+
+    tinyxml2::XMLElement* train_action_ = root->FirstChildElement("train_action");
+    kTrainAction = std::stoull(train_action_->GetText());
 
     tinyxml2::XMLElement* lock_thread_num = root->FirstChildElement("lock_thread_num");
     kLockThreadNum= std::stoull(lock_thread_num->GetText());

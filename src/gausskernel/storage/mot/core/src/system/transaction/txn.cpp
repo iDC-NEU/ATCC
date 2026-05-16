@@ -46,6 +46,9 @@
  #include <random>
  #include <stdlib.h>
  #include "hybrid_cc/hybrid_cc_manager.h" // HYBRID_CC: Include HybridCC manager
+ #include <cstdlib>
+ #include <unistd.h>
+ #include <ctime>
  
  namespace MOT {
  DECLARE_LOGGER(TxnManager, System);
@@ -93,15 +96,19 @@
      return new (buf) Key(index->GetAlignedKeyLength());
  }
  
- RC TxnManager::InsertRow(Row* row)
- {
-     GcSessionStart();
-     RC result = m_accessMgr->GetInsertMgr()->ExecuteOptimisticInsert(row);
-     if (result == RC_OK) {
-         MOT::DbSessionStatisticsProvider::GetInstance().AddInsertRow();
-     }
-     return result;
- }
+RC TxnManager::InsertRow(Row* row)
+{
+    GcSessionStart();
+    
+    // HYBRID_CC: Record operation for interval tracking
+    RecordOperation();
+    
+    RC result = m_accessMgr->GetInsertMgr()->ExecuteOptimisticInsert(row);
+    if (result == RC_OK) {
+        MOT::DbSessionStatisticsProvider::GetInstance().AddInsertRow();
+    }
+    return result;
+}
  
  Row* TxnManager::RowLookup(const AccessType type, Sentinel* const& originalSentinel, RC& rc)
  {
@@ -114,18 +121,22 @@
              MOT_LOG_INFO("[First time] TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu, score : %%lu", IsInteractive(), retry_cnt, pre_csn, score_);
          }
      }
- 
+
      if (is_debug_print_enable) {
-         MOT_LOG_INFO("TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d", IsInteractive(), s_id);
+         MOT_LOG_INFO("TxnManager interactive RowLookup thrd_interactiveTxn : %d, session ID : %d, m_tid : %llu", IsInteractive(), s_id, this->m_internalTransactionId);
          MOT_LOG_INFO("TxnManager thrd_interactiveTxn : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
      }
+
+//     MOT_LOG_INFO("TxnManager type RD : %d interactive : %d, retry_cnt : %d, csn : %llu", type == AccessType::RD, IsInteractive(), retry_cnt, pre_csn)
  
      auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
      TryRecordTimestamp(1, startExec);//ADDBY NEU HW
  
      // wzy: 检验是否切换
      uint64_t cur_time = now_to_us();
-     if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+     if (kInteractive_Active && type == AccessType::RD && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+         if (abort_) return nullptr;
+         // 单机才上读锁
          if (first_time_pessimistic) {
              rc = SwitchToPCC();
              if (rc != MOT::RC_OK)
@@ -143,10 +154,51 @@
      // if txn not started, tag as started and take global epoch
      GcSessionStart();
  
-     // wzy: 添加统计
-     AddReadCnt();
- 
-     // wzy: 先查找cache
+    // wzy: 添加统计
+    AddReadCnt();
+    
+    // HYBRID_CC: Record operation for interval tracking
+    RecordOperation();
+
+    // TODO: 先上锁再读取，避免并发修改读到旧数据
+    if (!isMVCC_Active && type == AccessType::RD && IsInteractive() && ValidateTxnPessimistic(cur_time)) {
+        // 注意：你需要将原来的 GetReadLock 系列函数改造为接受 originalSentinel 或 RowId
+        RC lock_rc = RC_OK;
+        Row* lock_row = originalSentinel->GetData();
+        if (lock_row != nullptr) {
+            if (!is_hybrid_cc_enable || !is_rl_model_enable) {
+                if (first_time_pessimistic) {
+                    lock_rc = SwitchToPCC();
+                } else {
+                    if (cc_mode == 2)
+                        lock_rc = GetReadLock_Plor(lock_row);  // Plor上读锁
+                    else if (cc_mode == 3)
+                        lock_rc = GetReadLock_WoundWait(lock_row);
+                    else if (cc_mode == 4)
+                        lock_rc = GetReadLock_Plor(lock_row);
+                    else if (cc_mode == 5)
+                        lock_rc = GetReadLock_DL(lock_row);
+                }
+            } else {
+                // is_hybrid_cc_enable 的情况
+                if (cc_mode == 4 && ShouldLock(false, lock_row->GetRowId())) {
+                    lock_rc = GetReadLock_Plor(lock_row);
+                }
+            }
+        } else {
+            MOT_LOG_INFO("TxnManager originalSentinel->GetData failed, csn : %llu", retry_cnt, pre_csn);
+        }
+
+        // 如果获取锁失败，直接中断并返回 nullptr
+        if (lock_rc != RC_OK) {
+            rc = lock_rc;
+            return nullptr;
+        }
+
+    }
+    // ==========================================
+
+    // wzy: 先查找cache
      if(isMVCC_Active && type == AccessType::RD && read_cache.GetReadCache(originalSentinel, local_row)){
          MOTAdaptor::AddActiveTxnRow(GetInternalTransactionId(), local_row);
          return local_row;
@@ -209,13 +261,15 @@
                  }
              }
  
-             if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
-                 if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
-                 else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
-                 else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
-                 else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
-             }
-             // TODO: 再获取最新记录
+//             if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag && !is_hybrid_cc_enable) {
+//                 if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+//                 else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+//                 else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+//                 else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
+//             }
+//             if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
+//                 if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
+//             }
  
              return local_row;
          }
@@ -252,12 +306,15 @@
                              if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
                          }
                      }
-                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
-                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
-                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
-                         else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
-                         else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
-                     }
+//                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag && !is_hybrid_cc_enable) {
+//                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+//                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+//                         else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+//                         else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
+//                     }
+//                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
+//                         if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
+//                     }
                      return local_row;
                  }
                  else {
@@ -292,13 +349,15 @@
                              if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
                          }
                      }
-                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag) {
-                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
-                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
-                         else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
-                         else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
-                     }
-                     // TODO: 再获取最新记录
+//                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag && !is_hybrid_cc_enable) {
+//                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
+//                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
+//                         else if (cc_mode == 4) rc = GetReadLock_Plor(local_row);
+//                         else if (cc_mode == 5) rc = GetReadLock_DL(local_row);
+//                     }
+//                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
+//                         if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
+//                     }
  
                      return local_row;
                  }
@@ -384,21 +443,34 @@
          SetCommitEpoch(GetStartEpoch());
          SetStartLogicalEpoch(MOTAdaptor::GetLogicalEpoch());
      }
+     InitTrajectory(pre_csn);
      return RC_OK;
  }
  
- void TxnManager::InitInteractiveTxn() {
+ void TxnManager::InitInteractiveTxn()
+ {
      SetInteractive(true);
      retry_cnt = u_sess->storage_cxt.retryCnt;
-     SetCommitSequenceNumber(start_time);
      session_id = u_sess->mot_cxt.session_id;
      pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
-     GetScore();
+     if (cc_mode == 0 || cc_mode == 1) {
+         pre_csn = (start_time & 0x7FFFFFFFFFFFFULL << 10) | (session_id & 0x3FF);
+//         SetCommitSequenceNumber(start_time);
+         SetCommitSequenceNumber(pre_csn);
+         pre_csn = GetCommitSequenceNumber();
+     }
+     CalculateScore();            // 计算分数
      MOTAdaptor::start_interactive_txn_num.fetch_add(1);
- //    traj = std::make_unique<std::vector<std::unique_ptr<MOT::StateAction>>>();
+
+     hot_rowid_records.clear();
+     read_lock_rowid_records.clear();
+     write_lock_rowid_records.clear();
+     abort_ = false;
+
      traj.reset(new std::vector<std::unique_ptr<StateAction>>());
      traj->resize(10);
      traj_index = 0;
+     InitTrajectory(pre_csn);
  }
  
  RC TxnManager::StartTransactionInteractive(uint64_t transactionId, int isolationLevel, bool interactive_)
@@ -435,27 +507,22 @@
      hot_cnt = 0;
      // wzy: 记录访问过的热点数据row id
      hot_rowid_records.clear();
+     read_lock_rowid_records.clear();
+     write_lock_rowid_records.clear();
+
+     abort_ = false;
  
      if (u_sess->storage_cxt.interactiveTxn > 0) {
          InitInteractiveTxn();
- //        SetInteractive(true);
- //        retry_cnt = u_sess->storage_cxt.retryCnt;
- //        SetCommitSequenceNumber(start_time);
- //        session_id = u_sess->mot_cxt.session_id;
- //        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
- //        uint64_t tmp_score = GetScore();
- //        MOTAdaptor::start_interactive_txn_num.fetch_add(1);
- //        traj = std::make_unique<std::vector<std::unique_ptr<StateAction>>>();
- //        traj->resize(10);
- //        traj_index = 0;
- //        MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
+         MOT_LOG_INFO("TxnManager interactive StartTransactionInteractive thrd_interactiveTxn : %d", u_sess->storage_cxt.interactiveTxn);
      } else {
- //        MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
+         MOT_LOG_INFO("TxnManager stored process StartTransactionInteractive");
      }
  
      int state = 0;
      MOTAdaptor::txn_state_map_plor_.insert(start_time, state);
      MOTAdaptor::AddActiveTxn(m_internalTransactionId);
+     InitTrajectory(pre_csn);
      return RC_OK;
  }
  
@@ -684,6 +751,9 @@
  
  void TxnManager::Cleanup()
  {
+     // wzy: 从活跃事务列表移除，得在end transaction之前不然internal tid会改变
+     MOTAdaptor::RemoveActiveTxn(m_internalTransactionId);
+     read_cache.ClearState();        // wzy: 清空cache
      if (m_isLightSession == false) {
          m_accessMgr->ClearSet();
      }
@@ -701,7 +771,6 @@
      ClearErrorStack();
      m_accessMgr->ClearTableCache();
      m_queryState.clear();
-     read_cache.ClearState();        // wzy: 清空cache
  }
  
  void TxnManager::UndoInserts()
@@ -965,7 +1034,9 @@
      Row* originalRow = nullptr;
      Sentinel* pSentinel = nullptr;
      table->FindRow(currentKey, pSentinel, GetThdId());
+//     MOT_LOG_INFO("Try find key:%" PRIu64 " currentKey:%" PRIu64 " from table:%s", m_key, currentKey, table->GetLongTableName().c_str());
      if (pSentinel == nullptr) {
+         MOT_LOG_INFO("Cannot find key:%" PRIu64 " currentKey:%" PRIu64 " from table:%s", m_key, currentKey, table->GetLongTableName().c_str());
          MOT_LOG_DEBUG("Cannot find key:%" PRIu64 " from table:%s", m_key, table->GetLongTableName().c_str());
          return nullptr;
      } else {
@@ -977,7 +1048,7 @@
  std::atomic<uint64_t> TxnManager::start_interactive_txn_num{0};
  
  // HYBRID_CC: Initialize HybridCC configuration flag (default: disabled)
- bool TxnManager::is_hybrid_cc_enable = false;
+ bool TxnManager::is_hybrid_cc_enable = true;
  
  TxnManager::TxnManager(SessionContext* session_context)
      : m_latestEpoch(~uint64_t(0)),
@@ -1018,6 +1089,7 @@
      }
  
      MOTAdaptor::AddActiveTxn(m_internalTransactionId);
+     srand(static_cast<unsigned int>(time(nullptr)));  // Seed for random action
  }
  
  TxnManager::~TxnManager()
@@ -1097,127 +1169,372 @@
      return true;
  }
  
- uint64_t TxnManager::GetScore()
- {
-     if (is_retry_priority_enable) {
-         score_ = 0;
-         uint64_t f = UINT64_MAX - start_time;
-         score_ |= ((uint64_t)retry_cnt << 57);
-         score_ |= (f & 0x1FFFFFFFFFFFFFF);
-     } else {
-         score_ = 0;
-         uint64_t f = UINT64_MAX - start_time;
-         score_ |= ((uint64_t)0 << 57);
-         score_ |= (f & 0x1FFFFFFFFFFFFFF);
-     }
-     return score_;
- }
+uint64_t TxnManager::CalculateScore()
+{
+    if (is_retry_priority_enable) {
+        score_ = 0;
+//        uint64_t f = UINT64_MAX - start_time;
+//        score_ |= ((uint64_t)retry_cnt << 57);
+//        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+
+        // 获取当前时间（微秒级），假定环境中存在 now_to_us()，同你之前的代码
+        uint64_t current_time = now_to_us();
+        // Ops(T): 语句数量 / 计算资源投入
+        uint64_t ops = (uint64_t)m_operationCount;
+        // ThinkTime(T): 交互时长与网络延迟
+        uint64_t think_time = m_totalOperationInterval;
+        // 事务存活总时长 (Age)
+        uint64_t age = (current_time > start_time) ? (current_time - start_time) : 0;
+        // Block(T): 阻塞时长 = 总存活时长 - 交互操作间隔 (防下溢出保护)
+        uint64_t block_time = (age > think_time) ? (age - think_time) : 0;
+
+        // 权重配置
+        double w_ops = 100.0;     // 保护大事务：防止投入大量资源的事务被轻易中止
+        double w_block = 1.0;     // 缓解排队饥饿：基于微秒的时长通常数值极大，因此基础权重可设低些
+        double w_think = 10.0;     // 交互成本补偿：给予交互型事务适度加分以快速释放其持有的锁
+
+       if (m_recent_abort_rate > 0.2) {
+            w_block *= (1.0 + (m_recent_abort_rate * 5.0));
+        }
+
+        double sub_score_f = (w_ops * ops) + (w_block * block_time) + (w_think * think_time);
+        uint64_t sub_score = (uint64_t)sub_score_f;
+
+        // 安全截断：强行限制子分数最多只占 56 位（最大值约 7.2 * 10^16），
+        // 绝对防止极端情况下数值溢出覆盖到高位的 Retry 计数。
+        sub_score &= 0xFFFFFFFFFFFFFF;
+
+        // Retry(T) 放置于最高 8 位，拥有统治级优先级（支持高达 255 次重试严格排序）
+        score_ = ((uint64_t)retry_cnt << 56) | sub_score;
+    } else {
+        score_ = 0;
+        uint64_t f = UINT64_MAX - start_time;
+        score_ |= ((uint64_t)0 << 57);
+        score_ |= (f & 0x1FFFFFFFFFFFFFF);
+    }
+    return score_;
+}
+
+// HYBRID_CC: Boost transaction priority by increasing retry count
+// This increases the transaction's priority in lock competition
+void TxnManager::BoostPriority(int boost_level)
+{
+    // Save old values for logging
+    int old_retry_cnt = retry_cnt;
+    uint64_t old_score = score_;
+    
+    // Increase retry count to boost priority
+    retry_cnt += boost_level;
+    
+    // Prevent overflow (7 bits can represent 0-127)
+    if (retry_cnt > 127) {
+        retry_cnt = 127;
+    }
+    
+    // Recalculate priority score
+    CalculateScore();
+    m_occManager.BoostPriority(this, local_ip_index);
+    
+    if (is_debug_print_enable) {
+        std::string csn_temp = std::to_string(pre_csn) + ":0";
+        MOT_LOG_INFO("HYBRID_CC: Priority boosted - csn: %s, retry_cnt: %d->%d, score: %llu->%llu", 
+                     csn_temp.c_str(), old_retry_cnt, retry_cnt, old_score, score_);
+    }
+}
+
+// HYBRID_CC: Boost priority relative to current level
+// Adaptive boost based on current retry count
+void TxnManager::BoostPriorityRelative()
+{
+    int old_retry_cnt = retry_cnt;
+    uint64_t old_score = score_;
+    
+    // Adaptive boost strategy
+    if (retry_cnt == 0) {
+        // First boost: jump to medium priority
+        retry_cnt = 1;
+    } else if (retry_cnt < 5) {
+        // Gradual boost for low-medium priority
+        retry_cnt += 1;
+    } else if (retry_cnt < 10) {
+        // Aggressive boost for already high priority
+        retry_cnt = std::min(127, retry_cnt + 2);
+    } else {
+        // Very aggressive boost for repeatedly retried transactions
+        retry_cnt = std::min(127, retry_cnt + 3);
+    }
+    
+    CalculateScore();
+    
+    if (is_debug_print_enable) {
+        std::string csn_temp = std::to_string(pre_csn) + ":0";
+        MOT_LOG_INFO("HYBRID_CC: Relative priority boost - csn: %s, retry_cnt: %d->%d, score: %llu->%llu", 
+                     csn_temp.c_str(), old_retry_cnt, retry_cnt, old_score, score_);
+    }
+}
+
+// HYBRID_CC: Set transaction to high priority level
+// Directly set to high priority for critical transactions
+void TxnManager::SetHighPriority()
+{
+    int old_retry_cnt = retry_cnt;
+    uint64_t old_score = score_;
+    
+    // Set to high priority level (retry_cnt = 10)
+    retry_cnt = 10;
+    
+    CalculateScore();
+    
+    if (is_debug_print_enable) {
+        std::string csn_temp = std::to_string(pre_csn) + ":0";
+        MOT_LOG_INFO("HYBRID_CC: Set to high priority - csn: %s, retry_cnt: %d->%d, score: %llu->%llu", 
+                     csn_temp.c_str(), old_retry_cnt, retry_cnt, old_score, score_);
+    }
+}
  
- 
- 
+// 判断当前行是否满足action，再进行上锁
+bool TxnManager::ShouldLock(bool isWrite, uint64_t rowId)
+{
+    const bool isHot = (hot_rowid_records.count(rowId) != 0);
+
+    switch (this->m_hybridCcAction) {
+        case 0:
+            return false;                        // 0: 不加锁
+
+        case 1:
+            return isWrite && isHot;             // 1: 仅热点写
+
+        case 2:
+            return isHot;                        // 2: 所有热点(读/写)
+
+        case 3:
+            // 3: 所有写 + 热点读（写无条件加锁，读仅热点加锁）
+            return isWrite || isHot;
+
+        case 4:
+            return true;                         // 4: 访问到的行一律加锁
+
+        default:
+            return false;                        // 未知动作，保守为不加锁或按需调整
+    }
+}
+
  // wzy: 检测当前事务是否符合切换策略
  bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
-     if (!IsInteractive()) return false;
+    if (!IsInteractive()) return false;
+    if (first_time_pessimistic) first_time_pessimistic = false;
+    if (kAllPessimisticLock) {
+      if (pessimistic_flag) return true;
+      first_time_pessimistic = true;
+      pessimistic_flag = true;
+//      m_hybridCcAction = 4;
+      return true;
+    }
+
+    // HYBRID_CC: Use HybridCC decision model
+    if (is_hybrid_cc_enable && is_rl_model_enable) {
+        //正常查表模式
+        //int action = HybridCcManager::GetInstance().Decide(this);
+        //数据收集 action=0-4
+        m_recent_global_tps = MOTAdaptor::recent_global_tps;
+        m_recent_abort_rate = MOTAdaptor::recent_abort_rate;
+        int action = 0;
+        if (kTrainAction > 4) {
+            action = HybridCcManager::GetInstance().Decide(this);
+        } else {
+            action = kTrainAction;
+        }
+
+        this->m_hybridCcAction = action;
+        //        if (cc_mode == 1 && action > 0) return true;
+        if (action > 0) {
+            pessimistic_flag = true;
+            RC rc = HybridCcManager::GetInstance().ExecuteAction(this, action);
+            if (rc != MOT::RC_OK) abort_ = true;
+            return true;
+        }
+    }
+    else {
+        double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
+        if(MOTAdaptor::commit_txn_num.load() != 0) {
+          txn_avg_time = MOTAdaptor::txn_total_time.load() / MOTAdaptor::commit_txn_num.load();
+          txn_avg_epoch = MOTAdaptor::txn_total_epoch.load() / MOTAdaptor::commit_txn_num.load();
+          txn_avg_readCnt = MOTAdaptor::txn_total_readCnt.load() / MOTAdaptor::commit_txn_num.load();
+          txn_avg_writeCnt = MOTAdaptor::txn_total_writeCnt.load() / MOTAdaptor::commit_txn_num.load();
+          txn_avg_hotCnt = MOTAdaptor::txn_total_hotCnt.load() / MOTAdaptor::commit_txn_num.load();
+        }
+        if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
+          pessimistic_flag = true;
+          first_time_pessimistic = true;
+          MOTAdaptor::pessimisitic_priority_txn_num.fetch_add(1);
+          return true;
+        }
+
+        if (kHotCntLimit > 0 && kHotCntLimit < 100) {
+          if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+                                                                        && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
+              pessimistic_flag = true;
+              first_time_pessimistic = true;
+              MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
+              return true;
+          }
+        }
+        else if (kHotCntLimit >= 100) {
+          if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+              && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= kHotCntLimit - 100) {
+              pessimistic_flag = true;
+              first_time_pessimistic = true;
+              MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
+              return true;
+          }
+        }
+    }
+
+    return false;
+
+  // HYBRID_CC: Random action for training data generation
+  // Use thread-safe random number generation
+//   int action = (std::rand() + std::clock() + gettid()) % 6;  // 0-5 random with thread safety
+//   m_hybridCcAction = action;
+//
+//    if (action > 0) {
+//        // Execute the random action
+//        HybridCcManager::GetInstance().ExecuteAction(this, action);
+//        return true;  // Switch to pessimistic if action > 0
+//    }
+//
+//    return false;  // Default to OCC
+}
+
+void TxnManager::FinalizeAndPush() {
+    if (m_trajectoryBuffer && m_trajectoryBuffer->step_count > 0) {
+        bool is_commit = (GetTxnState() == TxnState::TXN_COMMIT);
+        double total_lat = (double)(now_to_us() - m_trajectoryBuffer->start_timestamp) / 1000.0;
+        int count = m_trajectoryBuffer->step_count;
+        for(int i = 0; i < count - 1; ++i) {
+            auto& curr_step = m_trajectoryBuffer->steps[i];
+            auto& next_step = m_trajectoryBuffer->steps[i + 1];
+
+            curr_step.ns_cont = next_step.s_cont;
+            curr_step.ns_work = next_step.s_work;
+            curr_step.ns_retry = next_step.s_retry;
+            curr_step.ns_global_abort_rate = next_step.s_global_abort_rate;
+            curr_step.ns_global_throughput = next_step.s_global_throughput;
+            curr_step.ns_lock_queue_length = next_step.s_lock_queue_length;
+
+            curr_step.done = false;
+            curr_step.is_commit = is_commit;
+        }
+        // 补齐最后一步的 next_state
+        auto& last_step = m_trajectoryBuffer->steps[count - 1];
+        last_step.ns_cont = HybridCcManager::GetInstance().GetFeatureTier("s_cont", (double)hot_cnt);
+        last_step.ns_work = HybridCcManager::GetInstance().GetFeatureTier("s_work", (double)m_accessMgr->GetOrderedRowSet().size());
+        last_step.ns_retry = HybridCcManager::GetInstance().GetFeatureTier("s_retry", (double)retry_cnt);
+        last_step.ns_global_abort_rate = HybridCcManager::GetInstance().GetFeatureTier("s_global_abort_rate", MOTAdaptor::recent_abort_rate);
+        last_step.ns_global_throughput = HybridCcManager::GetInstance().GetFeatureTier("s_global_throughput", MOTAdaptor::recent_global_tps);
+
+        last_step.done = true; // MDP 终止符
+        last_step.is_commit = is_commit;
+
+        // 移交 unique_ptr 所有权，零拷贝进入无锁队列
+        MOTAdaptor::GlobalLockFreeQueue.enqueue(std::unique_ptr<MOT::TxnTrajectory>(m_trajectoryBuffer));
+        MOTAdaptor::GlobalLockFreeQueue.enqueue(std::move(nullptr));
+        m_trajectoryBuffer = nullptr;
+    }
+}
+
+//  bool TxnManager::ValidateTxnPessimistic(uint64_t cur_time) {
+//      if (!IsInteractive()) return false;
  
-     if (first_time_pessimistic) first_time_pessimistic = false;
-     if (pessimistic_flag) return true;
+//      if (first_time_pessimistic) first_time_pessimistic = false;
+//      if (pessimistic_flag) return true;
  
-     // HYBRID_CC: 新增 - 使用 HybridCC 决策模型
-     if (is_hybrid_cc_enable) {
-         HybridCcManager& manager = HybridCcManager::GetInstance();
-         int action = manager.Decide(this);
-         this->m_hybridCcAction = action; // HYBRID_CC: Store the decided action for logging
-         
-         if (action > 0) {  // 如果决策不是"保持乐观"
-             RC rc = manager.ExecuteAction(this, action);
-             if (rc == RC_OK) {
-                 pessimistic_flag = true;
-                 first_time_pessimistic = true;
-                 if (is_debug_print_enable) {
-                     MOT_LOG_INFO("HYBRID_CC: Switch to pessimistic with action %d, txn_id: %llu", 
-                                action, GetInternalTransactionId());
-                 }
-                 return true;  // 切换到悲观模式
-             }
-         }
-         return false;  // 保持乐观模式
-     }
+//     // HYBRID_CC: 数据收集模式 - 只记录状态，不应用LDT决策
+//     if (is_hybrid_cc_enable) {
+//         // Store action as 0 (optimistic) for logging purposes only
+//         // We are in data collection mode, not applying any LDT decisions
+//         this->m_hybridCcAction = 0; // HYBRID_CC: Store default action for logging
+        
+//         // Skip decision-making and action execution
+//         // HybridCcManager is not initialized in data collection mode
+//         return false;  // 保持乐观模式，不切换到悲观
+//     }
  
-     // TODO: 开启RL模型
-     if (is_rl_model_enable) {
-         // test 随机action，保存当前state-action
-         uint64_t execution_time = now_to_us() - start_time;
-         int action = MOTAdaptor::adviser.computeAction(this, execution_time);
-         AddTraj(action);
-         if (action == 1) {
-             first_time_pessimistic = true;
-             pessimistic_flag = true;
-             return true;
-         }
-         return false;
-     }
+//      // TODO: 开启RL模型
+//      if (is_rl_model_enable) {
+//          // test 随机action，保存当前state-action
+//          uint64_t execution_time = now_to_us() - start_time;
+//          int action = MOTAdaptor::adviser.computeAction(this, execution_time);
+//          AddTraj(action);
+//          if (action == 1) {
+//              first_time_pessimistic = true;
+//              pessimistic_flag = true;
+//              return true;
+//          }
+//          return false;
+//      }
  
-     // 全悲观测试
-     if (kAllPessimisticLock) {
-         first_time_pessimistic = true;
-         pessimistic_flag = true;
-         return true;
-     }
+//      // 全悲观测试
+//      if (kAllPessimisticLock) {
+//          first_time_pessimistic = true;
+//          pessimistic_flag = true;
+//          return true;
+//      }
  
-     // 根据权重计算边界值
-     double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
-     if(MOTAdaptor::commit_txn_num.load() != 0) {
-         txn_avg_time = MOTAdaptor::txn_total_time.load() / MOTAdaptor::commit_txn_num.load();
-         txn_avg_epoch = MOTAdaptor::txn_total_epoch.load() / MOTAdaptor::commit_txn_num.load();
-         txn_avg_readCnt = MOTAdaptor::txn_total_readCnt.load() / MOTAdaptor::commit_txn_num.load();
-         txn_avg_writeCnt = MOTAdaptor::txn_total_writeCnt.load() / MOTAdaptor::commit_txn_num.load();
-         txn_avg_hotCnt = MOTAdaptor::txn_total_hotCnt.load() / MOTAdaptor::commit_txn_num.load();
-     }
+//      // 根据权重计算边界值
+//      double txn_avg_time = 0, txn_avg_epoch = 0, txn_avg_readCnt = 0, txn_avg_writeCnt = 0, txn_avg_lockCnt = 0, txn_avg_hotCnt = 0;
+//      if(MOTAdaptor::commit_txn_num.load() != 0) {
+//          txn_avg_time = MOTAdaptor::txn_total_time.load() / MOTAdaptor::commit_txn_num.load();
+//          txn_avg_epoch = MOTAdaptor::txn_total_epoch.load() / MOTAdaptor::commit_txn_num.load();
+//          txn_avg_readCnt = MOTAdaptor::txn_total_readCnt.load() / MOTAdaptor::commit_txn_num.load();
+//          txn_avg_writeCnt = MOTAdaptor::txn_total_writeCnt.load() / MOTAdaptor::commit_txn_num.load();
+//          txn_avg_hotCnt = MOTAdaptor::txn_total_hotCnt.load() / MOTAdaptor::commit_txn_num.load();
+//      }
  
-     // TODO: 对近期事务的统计
- //    double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
- //    uint64_t temp_commit_txn_num1 = MOTAdaptor::temp_commit_txn_num.load();
- //    if(temp_commit_txn_num1 != 0) {
- //        txn_temp_avg_time = MOTAdaptor::txn_temp_total_time.load() / temp_commit_txn_num1;
- //        txn_temp_avg_epoch = MOTAdaptor::txn_temp_total_epoch.load() / temp_commit_txn_num1;
- //        txn_temp_avg_readCnt = MOTAdaptor::txn_temp_total_readCnt.load() / temp_commit_txn_num1;
- //        txn_temp_avg_writeCnt = MOTAdaptor::txn_temp_total_writeCnt.load() / temp_commit_txn_num1;
- //        txn_temp_avg_hotCnt = MOTAdaptor::txn_temp_total_hotCnt.load() / temp_commit_txn_num1;
- //    }
+//      // TODO: 对近期事务的统计
+//  //    double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
+//  //    uint64_t temp_commit_txn_num1 = MOTAdaptor::temp_commit_txn_num.load();
+//  //    if(temp_commit_txn_num1 != 0) {
+//  //        txn_temp_avg_time = MOTAdaptor::txn_temp_total_time.load() / temp_commit_txn_num1;
+//  //        txn_temp_avg_epoch = MOTAdaptor::txn_temp_total_epoch.load() / temp_commit_txn_num1;
+//  //        txn_temp_avg_readCnt = MOTAdaptor::txn_temp_total_readCnt.load() / temp_commit_txn_num1;
+//  //        txn_temp_avg_writeCnt = MOTAdaptor::txn_temp_total_writeCnt.load() / temp_commit_txn_num1;
+//  //        txn_temp_avg_hotCnt = MOTAdaptor::txn_temp_total_hotCnt.load() / temp_commit_txn_num1;
+//  //    }
  
-     if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
-         pessimistic_flag = true;
-         first_time_pessimistic = true;
-         std::string csn_temp = std::to_string(pre_csn) + ":0";
-         if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic1], csn : %s, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu", csn_temp.c_str(), retry_cnt, read_cnt, write_cnt);
-         MOTAdaptor::pessimisitic_priority_txn_num.fetch_add(1);
-         return true;
-     }
+//      if (retry_cnt * 10 + (cur_time - start_time) * 0.0001 * kEpochWeight + read_cnt * kReadCntWeight + write_cnt * kWriteCntWeight > kSwitchLimit) {
+//          pessimistic_flag = true;
+//          first_time_pessimistic = true;
+//          std::string csn_temp = std::to_string(pre_csn) + ":0";
+//          if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic1], csn : %s, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu", csn_temp.c_str(), retry_cnt, read_cnt, write_cnt);
+//          MOTAdaptor::pessimisitic_priority_txn_num.fetch_add(1);
+//          return true;
+//      }
  
-     if (kHotCntLimit > 0 && kHotCntLimit < 100) {
-         if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
-                                                                       && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
-             pessimistic_flag = true;
-             first_time_pessimistic = true;
-             std::string csn_temp = std::to_string(pre_csn) + ":0";
-             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic2], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
-             MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
-             return true;
-         }
-     }
-     else if (kHotCntLimit >= 100) {
-         if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
-             && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= kHotCntLimit - 100) {
-             pessimistic_flag = true;
-             first_time_pessimistic = true;
-             std::string csn_temp = std::to_string(pre_csn) + ":0";
-             if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic3], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
-             MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
-             return true;
-         }
-     }
-     return false;
- }
+//      if (kHotCntLimit > 0 && kHotCntLimit < 100) {
+//          if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+//                                                                        && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= txn_avg_hotCnt + kHotCntLimit) {
+//              pessimistic_flag = true;
+//              first_time_pessimistic = true;
+//              std::string csn_temp = std::to_string(pre_csn) + ":0";
+//              if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic2], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+//              MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
+//              return true;
+//          }
+//      }
+//      else if (kHotCntLimit >= 100) {
+//          if (cur_time - start_time > txn_avg_time + kEpochLimit || (read_cnt > txn_avg_readCnt + kReadCntLimit
+//              && write_cnt > txn_avg_writeCnt + kWriteCntLimit) || hot_cnt >= kHotCntLimit - 100) {
+//              pessimistic_flag = true;
+//              first_time_pessimistic = true;
+//              std::string csn_temp = std::to_string(pre_csn) + ":0";
+//              if (is_debug_print_enable) MOT_LOG_INFO("Change to [Pessimistic3], csn : %s, execute time : %llu, retry_cnt : %llu, read_cnt : %llu, write_cnt : %llu, hot_cnt : %llu", csn_temp.c_str(), cur_time - start_time, retry_cnt, read_cnt, write_cnt, hot_cnt);
+//              MOTAdaptor::pessimisitic_hot_visits_txn_num.fetch_add(1);
+//              return true;
+//          }
+//      }
+//      return false;
+//  }
  
  
  RC TxnManager::OverwriteRow(Row* updatedRow, BitmapSet& modifiedColumns)
@@ -1231,14 +1548,27 @@
          access->m_modifiedColumns |= modifiedColumns;
          access->m_stmtCount = GetStmtCount();
      }
- 
+
+//     MOT_LOG_INFO("TxnManager type WR interactive : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn)
+
      auto csn_temp = std::to_string(pre_csn) + ":" + std::to_string(local_ip_index);
-     if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return MOT::RC_ABORT;         // wzy: 被死锁检测abort
+     if (is_wound_wait_enable) {
+         if (MOTAdaptor::wound_wait_abort_map.running_should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch())) {
+             MOT_LOG_INFO("[Abort] wound_wait_abort_map() local overwrite failed tmp_csn : %s physical epoch: %llu", csn_temp.c_str(), MOTAdaptor::GetPhysicalEpoch());
+             return RC_ABORT;  // 被死锁检测abort
+         }
+     } else {
+         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp))
+             return MOT::RC_ABORT;
+     } // wzy: 被死锁检测abort
  
-     AddWriteCnt();      // 统计
- 
- //    std::string tmp_rowid = updatedRow->GetTable()->GetTableName() + ":" + to_string(updatedRow->GetRowId());
-     std::string tmp_rowid = updatedRow->GetTable()->GetLongTableName() + ":" + to_string(updatedRow->GetRowId());
+    AddWriteCnt();      // 统计
+    
+    // HYBRID_CC: Record operation for interval tracking
+    RecordOperation();
+
+//    std::string tmp_rowid = updatedRow->GetTable()->GetTableName() + ":" + to_string(updatedRow->GetRowId());
+    std::string tmp_rowid = updatedRow->GetTable()->GetLongTableName() + ":" + to_string(updatedRow->GetRowId());
      // wzy: INS操作没有现存的row id
      MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
  
@@ -1248,8 +1578,7 @@
          uint64_t cur_time = now_to_us();
          if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
              // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
-             // TODO：先上读锁再读集检验
- 
+             // 先上读锁再读集检验，但上读锁开销太大，默认开启多版本
              if (!isMVCC_Active) {
                  if (is_snap_isolation) {
                      if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
@@ -1290,44 +1619,14 @@
                  rc = MOTAdaptor::SendInteractiveLockInfo(updatedRow);
              }
          }
-     }
-     else if (cc_mode == 2) {
-         // 单机，Plor 对所有事务写操作上锁
-         uint64_t cur_time = now_to_us();
-         if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
-             // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
-             MOT_LOG_INFO("OCC switching to Plor!!!");
-             if (first_time_pessimistic) {
-                 // wzy：第一次切换为悲观，先上读锁再读集检验
-                 MOTAdaptor::pessimisitic_txn_num.fetch_add(1);
-                 MOT_LOG_INFO("First time OCC switching to Plor!!!");
-                 first_time_pessimistic = false;
-                 rc = ReadLockForSwitch_Plor();          // lock read-set and validation
-                 if (rc != MOT::RC_OK) return rc;
- 
-                 if (kHotRow_Active) rc = WriteLockForSwitchHotRows_Plor();
-                 else rc = WriteLockForSwitch_Plor();
-                 if (rc != MOT::RC_OK) return rc;
-             } else {
-                 // wzy: 只对交互型事务的hot row上写锁
-                 if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
-                     if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
-                     updatedRow->SetRowInteractive(true);
-                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
-                 } else if(!kHotRow_Active) {
-                     // 未启用热行上锁策略则全部行上锁
-                     if (GetCommitSequenceNumber() == 0) SetCommitSequenceNumber(now_to_us());
-                     updatedRow->SetRowInteractive(true);
-                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
-                 }
-             }
-         }
+         if (rc != MOT::RC_OK) MOT_LOG_INFO("TxnManager type WR Send Lockinfo Abort interactive : %d, retry_cnt : %d, csn : %llu", IsInteractive(), retry_cnt, pre_csn);
      }
      else if (cc_mode == 3) {
          // 单机，2PL, wound-wait
          // MOT_LOG_INFO("OCC check to Wound-wait!!!");
          uint64_t cur_time = now_to_us();
          if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
+             if (abort_) return MOT::RC_ABORT;
              // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
              // MOT_LOG_INFO("OCC switching to Wound-wait!!!");
              if (first_time_pessimistic) {
@@ -1360,24 +1659,15 @@
          uint64_t cur_time = now_to_us();
          if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
              // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+             if (abort_) return MOT::RC_ABORT;
              if (first_time_pessimistic) {
-                 // TODO: 切换
+                 // wzy: 切换
                  rc = SwitchToPCC();
                  if (rc != MOT::RC_OK) return rc;
-                 // wzy：第一次切换为悲观，先上读锁再读集检验
- //                MOTAdaptor::pessimisitic_txn_num.fetch_add(1);
- //                MOT_LOG_INFO("First time OCC switching to Plor!!!");
- //                first_time_pessimistic = false;
- //                if (kHotRow_Active) rc = ReadLockForSwitchHotRows_Plor();          // lock read-set and validation
- //                else rc = ReadLockForSwitch_Plor();
- //
- //                if (rc != MOT::RC_OK) return rc;
- //                // 只对热数据项上锁
- //                if (kHotRow_Active) rc = WriteLockForSwitchHotRows_Plor();
- //                else rc = WriteLockForSwitch_Plor();
- //                if (rc != MOT::RC_OK) return rc;
              } else {
                  // wzy: 只对交互型事务的hot row上写锁
+//                if ((kHotRow_Active && !is_hybrid_cc_enable && hot_rowid_records.count(updatedRow->GetRowId()) != 0)
+//                      || (is_hybrid_cc_enable && ShouldLock(true, updatedRow->GetRowId()))) {
                  if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                      if (GetCommitSequenceNumber() == 0) {
                          SetCommitSequenceNumber(now_to_us());
@@ -1386,6 +1676,7 @@
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
                  } else if(!kHotRow_Active) {
+                     // else if(!kHotRow_Active && !is_hybrid_cc_enable)
                      // 未启用热行上锁策略则全部行上锁
                      if (GetCommitSequenceNumber() == 0) {
                          SetCommitSequenceNumber(now_to_us());
@@ -1396,11 +1687,13 @@
                  }
              }
          }
-     } else if (cc_mode == 5) {
+     }
+     else if (cc_mode == 5) {
          // 单机，Plor 对所有事务写操作上锁
          uint64_t cur_time = now_to_us();
          if (kInteractive_Active && IsInteractive() && is_CC_Switch_enable && ValidateTxnPessimistic(cur_time)) {
              // 乐观单版本则读集检验，检测完切换为2PL，对之后的热数据上锁? 把之前的数据也上锁?
+             if (abort_) return MOT::RC_ABORT;
              if (first_time_pessimistic) {
                  // TODO: 切换
                  rc = SwitchToPCC();
@@ -1426,12 +1719,13 @@
              }
          }
      }
- 
      return rc;
  }
- 
+
+ // 单机切换PCC
  MOT::RC TxnManager::SwitchToPCC() {
      MOT::RC rc = MOT::RC_OK;
+     if (cc_mode == 1 || cc_mode == 2) return rc;
      if (first_time_pessimistic) {
          // wzy：第一次切换为悲观，先上读锁再读集检验
          auto time1 = now_to_us();
@@ -2123,20 +2417,27 @@
      if(is_full_async_exec) {
          if (this->m_accessMgr->m_rowCnt > 0 && !result){
              (*MOTAdaptor::write_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-             if(is_snap_isolation){
-                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                     MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
-                 }
-             }
-             else if(is_read_repeatable){
-                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                     MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
+             if (!isMVCC_Active) {
+                 if (is_snap_isolation) {
+                     if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                         (*MOTAdaptor::write_abort_before_send_txn_num[(
+                             GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 } else if (is_read_repeatable) {
+                     if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                         (*MOTAdaptor::write_abort_before_send_txn_num[(
+                             GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
                  }
              }
  //            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
@@ -2169,20 +2470,25 @@
          else{
              (*MOTAdaptor::read_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
              auto time1 = now_to_us();
-             if(is_snap_isolation){
-                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                     MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
-                 }
-             }
-             else if(is_read_repeatable){
-                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-                     MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
+             if (!isMVCC_Active) {
+                 if (is_snap_isolation) {
+                     if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                         (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 } else if (is_read_repeatable) {
+                     if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                         (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
                  }
              }
              (*MOTAdaptor::read_committed_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
@@ -2199,20 +2505,27 @@
          if (this->m_accessMgr->m_rowCnt > 0 && !result){
              // MOT_LOG_INFO("epoch %llu commit() write", GetStartEpoch());
              (*MOTAdaptor::write_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
-             if(is_snap_isolation){
-                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
- //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
-                 }
-             }
-             else if(is_read_repeatable){
-                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                     (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
- //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
+             if (!isMVCC_Active) {
+                 if (is_snap_isolation) {
+                     if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                         (*MOTAdaptor::write_abort_before_send_txn_num[(
+                             GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 } else if (is_read_repeatable) {
+                     if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                         (*MOTAdaptor::write_abort_before_send_txn_num[(
+                             GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
                  }
              }
  //            if(!MOTAdaptor::InsertTxntoLocalChangeSet(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
@@ -2220,6 +2533,16 @@
  //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
  //                    return RC_ABORT;
  //            }
+             auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+             if (is_wound_wait_enable) {
+                 // 检查现在是否该中止
+                 if (MOTAdaptor::wound_wait_abort_map.should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch() % (UINT64_MAX - 1))) {
+                     MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+                     MOT_LOG_INFO("[Abort] wound_wait_abort_map() local lock check validate failed tmp_csn : %s epoch_mod : %llu", csn_temp.c_str(), MOTAdaptor::GetPhysicalEpoch());
+                     return RC_ABORT;  // 被死锁检测abort
+                 }
+             }
+
              if(!MOTAdaptor::InsertTxntoLocalChangeSet2(this, index_pack, index_unique)){// 当生成txn失败时abort，为send_before_abort，enqueue必定成功，否则assert
                  (*MOTAdaptor::write_abort_before_send_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
  //                MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
@@ -2239,16 +2562,15 @@
              MOTAdaptor::IncLocalExecedCounters(epoch_mod, index_pack);
  
              if (rc == RC_ABORT){
- //                MOT_LOG_INFO("CommitPhase error RC_ABORT");
                  if (IsInteractive()) MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
                  MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
              }
  
-             if (rc != RC_ABORT){    
+             if (rc != RC_ABORT){
                  while(!MOTAdaptor::IsRemoteExeced()) {
                      usleep(200);
                  }
-                 auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+                 csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
                  if(MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)){
                      if (IsInteractive()) {
                          MOTAdaptor::Abort_transcation_csn_set_abort_interactive_num.fetch_add(1);
@@ -2258,9 +2580,18 @@
                      rc = RC_ABORT;
                  }
                  // wzy:
-                 if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
-                     if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
-                     rc = RC_ABORT;     // 被死锁检测abort
+                 if (is_wound_wait_enable) {
+                     if (MOTAdaptor::wound_wait_abort_map.should_abort(csn_temp, GetCommitEpoch())) {
+                         if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                         MOT_LOG_INFO("[Abort] wound_wait_abort_map() local commit failed tmp_csn : %s ", csn_temp.c_str());
+                         rc = RC_ABORT;     // 被wound-wait检测abort
+                     }
+                 } else {
+                     if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                         if (IsInteractive())
+                             MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                         rc = RC_ABORT;  // 被死锁检测abort
+                     }
                  }
              }
              
@@ -2283,20 +2614,25 @@
          else{
              (*MOTAdaptor::read_total_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
              auto time1 = now_to_us();
-             if(is_snap_isolation){
-                 if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
-                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
- //                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
-                 }
-             }
-             else if(is_read_repeatable){
-                 if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
-                     (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
- //                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
-                     if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
+             if (!isMVCC_Active) {
+                 if (is_snap_isolation) {
+                     if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                         (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         //                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 } else if (is_read_repeatable) {
+                     if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                         (*MOTAdaptor::read_abort_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
+                             ->fetch_add(1);
+                         //                    MOT_LOG_INFO("read_abort_txn_num error RC_ABORT");
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
                  }
              }
              (*MOTAdaptor::read_committed_txn_num[(GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]->fetch_add(1);
@@ -2312,23 +2648,29 @@
          if (this->m_accessMgr->m_rowCnt > 0 && !result){
  
              if (!isMVCC_Active) {        // 乐观单版本则读集检验
+                  RC validate_rc = RC_OK;
                   if(is_snap_isolation){
                       if(!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)){
                           MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
                           if (IsInteractive()) MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                          return RC_ABORT;
+                          validate_rc = RC_ABORT;
                       }
                   }
                   else if(is_read_repeatable){
                       if(!m_occManager.ValidateReadInMerge(this, local_ip_index)){
                           MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
                           if (IsInteractive()) MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                          return RC_ABORT;
+                          validate_rc = RC_ABORT;
                       }
                   }
+                  // 如果是cc_mode == 1，则需要释放远端锁
+                  if (validate_rc != RC_OK && pessimistic_flag && cc_mode == 1) {
+                      this->abort_ = true;
+                  } else if (validate_rc != RC_OK) {
+                      return validate_rc;
+                  }
              } else {
-                 // wzy MVCC需要检测写集是否被修改?
-                 // do nothing
+
              }
  
  
@@ -2340,10 +2682,19 @@
  
              // wzy: 检查事务是否被死锁检测abort
              auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
-             if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
-                 if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
-                 return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
+             if (is_wound_wait_enable) {
+                 if (MOTAdaptor::wound_wait_abort_map.should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch())) {
+                     if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                     MOT_LOG_INFO("[Abort] wound_wait_abort_map() local commite check failed tmp_csn : %s cur epoch : %llu", csn_temp.c_str(), MOTAdaptor::GetPhysicalEpoch());
+                     rc = RC_ABORT;     // 被wound-wait检测abort
+                 }
+             } else {
+                 if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                     if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                     return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
+                 }
              }
+
  
              // wzy: 对非交互型事务检查写集是否被上锁
              if (!IsInteractive() && kPreLockCheck_Active) {
@@ -2359,19 +2710,23 @@
  
              auto time1 = now_to_us();
              cnt = 0;
-             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
-             MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
-             MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
+//             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+//             MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
+//             MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
  
              // 等待上一個epoch結束
+             int cnt = 0;
              while(GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsRecordCommitted()){
+                 if (++cnt % 1000 == 0) {
+                     MOT_LOG_INFO("Commit() target epoch: %lld logical epoch: %lld IsRecordCommitted: %d", GetCommitEpoch(), MOTAdaptor::GetLogicalEpoch(),MOTAdaptor::IsRecordCommitted());
+                 }
                  usleep(200);
              }
- //            auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+             auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
              auto time3 = now_to_us();
              this->SetBlockTime(time3 - time1);
- //            MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
- //            MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
+             MOTAdaptor::IncLocalTxnCounters(epoch_mod, index_pack);
+             MOTAdaptor::IncLocalTxnExcCounters(epoch_mod, index_pack);
  
              // rc = m_occManager.ExecutionPhase(this, local_ip_index);
              rc = m_occManager.CommitPhase(this, local_ip_index);
@@ -2380,7 +2735,9 @@
              if (IsInteractive() && pessimistic_flag) {
                  // wzy: 在epoch commit check前解锁/abort
                  session_id = u_sess->mot_cxt.session_id;
-                 pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                 // TODO: pre_csn设置错误
+                 // pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                 uint64_t pre_csn = GetCommitSequenceNumber();
                  MOTAdaptor::UnlockInteractiveLockInfo(pre_csn, rc != RC_OK);
              }
  
@@ -2406,12 +2763,19 @@
                      rc = RC_ABORT;
                  }
                  // wzy:
-                 if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
-                     if (IsInteractive()) {
-                         MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
- //                        MOT_LOG_INFO("[Abort] deadlock_abort_set() local failed tmp_csn : %s ", csn_temp.c_str());
+                 if (is_wound_wait_enable) {
+                     if (MOTAdaptor::wound_wait_abort_map.should_abort(csn_temp, GetCommitEpoch())) {
+                         if (IsInteractive()) MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                         MOT_LOG_INFO("[Abort] wound_wait_abort_map() local commit check failed tmp_csn : %s ", csn_temp.c_str());
+                         rc = RC_ABORT;     // 被wound-wait检测abort
                      }
-                     rc = RC_ABORT;     // 被死锁检测abort
+                 } else {
+                     if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                         if (IsInteractive()) {
+                             MOTAdaptor::CommitCheck_deadlock_abort_interactive_num.fetch_add(1);
+                         }
+                         rc = RC_ABORT;  // 被死锁检测abort
+                     }
                  }
                  if(m_occManager.CommitCheck(this, local_ip_index) == RC_ABORT) {
                      MOTAdaptor::CommitCheck_abort_num.fetch_add(1);
@@ -2447,19 +2811,19 @@
          }
          else{
              auto time1 = now_to_us();
-             if (is_snap_isolation) {
-                 if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
- //                    MOT_LOG_INFO("ValidateReadInMergeForSnap error RC_ABORT");
-                     if (IsInteractive())
-                         MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
-                 }
-             } else if (is_read_repeatable) {
-                 if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
- //                    MOT_LOG_INFO("ValidateReadInMerge error RC_ABORT");
-                     if (IsInteractive())
-                         MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
-                     return RC_ABORT;
+             if (!isMVCC_Active) {
+                 if (is_snap_isolation) {
+                     if (!m_occManager.ValidateReadInMergeForSnap(this, local_ip_index)) {
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
+                 } else if (is_read_repeatable) {
+                     if (!m_occManager.ValidateReadInMerge(this, local_ip_index)) {
+                         if (IsInteractive())
+                             MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
+                         return RC_ABORT;
+                     }
                  }
              }
  
@@ -2668,8 +3032,7 @@
              return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
          }
  
-         // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式，貌似没有Lock
- //        if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT || MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+         // wzy: 读写冲突检测，阻塞，成功则已切换为exclusive模式
          if(m_occManager.ValidationPhasePlor(this, local_ip_index) == RC_ABORT) {
              if (IsInteractive()) {
                  if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhasePlor() local failed tmp_csn : %s ", csn_temp.c_str());
@@ -2682,10 +3045,7 @@
          SetCommitEpoch(MOTAdaptor::GetPhysicalEpoch());         // 设置commit epoch
  //        if (!MOTAdaptor::txn_state_map_plor_.cas_element(start_time, 0, 2)) return RC_ABORT;
  
-         // TODO：无需再次检验
-         // No wait for epochs
- //        if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) rc = RC_ABORT;
-         // uint64_t pre_csn = GetCommitSequenceNumber();
+         // 无需再次检验
  
          // 更新到row header，对写集sentinel上锁
          rc = m_occManager.CommitUpdate(this, local_ip_index);       // 如果失败会自动释放锁
@@ -2702,16 +3062,14 @@
          if(rc != RC_ABORT){
              // 移动到Lock释放后，避免死锁，乐观和悲观Plor执行的同步提交，释放锁
              // rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
- 
-             if (kHotRow_Active) {
-                 auto time1 = now_to_us();
-                 rc = m_occManager.ValidateOccPlor(this);
-                 auto time2 = now_to_us();
-                 MOTAdaptor::txn_total_validate_hotOccTime.fetch_add(time2 - time1);
-                 MOTAdaptor::txn_total_validate_hotOccCnt.fetch_add(1);
-                 MOTAdaptor::txn_temp_total_validate_hotOccTime.fetch_add(time2 - time1);
-                 MOTAdaptor::txn_temp_total_validate_hotOccCnt.fetch_add(1);
-             }
+             // 对未上锁的行进行检查
+             auto time1 = now_to_us();
+             rc = m_occManager.ValidateOccPlor(this);
+             auto time2 = now_to_us();
+             MOTAdaptor::txn_total_validate_hotOccTime.fetch_add(time2 - time1);
+             MOTAdaptor::txn_total_validate_hotOccCnt.fetch_add(1);
+             MOTAdaptor::txn_temp_total_validate_hotOccTime.fetch_add(time2 - time1);
+             MOTAdaptor::txn_temp_total_validate_hotOccCnt.fetch_add(1);
          }
  
          if(rc == RC_OK){
@@ -3323,7 +3681,21 @@
          if (random() % 100 < kDelayRatio)
              usleep(kDelayTime);
      }
- 
+
+     auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+     if (is_wound_wait_enable) {
+         // 检查现在是否该中止
+         if (MOTAdaptor::wound_wait_abort_map.running_should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch())) {
+             MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+             MOT_LOG_INFO("[Wound] wound_wait_abort_map() local lock check validate failed tmp_csn : %s epoch : %llu", csn_temp.c_str(), MOTAdaptor::GetLogicalEpoch());
+             return RC_ABORT;  // 被死锁检测abort
+         }
+         if (MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)) {
+             MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+             return RC_ABORT;  // 被死锁检测abort
+         }
+     }
+
      // wzy: 对于交互型事务发送lock info并设置为lock
      if (kServerNum > 1 && IsInteractive()) {         // 单机无需发送
          if (!MOTAdaptor::InsertTxntoLocalLockInfo(this,
@@ -3336,17 +3708,24 @@
          }
      }
  
-     // wzy: 在阻塞前就更新计数器
-     auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
-     MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
+//     // wzy: 在阻塞前就更新计数器
+//     auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+//     MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
  
      // 对于交互型事务而言，只有上锁请求成功后才能返回，否则一直等待
      // 等待上一个epoch执行完成（上一个epoch本地和远端都提交）
      // ============================ 等待事务当前epoch合并 ============================
- 
+
+     int cnt = 0;
      while (GetCommitEpoch() > MOTAdaptor::GetLogicalEpoch() || !MOTAdaptor::IsLockCommitted()) {
+         if (++cnt % 1000 == 0) {
+             MOT_LOG_INFO("SendLockInfo() target epoch: %lld logical epoch: %lld IsRecordCommitted: %d", GetCommitEpoch(), MOTAdaptor::GetLogicalEpoch(),MOTAdaptor::IsRecordCommitted());
+         }
          usleep(200);
      }
+     // wzy: 在阻塞前就更新计数器
+     auto epoch_mod = GetCommitEpoch() % MOTAdaptor::max_length;
+     MOTAdaptor::IncLocalLockinfoCounters(epoch_mod, index_pack);
  
      // 本地更新上锁的metadata（插入metadata中）
      // 若table不存在在rc abort
@@ -3358,15 +3737,43 @@
      }
      // 验证自己是否获得锁
      // 没获得锁则继续等待，直到获得锁
-     auto csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
-     while (m_occManager.LockCheck(this, local_ip_index, currRow) == RC_ABORT) {
-         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
-             MOTAdaptor::LockCheck_abort_num.fetch_add(1);
-             return RC_ABORT;     // 被死锁检测abort
+
+     uint64_t abort_epoch = 0;
+     csn_temp = std::to_string(GetCommitSequenceNumber()) + ":" + std::to_string(local_ip_index);
+     while (rc != RC_ABORT && m_occManager.LockCheck(this, local_ip_index, currRow) == RC_ABORT) {
+         if (is_wound_wait_enable) {
+             // 检查现在是否该中止
+             abort_epoch = 0;
+             if (MOTAdaptor::wound_wait_abort_map.running_should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch(), abort_epoch)) {
+                 MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+                 MOT_LOG_INFO("[Wound] wound_wait_abort_map() local lock check validate failed tmp_csn : %s current_epoch : %llu", csn_temp.c_str(), MOTAdaptor::GetLogicalEpoch());
+                 return RC_ABORT;  // 被死锁检测abort
+             }
+             if (MOTAdaptor::abort_transcation_csn_set.contain(csn_temp, csn_temp)) {
+                 MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+                 return RC_ABORT;  // 被死锁检测abort
+             }
+             cnt++;
+             if (cnt % 1000 == 0) MOT_LOG_INFO("[Wait] wound_wait_abort_map() local lock check validate failed tmp_csn : %s current epoch : %llu abort epoch : %llu", csn_temp.c_str(), MOTAdaptor::GetLogicalEpoch(), abort_epoch);
+         } else {
+             if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                 MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+                 return RC_ABORT;  // 被死锁检测abort
+             }
          }
          usleep(100);
      }
-     if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) return RC_ABORT;         // 被死锁检测abort
+     if (is_wound_wait_enable) {
+         if (MOTAdaptor::wound_wait_abort_map.running_should_abort(csn_temp, MOTAdaptor::GetPhysicalEpoch())) {
+             MOT_LOG_INFO("[Wound] wound_wait_abort_map() local send lockinfo failed tmp_csn : %s current_epoch : %llu", csn_temp.c_str(), MOTAdaptor::GetLogicalEpoch());
+             MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+             return RC_ABORT;  // 被死锁检测abort
+         }
+     } else {
+         if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp))
+             MOTAdaptor::LockCheck_abort_num.fetch_add(1);
+             return RC_ABORT;  // 被死锁检测abort
+     }
      // 获得锁则直接return
      return rc;
  }

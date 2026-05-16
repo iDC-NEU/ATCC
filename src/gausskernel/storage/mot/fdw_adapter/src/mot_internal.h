@@ -53,6 +53,8 @@
  #include "neu_concurrency_tools/blockingconcurrentqueue.h"
  #include "neu_concurrency_tools/blocking_mpmc_queue.h"
  #include "neu_concurrency_tools/readerwriterqueue.h"
+// #include "neu_concurrency_tools/phmap.h"
+// #include "neu_concurrency_tools/cuckoohash_map.hh"
  #include <vector>
  #include <typeinfo>
  #include <random>
@@ -112,7 +114,8 @@
  extern void TryGetServerInfo();                    // wzy: 接收Server Info
  extern void ReGetServerInfo();                    // wzy: 接收Server Info
  extern void GetModel(int v);
- 
+
+ extern void BackgroundLogConsumer();
  extern void EpochCleanVersionThreadMain(uint64_t id);   // wzy:
  
  namespace aum {
@@ -664,7 +667,8 @@
  
      static MOT::RC SendInteractiveLockInfo(MOT::Row* currRow);  // wzy: 模拟事务执行层
      static void UnlockInteractiveLockInfo(uint64_t csn, bool abort);   // wzy: 模拟事务执行层解锁
- 
+     static void AddCsnWoundWaitAbort(std::string grant_csn, uint64_t csn, uint64_t epoch);
+
      ////////////// PLOR ///////////////
      static MOT::RC SwitchPlor();
      static MOT::RC ValidateCommitPlor();            // wzy: Plor
@@ -838,7 +842,7 @@
      static bool timerStop;
      //ADDBY NUE Concurrency
      static volatile bool remote_execed, record_committed, remote_record_committed, is_current_epoch_abort;
-     static volatile bool lock_granted, lock_execed, lock_committed, deadlock_detectted; /// wzy :lockinfo
+     static volatile bool lock_granted, lock_execed, lock_committed, deadlock_detectted, wound_wait_abort_removed; /// wzy :lockinfo
      static std::atomic<uint64_t> lock_grant_num, lock_should_grant_num;
  
      static volatile uint64_t logical_epoch;
@@ -853,7 +857,8 @@
          remote_committed_txn_counters, limite_txn_num;
  
      static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> local_lockinfo_counters, merge_lockinfo_counters, local_lockinfo_execed_counters;    /// wzy :lockinfo
-     static std::map<uint64_t, std::unique_ptr<std::vector<MOT::Row*>>> remote_row_ptr_map;
+     static std::vector<std::shared_ptr<std::vector<std::shared_ptr<std::atomic<uint64_t>>>>> wound_wait_abort_counters, wound_wait_abort_execed_counters;
+         static std::map<uint64_t, std::unique_ptr<std::vector<MOT::Row*>>> remote_row_ptr_map;
      static aum::concurrent_unordered_map<std::string, std::string, std::string> insertSet;
      static aum::concurrent_unordered_map<std::string, std::string, std::string> insertSetForCommit;
      static aum::concurrent_unordered_map<std::string, std::string, std::string> abort_transcation_csn_set;
@@ -864,6 +869,7 @@
      class WaitForGraph;
      class DynamicHotRow;
      class ActionEngine;
+     class WoundWaitAbortMap;
  
      static aum::concurrent_unordered_map<std::string, std::shared_ptr<LockRequestQueue>, std::string>
          row_lockrequest_map;
@@ -893,7 +899,8 @@
  
      static WaitForGraph wait_for_graph;
      static aum::concurrent_unordered_map<std::string, std::string, std::string> deadlock_abort_set;        // 记录由死锁检测abort的事务tid
- 
+     static WoundWaitAbortMap wound_wait_abort_map;
+
      static std::set<TransactionId> active_txn_list;     /// wzy: 活跃事务id
      static std::mutex active_txn_list_mutex;
      static std::atomic<TransactionId> min_active_txn_id;      // wzy: 最小活跃事务id
@@ -904,7 +911,9 @@
      static std::vector<std::shared_ptr<moodycamel::BlockingConcurrentQueue<std::shared_ptr<LockRequestQueue>>>> active_lock_queues;          // wzy: 分epoch记录活跃lock queue
      static std::vector<std::shared_ptr<std::unordered_set<std::string>>> active_lock_queues_set;
      static std::vector<std::mutex> active_lock_queues_mutex;
- 
+     static std::vector<std::unique_ptr<moodycamel::BlockingConcurrentQueue<std::string>>> wound_wait_abort_queue;
+     static moodycamel::BlockingConcurrentQueue<std::unique_ptr<MOT::TxnTrajectory>> GlobalLockFreeQueue;
+
      static uint64_t lock_thread_num;
      static std::vector<std::shared_ptr<std::list<std::shared_ptr<MOTAdaptor::LockRequestQueue>>>> active_lock_list;         // wzy: 用于多线程
      static std::vector<std::shared_ptr<std::unordered_map<std::shared_ptr<LockRequestQueue>, std::list<std::shared_ptr<LockRequestQueue>>::iterator>>> active_lock_list_set;
@@ -996,6 +1005,7 @@
      static std::atomic<uint64_t> LockCheck_abort_num;
      static std::atomic<uint64_t> Commit_abort_num;             // commit阶段的abort数
      static std::atomic<uint64_t> DeadLock_abort_num;
+
      static std::atomic<uint64_t> Abort_txn_num;
      static std::atomic<uint64_t> Abort_interactive_txn_num;
      static std::atomic<uint64_t> Abort_pcc_interactive_txn_num;
@@ -1007,7 +1017,14 @@
  
      static std::atomic<uint64_t> Remote_ValidateAndSetWriteForRemote_abort_num; // 远端验证abort
      static std::atomic<uint64_t> Remote_CommitCheck_abort_num; // 远端验证abort
- 
+
+     // 统计最近一段时间内的中止率、tps
+     static std::atomic<uint64_t> prev_abort_interactive_txn_num;
+     static std::atomic<uint64_t> prev_commit_txn_num;
+     static std::atomic<uint64_t> prev_time;
+     static std::atomic<double> recent_abort_rate;
+     static std::atomic<double> recent_global_tps;
+
  
      static std::atomic<uint64_t> CommitPhase_ValidateAndSetWriteForCommit_abort_num;
      static std::atomic<uint64_t> CommitPhase_IsRowAvailable_abort_num;
@@ -1056,6 +1073,7 @@
      static std::atomic<uint64_t> remote_lock_num;
      static std::atomic<uint64_t> local_unlock_num;
      static std::atomic<uint64_t> remote_unlock_num;
+     static std::atomic<uint64_t> wound_wait_abort_unlock_num;
      static std::atomic<uint64_t> send_lock_num;
      static std::atomic<uint64_t> receive_lock_num;
  
@@ -1147,34 +1165,12 @@
          }
      }
  
-     // TODO: tmp_vec->push_back(queue)并发问题
-     // wzy: 加入csn - request queue
+     // wzy: 维护csn -> row lock
      static void AddCsnRequestQueue(std::string& csn, const std::shared_ptr<MOTAdaptor::LockRequestQueue> &queue) {
- //        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> tmp_vec = nullptr;
- //        std::shared_ptr<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>> new_vec = nullptr;
- //        if (!MOTAdaptor::csn_requests_map.get_element(csn, tmp_vec) || !tmp_vec){    // 未找到则创建新lock request
- //            new_vec = std::make_shared<std::vector<std::shared_ptr<MOTAdaptor::LockRequestQueue>>>();
- //        }
- //        if(MOTAdaptor::csn_requests_map.get_or_create_queue(csn, tmp_vec, new_vec) && tmp_vec) {
- //            if (queue) tmp_vec->push_back(queue);
- //        }
- //        new_vec.reset();
- //        tmp_vec = nullptr;
- 
-         // TODO: 插入txn_rowid_map
          if (queue) txn_rowid_map.insert_vector(csn, queue->m_row_id);
- //        std::shared_ptr<std::vector<std::string>> tmp_vec_1 = nullptr;
- //        std::shared_ptr<std::vector<std::string>> new_vec_1 = nullptr;
- //        if (!MOTAdaptor::txn_rowid_map.get_element(csn, tmp_vec_1) || !tmp_vec_1){    // 未找到则创建新lock request
- //            new_vec_1 = std::make_shared<std::vector<std::string>>();
- //        }
- //        if(MOTAdaptor::txn_rowid_map.get_or_create_queue(csn, tmp_vec_1, new_vec_1) && tmp_vec_1) {
- //            if (queue) tmp_vec_1->push_back(queue->m_row_id);
- //        }
- //        new_vec_1.reset();
- //        tmp_vec_1.reset();
+
      }
- 
+
      // wzy: 移除活跃queue
      static void RemoveActiveQueue(std::shared_ptr<LockRequestQueue> &queue) {
          std::lock_guard<std::mutex> queue_lock(active_queue_list_mutex);
@@ -1189,29 +1185,26 @@
          uint64_t epoch_mod = GetLogicalEpoch() % (UINT64_MAX - 1);
          std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
          MOTAdaptor::row_lockrequest_map.get_element(rowid, tmp_queue);
-         // if (tmp_queue && !tmp_queue->available_row(rowid, csn)) return false;
-         // 已经被锁则abort
          if (cc_mode == 1) {
              if (tmp_queue && !tmp_queue->available_row(rowid, csn, res, epoch_mod)) return false;
              return MOTAdaptor::epoch_lock_set.contain_lock(rowid, csn);
-         }
-         else if (cc_mode == 2 || cc_mode == 3 || cc_mode == 4) {
+         } else if (cc_mode == 3 || cc_mode == 4) {
              if (tmp_queue && !tmp_queue->AvailableRowPlor(rowid, tid, csn, res)) return false;
              return true;
          } else if (cc_mode == 5) {
              if (tmp_queue && !tmp_queue->AvailableRowDL(rowid, tid, csn, res)) return false;
              return true;
          }
+         return true;
      }
  
      static bool IsRowAvailable(string &rowid, string &csn, string &res) {
-         uint64_t epoch_mod = GetLogicalEpoch() % (UINT64_MAX - 1);
          std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
          MOTAdaptor::row_lockrequest_map.get_element(rowid, tmp_queue);
          // if (tmp_queue && !tmp_queue->available_row(rowid, csn)) return false;
          // 已经被锁则abort
-         if (tmp_queue && !tmp_queue->available_row(rowid, csn, res, epoch_mod)) return false;
-         return MOTAdaptor::epoch_lock_set.contain_lock(rowid, csn);   
+         if (tmp_queue && !tmp_queue->available_row(rowid, csn, res, GetLogicalEpoch())) return false;
+         return true;
      }
  
      // TODO: wzy 测试
@@ -1272,6 +1265,9 @@
      // wzy:
      static bool IsLockCommitted(){ return lock_committed;}
      static void SetLockCommitted(bool value){ lock_committed = value;}
+
+     static bool IsWoundAbortRemoved(){ return wound_wait_abort_removed;}
+     static void SetWoundAbortRemoved(bool value){ wound_wait_abort_removed = value;}
  
      static bool IsRecordCommitted(){ return record_committed;}
      static void SetRecordCommitted(bool value){ record_committed = value;}
@@ -1397,6 +1393,22 @@
          uint64_t ans = 0;
          epoch_mod %= max_length;
          for(int i = 0; i < (int)pack_num; i ++) ans += (*merge_lockinfo_counters[epoch_mod])[i]->load();
+         return ans;
+     }
+
+     static uint64_t IncWoundWaitAbortCounters(uint64_t epoch_mod, uint64_t index){ return (*wound_wait_abort_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+     static uint64_t GetWoundWaitAbortCounters(uint64_t epoch_mod){
+         uint64_t ans = 0;
+         epoch_mod %= max_length;
+         for(int i = 0; i < (int)pack_num; i ++) ans += (*wound_wait_abort_counters[epoch_mod])[i]->load();
+         return ans;
+     }
+
+     static uint64_t IncWoundWaitAbortExcedCounters(uint64_t epoch_mod, uint64_t index){ return (*wound_wait_abort_execed_counters[epoch_mod % max_length])[index]->fetch_add(1);}
+     static uint64_t GetWoundWaitAbortExcedCounters(uint64_t epoch_mod){
+         uint64_t ans = 0;
+         epoch_mod %= max_length;
+         for(int i = 0; i < (int)pack_num; i ++) ans += (*wound_wait_abort_execed_counters[epoch_mod])[i]->load();
          return ans;
      }
  
@@ -1608,7 +1620,8 @@
      static bool IsCurrentEpochFinishedInteractive(uint64_t epoch) {
          usleep(200);
          bool flag = ((LoadPackedTxnNum(epoch) >= LoadShouldSendTxnNum(epoch)) &&  epoch < MOTAdaptor::GetPhysicalEpoch());
-         return flag && (LoadPackedLockinfoNum(epoch) >= LoadShouldSendLockinfoNum(epoch));
+         flag = flag && ((LoadPackedLockinfoNum(epoch) >= LoadShouldSendLockinfoNum(epoch)) && epoch < MOTAdaptor::GetPhysicalEpoch());
+         return flag;
      }
  
      static bool TryAddNum(uint64_t epoch_num, uint64_t index, uint64_t value) {
@@ -1647,6 +1660,7 @@
          insertSetForCommit.clear();
          abort_transcation_csn_set.clear();
          remote_execed = false;
+
          // wzy: lockinfo
          lock_granted = false;
          lock_execed = false;
@@ -1654,6 +1668,7 @@
          lock_grant_num.store(0);
          lock_should_grant_num.store(0);
          deadlock_detectted = true;
+         wound_wait_abort_removed = true;
          epoch_lock_set.clear();
  
          auto epoch = logical_epoch % max_length;
@@ -1696,6 +1711,8 @@
              (*packd_lockinfo_num_ptrs[epoch_mod])[i]->store(0);
              (*pack_lockinfo_num[epoch_mod])[i]->store(0);
              (*merge_lockinfo_counters[epoch_mod])[i]->store(0);
+             (*wound_wait_abort_counters[epoch_mod])[i]->store(0);
+             (*wound_wait_abort_execed_counters[epoch_mod])[i]->store(0);
          }
      }
      
@@ -1947,6 +1964,7 @@
          uint64_t score_;
          std::string tid_;  // csn + serverid
          bool exclusive_;
+         MOT::TxnManager* txMan_;
  
          std::string key_;
          std::string table_name_;
@@ -1971,6 +1989,17 @@
              score_ |= ((uint64_t)retry_cnt_ << 57);
              score_ |= (f & 0x1FFFFFFFFFFFFFFF);
          }
+
+         LockRequest(uint64_t server_id, uint64_t csn, uint64_t start_epoch, uint64_t commit_epoch, uint64_t score)
+         {
+             server_id_ = server_id;
+             csn_ = csn;
+             start_epoch_ = start_epoch;
+             commit_epoch_ = commit_epoch;
+             tid_ = to_string(csn_) + ":" + to_string(server_id_);
+             score_ = score;
+             if (cc_mode == 0 || cc_mode == 1) commit_epoch_ = 0;
+         }
  
          LockRequest(MOT::TxnManager* txMan, uint32_t server_id)
          {
@@ -1980,13 +2009,10 @@
              commit_epoch_ = txMan->GetCommitEpoch();
              tid_ = to_string(csn_) + ":" + to_string(server_id_);
              retry_cnt_ = txMan->retry_cnt;
-             uint64_t f = UINT64_MAX - csn_;
-             score_ = txMan->score_;         // test: get score from txMan
- //            score_ = (uint64_t ) retry_cnt_;
- //            score_ = 0;
- //            score_ |= ((uint64_t)retry_cnt_ << 57);
- //            score_ |= (f & 0x1FFFFFFFFFFFFFF);           // Use the lower 57 bits for (max - csn_)
+             score_ = txMan->score_;
+             txMan_ = txMan;
              exclusive_ = false;     // no use
+             if (cc_mode == 0 || cc_mode == 1) commit_epoch_ = 0;
          }
  
          LockRequest(MOT::TxnManager* txMan, uint32_t server_id, bool exclusive)
@@ -2003,6 +2029,7 @@
              score_ |= ((uint64_t)retry_cnt_ << 57);
              score_ |= (f & 0x1FFFFFFFFFFFFFF);           // Use the lower 57 bits for (max - csn_)
              exclusive_ = exclusive;
+             txMan_ = txMan;
          }
      };
  
@@ -2034,8 +2061,7 @@
          std::list<std::shared_ptr<LockRequest>> lock_request_queue_;  // ordered
          std::unordered_set<std::string> lock_request_queue_set_;        // 去重
          std::unordered_map<std::string, std::list<std::shared_ptr<LockRequest>>::iterator> lock_request_queue_map_;        // 去重
- 
- 
+
          std::condition_variable cv_;
          std::mutex latch_;          // lock queue mutex
  
@@ -2089,7 +2115,6 @@
          std::atomic<uint64_t> writer_score_{INVALID_TID};                // 写锁的score
          std::atomic<uint64_t> m_writer_score_{INVALID_TID};              // 备选写锁的score
  
- 
          /////////////// priority queue ///////////////
          std::priority_queue<WriteRequest> pq;              // 优先队列替换candidate
          std::mutex pq_latch_;
@@ -2131,6 +2156,40 @@
                  excl_sig.store(true);
                  excl_tid.store(tid);
              }
+         }
+
+         bool BoostPriority(MOT::TxnManager* txMan, uint64_t new_score, uint32_t server_id) {
+             if (txMan == nullptr) return false;
+             uint64_t tid = txMan->pre_csn;
+             bool updated = false;
+
+             std::lock_guard<std::mutex> lock(p_latch_);
+
+             // 1. 尝试在 Reader 队列中更新
+             if (reader_list_map_.count(tid)) {
+                 auto it = reader_list_map_[tid];
+                 (*it)->score_ = new_score;
+                 updated = true;
+             }
+             if (snapshot_reader_score_map_.count(tid)) {
+                 snapshot_reader_score_map_[tid] = new_score;
+                 updated = true;
+             }
+
+             // 2. 尝试在 Writer 队列中更新
+             if (writer_list_map_.count(tid)) {
+                 auto it = writer_list_map_[tid];
+                 (*it)->score_ = new_score;
+                 updated = true;
+             }
+
+             // 3. 如果该事务当前正是 Write Lock 的持有者，必须同步更新 holder 的 score
+             if (writer_.load() == tid) {
+                 writer_score_.store(new_score);
+                 m_writer_score_.store(new_score);
+                 updated = true;
+             }
+             return updated;
          }
  
          bool LockRD(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
@@ -2186,11 +2245,11 @@
  
                      if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
                          DebugMessage();
-                         //                        return false;
+                         //  return false;
                      }
                      if (now_to_us() - start_time > 3000000) return false;
                      std::this_thread::yield();
-                     lock.lock();        // test
+                     lock.lock();
                  }
              } else {
                  // wound-wait block
@@ -2198,7 +2257,7 @@
                      if (!excl_sig.load() && !IsSmallerThanWriter(tid, tid_score)) break;
                      if (excl_sig.load() && !IsSmallerThanWriter(tid, tid_score)) {
                          AbortTransactinRequest(writer_.load());
-                         break;
+                         // break;
                      }
                      if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
                          RemoveReaderRequest(tid);
@@ -2240,9 +2299,9 @@
  
              auto new_request = std::make_shared<LockRequest>(txMan, server_id);
              uint64_t tid_score = new_request->score_;
-             if (tid_score > m_writer_score_) {
-                 m_writer_ = tid;
-                 m_writer_score_ = tid_score;
+             if (!IsSmallerThanWriter(tid, tid_score)) {
+                 m_writer_.store(tid);
+                 m_writer_score_.store(tid_score);
              }
              writer_list_.push_back(new_request);
              writer_list_map_[tid] = std::prev(writer_list_.end());
@@ -2268,6 +2327,7 @@
                      if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
                          RemoveReaderRequest(tid);
                          RemoveWriterRequest(tid);
+                         lock.unlock();
                          return false;
                      }
                      lock.unlock();
@@ -2313,7 +2373,8 @@
                      // 找到最大的元素
                      auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
                      m_writer_.store((*max_element)->csn_);
-                     m_writer_score_.store((*max_element)->score_);
+                     if ((*max_element)->txMan_ != nullptr) m_writer_score_.store((*max_element)->txMan_->GetCurrentPriority());
+                    else m_writer_score_.store((*max_element)->score_);
                  }
                  writer_score_.store(m_writer_score_.load());
                  writer_.store(m_writer_.load());
@@ -2325,12 +2386,14 @@
              uint64_t tid = txMan->pre_csn;
              std::string s_tid = to_string(tid) + ":" + to_string(server_id);
              if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+
              std::unique_lock<std::mutex> lock(p_latch_);
              if (writer_.load() != tid) return false;
- 
+
              SetExcl(tid);
  
-             std::vector<uint64_t> delayed_abort_list(64);
+             std::vector<uint64_t> delayed_abort_list;
+             delayed_abort_list.reserve(64);
              std::list<uint64_t> snapshot_queue(snapshot_reader_list_);
              std::unordered_map<uint64_t, uint64_t> snapshot_score_map(snapshot_reader_score_map_);
  
@@ -2373,17 +2436,17 @@
                      }
                  }
              }
- 
+
+             //            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+             //                RemoveReaderRequest(tid);
+             //                RemoveWriterRequest(tid);
+             //                return false;
+             //            }
+
              // 对delayed list进行中止
              for (auto r : delayed_abort_list) {
                  if (reader_list_map_.count(r)) AbortTransactinRequest(r);
              }
- 
- //            if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
- //                RemoveReaderRequest(tid);
- //                RemoveWriterRequest(tid);
- //                return false;
- //            }
              return true;
          }
  
@@ -2431,6 +2494,16 @@
  
          // helper : writer > tid returns true
          bool IsSmallerThanWriter(uint64_t& tid, uint64_t& tid_score) {
+             // 从writer获取request并更新writer_score
+             auto it = writer_list_map_.find(writer_);
+             if (it != writer_list_map_.end()) {
+                 std::shared_ptr<LockRequest> writer_request = *(it->second);
+                 if (writer_request != nullptr && writer_request->txMan_ != nullptr) {
+                     uint64_t latest_score = writer_request->txMan_->GetCurrentPriority();
+                     writer_request->score_ = latest_score;
+                     writer_score_.store(latest_score);
+                 }
+             }
              if (writer_score_.load(std::memory_order_seq_cst) > tid_score) return true;
              else if (writer_score_.load(std::memory_order_seq_cst) == tid_score) {
                  if (writer_.load(std::memory_order_seq_cst) < tid) return true;
@@ -2967,8 +3040,53 @@
              }
              return res;
          }
- 
- 
+
+         //////////////// CRDT + HLock helper/////////////////
+         struct RequestComparator {
+             bool operator()(const std::shared_ptr<LockRequest>& a, const std::shared_ptr<LockRequest>& b) const {
+                 return cmp(a, b); // 使用静态 cmp 函数
+             }
+         };
+         std::set<std::shared_ptr<LockRequest>, RequestComparator> sorted_lock_request_queue_;
+         std::unordered_map<std::string, std::shared_ptr<LockRequest>> lock_request_map_;
+         std::string old_grant_csn = "";
+         uint64_t old_grant_valid_limit_ = 0;        // 旧锁在该 Epoch 之后失效 (即 valid < limit)
+
+         // Wound-Wait 调度
+         // current_sys_epoch: 当前系统执行的 Epoch，用于记录抢占发生的时间
+         void try_preempt_logic(uint64_t current_sys_epoch) {
+             if (sorted_lock_request_queue_.empty()) return;
+
+             // 获取队列中优先级最高的请求 (O(1) 操作)
+             auto best_request = *sorted_lock_request_queue_.begin();
+
+             // 优化：如果最高优先级就是当前持有者，什么都不用做 (Wait)
+             if (best_request->tid_ == grant_csn) {
+                 return;
+             }
+
+             // --- 发生抢占 (Wound) 或 首次授予 ---
+             // 如果当前有锁，且是来自之前epoch的锁，将其降级为 old_grant (平滑过渡)
+             // 如果持有者是自己同epoch的，则直接覆盖即可，毕竟没有正式生效
+             if (grant_csn != "" && epoch_ < current_sys_epoch) {
+                 // 记录被抢占的事务，通知外部它在下一 Epoch 必须死
+                 old_grant_csn = grant_csn;
+                 old_grant_valid_limit_ = current_sys_epoch;
+                 MOTAdaptor::wound_wait_abort_map.register_abort(grant_csn, current_sys_epoch);
+                 // 添加到 epoch 待处理的wound wait abort queue中，并统计数量
+//                 uint64_t epoch_mod = current_sys_epoch % max_length;
+//                 MOTAdaptor::wound_wait_abort_queue[epoch_mod]->enqueue(std::move(grant_csn));
+//                 MOTAdaptor::wound_wait_abort_queue[epoch_mod]->enqueue("");        // 防止无法取出
+//                 MOTAdaptor::IncWoundWaitAbortCounters(epoch_mod, grant_request->csn_ % kPackageNum); // 均分到其他线程
+                 MOTAdaptor::AddCsnWoundWaitAbort(grant_csn, grant_request->csn_, current_sys_epoch);
+             }
+
+             // 新王上位，在当前epoch即可生效
+             grant_csn = best_request->tid_;
+             grant_request = best_request;
+             epoch_ = current_sys_epoch;
+         }
+
          ////////////////////////////////////
          LockRequestQueue(std::string& row_id)
          {
@@ -2992,115 +3110,255 @@
          }
  
          // 优化： 实时更新grant_csn，更新为最优先的request，其他的存在queue中
-         bool lock_row_remote(std::string& row_id, uint64_t server_id, uint64_t csn, uint64_t start_epoch, uint64_t commit_epoch)
+         bool lock_row_remote(std::string& row_id, uint64_t server_id, uint64_t csn, uint64_t start_epoch, uint64_t commit_epoch, uint64_t score)
          {
-             std::lock_guard<std::mutex> lock(latch_);
-             std::string tid = to_string(csn) + ":" + to_string(server_id);
- 
-             if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
-                 // temp queue做排序，防止迭代器失效
- //                std::list<std::shared_ptr<LockRequest>> temp_list = lock_request_queue_;
- //                temp_list.sort(cmp);
- //                m_grant_request.reset();
- //                m_grant_request = temp_list.front();
- //                m_grant_csn = m_grant_request->tid_;
- 
-                 // 找到最早的元素
-                 auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
-                 m_grant_request.reset();
-                 m_grant_request = *max_element;
-                 m_grant_csn = m_grant_request->tid_;
+             if (!is_wound_wait_enable) {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 std::string tid = to_string(csn) + ":" + to_string(server_id);
+
+                 if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
+                     // temp queue做排序，防止迭代器失效
+                     //                std::list<std::shared_ptr<LockRequest>> temp_list = lock_request_queue_;
+                     //                temp_list.sort(cmp);
+                     //                m_grant_request.reset();
+                     //                m_grant_request = temp_list.front();
+                     //                m_grant_csn = m_grant_request->tid_;
+
+                     // 找到最早的元素
+                     auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                     m_grant_request.reset();
+                     m_grant_request = *max_element;
+                     m_grant_csn = m_grant_request->tid_;
+                 }
+                 if (grant_csn == tid)
+                     return false;
+                 if (lock_request_queue_map_.count(tid))
+                     return false;  // 重复则不管
+
+                 auto new_request = std::make_shared<LockRequest>(server_id, csn, start_epoch, commit_epoch);
+                 if (cmp(new_request, m_grant_request)) {
+                     m_grant_csn = tid;
+                     m_grant_request.reset();
+                     m_grant_request = new_request;
+                 }
+                 lock_request_queue_.push_back(new_request);
+                 lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());  // 插入迭代器
+                 request_num.fetch_add(1);
+
+                 if (grant_csn != "")
+                     MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);  // 添加边
+                 return true;
+             } else {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 std::string tid = std::to_string(csn) + ":" + std::to_string(server_id);
+                 if (lock_request_map_.count(tid)) return false;        // 重复则不管
+
+                 // 创建请求
+                 auto new_request = std::make_shared<LockRequest>(server_id, csn, start_epoch, commit_epoch, score);
+                 new_request->tid_ = tid; // 确保 TID 被设置
+
+                 // 入队 (O(log N))
+                 sorted_lock_request_queue_.insert(new_request);
+                 lock_request_map_[tid] = new_request;
+                 request_num.fetch_add(1);
+
+                 // 核心优化2：触发抢占检查 (无需全量排序，O(1) 获取最大值)
+                 // 注意：这里传入的 epoch 应该是当前系统正在推进的逻辑 epoch
+                 try_preempt_logic(GetLogicalEpoch());
+                 return true;
              }
-             if (grant_csn == tid) return false;
-             if (lock_request_queue_map_.count(tid)) return false;           // 重复则不管
- 
-             auto new_request = std::make_shared<LockRequest>(server_id, csn, start_epoch, commit_epoch);
-             if (cmp(new_request, m_grant_request)) {
-                 m_grant_csn = tid;
-                 m_grant_request.reset();
-                 m_grant_request = new_request;
-             }
-             lock_request_queue_.push_back(new_request);
-             lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());        // 插入迭代器
-             request_num.fetch_add(1);
- 
-             if (grant_csn != "") MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);      // 添加边
- 
-             return true;
          }
  
          // 优化：实时更新grant_csn，更新为最优先的request，其他的存在queue中
          bool lock_row_local(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id)
          {
-             std::string tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
-             std::lock_guard<std::mutex> lock(latch_);
- 
-             if (m_grant_csn.empty() && !lock_request_queue_.empty()) {  // 如果队里有request，则取第一个作为grant
-                 // temp queue做排序，防止迭代器失效
-                 // 找到最早的元素
-                 auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
-                 m_grant_request.reset();
-                 m_grant_request = *max_element;
-                 m_grant_csn = m_grant_request->tid_;
+             if (!is_wound_wait_enable) {
+                 std::string tid = to_string(txMan->GetCommitSequenceNumber()) + ":" + to_string(server_id);
+                 std::lock_guard<std::mutex> lock(latch_);
+
+                 if (m_grant_csn.empty() && !lock_request_queue_.empty()) {  // 如果队里有request，则取第一个作为grant
+                     // temp queue做排序，防止迭代器失效
+                     // 找到最早的元素
+                     auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
+                     m_grant_request.reset();
+                     m_grant_request = *max_element;
+                     m_grant_csn = m_grant_request->tid_;  // 备选grant_csn
+                 }
+                 if (grant_csn == tid)
+                     return true;
+                 if (lock_request_queue_map_.count(tid))
+                     return false;  // 重复则不管
+
+                 auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+                 if (cmp(new_request, m_grant_request)) {
+                     m_grant_csn = tid;
+                     m_grant_request.reset();
+                     m_grant_request = new_request;
+                 }
+                 lock_request_queue_.push_back(new_request);
+                 lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());  // 插入迭代器
+
+                 request_num.fetch_add(1);
+                 if (grant_csn != "")
+                     MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);  // 添加边
+
+                 return true;
+             } else {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 std::string tid = std::to_string(txMan->GetCommitSequenceNumber()) + ":" + std::to_string(server_id);
+
+                 if (lock_request_map_.count(tid)) return true;
+
+                 auto new_request = std::make_shared<LockRequest>(txMan, server_id);
+                 new_request->tid_ = tid;
+
+                 // 入队
+                 sorted_lock_request_queue_.insert(new_request);
+                 lock_request_map_[tid] = new_request;
+                 request_num.fetch_add(1);
+
+                 // 尝试抢占
+                 try_preempt_logic(GetLogicalEpoch());
+                 return true;
              }
-             if (grant_csn == tid) return false;
-             if (lock_request_queue_map_.count(tid)) return false;           // 重复则不管
- 
-             auto new_request = std::make_shared<LockRequest>(txMan, server_id);
-             if (cmp(new_request, m_grant_request)) {
-                 m_grant_csn = tid;
-                 m_grant_request.reset();
-                 m_grant_request = new_request;
-             }
-             lock_request_queue_.push_back(new_request);
-             lock_request_queue_map_[tid] = std::prev(lock_request_queue_.end());        // 插入迭代器
- 
-             request_num.fetch_add(1);
-             if (grant_csn != "") MOTAdaptor::wait_for_graph.addEdge(tid, grant_csn);      // 添加边
- 
-             return true;
          }
- 
+
+         // 用于在执行中判断是否获取锁
          bool get_grant_csn(std::string& tid)
          {
-             std::lock_guard<std::mutex> lock(latch_);
-             tid = grant_csn;
-             return !lock_request_queue_.empty();
+             if (!is_wound_wait_enable) {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 tid = grant_csn;
+                 return !lock_request_queue_.empty();
+             } else {
+                 uint64_t check_epoch = GetLogicalEpoch();
+                 std::lock_guard<std::mutex> lock(latch_);
+
+                 // 只有当锁的生效 Epoch <= 当前检查 Epoch 时，才视为锁已生效
+                 // 否则，即使 grant_csn 是自己，也还处于“预定但未生效”状态
+                 // <= old_grant_valid_limit_, old_grant生效，且old_grant_valid_limit_只有在commit时有用
+                 // >= epoch_, grant_csn生效
+                 if (epoch_ <= check_epoch) {
+                     tid = grant_csn;
+                 } else if (check_epoch <= old_grant_valid_limit_) {
+                     tid = old_grant_csn;
+                 } else {
+                     tid = "";
+                 }
+
+                 // 只要队列不为空，就返回 true，表示有锁竞争
+                 return !sorted_lock_request_queue_.empty();
+             }
          }
- 
+
+         // 用于在执行中判断是否获取锁
+         bool get_grant_csn(std::string& tid, std::string& res_tid)
+         {
+             if (!is_wound_wait_enable) {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 tid = grant_csn;
+                 return !lock_request_queue_.empty();
+             } else {
+                 uint64_t check_epoch = GetLogicalEpoch();
+                 std::lock_guard<std::mutex> lock(latch_);
+
+                 // 只有当锁的生效 Epoch <= 当前检查 Epoch 时，才视为锁已生效
+                 // 否则，即使 grant_csn 是自己，也还处于“预定但未生效”状态
+                 // <= old_grant_valid_limit_, old_grant生效，且old_grant_valid_limit_只有在commit时有用
+                 // >= epoch_, grant_csn生效
+                 if (epoch_ <= check_epoch) {
+                     res_tid = grant_csn;
+                 } else if (check_epoch <= old_grant_valid_limit_) {
+                     res_tid = old_grant_csn;
+                 } else {
+                     res_tid = "";
+                 }
+
+                 // 只要当前事务请求还存在，就返回 true，否则代表事务被中止了
+                 return lock_request_map_.count(tid) != 0;
+             }
+         }
+
          bool unlock_row(std::string& row_id, std::string& tid, std::string& res_tid)
          {
-             std::lock_guard<std::mutex> lock(latch_);
-             if (grant_csn == "" || grant_csn != tid) {
-                 res_tid = grant_csn;
-                 if (tid == m_grant_csn) {
-                     m_grant_csn = "";
-                     m_grant_request.reset();
+             if (!is_wound_wait_enable) {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 if (grant_csn == "" || grant_csn != tid) {
+                     res_tid = grant_csn;
+                     if (tid == m_grant_csn) {
+                         m_grant_csn = "";
+                         m_grant_request.reset();
+                     }
+                     auto iter = lock_request_queue_map_.find(tid);
+                     if (iter != lock_request_queue_map_.end()) {
+                         lock_request_queue_.erase(iter->second);
+                         lock_request_queue_map_.erase(iter);
+                         request_num.fetch_sub(1);
+                     }
+                     return false;  // 同一事务不同操作解锁同一行，可能遇到该情况
+                 } else {
+                     grant_csn = "";
+                     // MOTAdaptor::epoch_lock_set.insert(row_id, tid);  // 先插入当前epoch有锁集
+                     auto iter = lock_request_queue_map_.find(tid);
+                     if (iter != lock_request_queue_map_.end()) {
+                         lock_request_queue_.erase(iter->second);
+                         lock_request_queue_map_.erase(iter);
+                         request_num.fetch_sub(1);
+                     }
+                     grant_request.reset();
+                     if (tid == m_grant_csn) {
+                         m_grant_csn = "";
+                         m_grant_request.reset();
+                     }
+                     // 消除生效epoch
+                     epoch_ = UINT64_MAX;
+                     return true;
                  }
-                 auto iter = lock_request_queue_map_.find(tid);
-                 if (iter != lock_request_queue_map_.end()) {
-                     lock_request_queue_.erase(iter->second);
-                     lock_request_queue_map_.erase(iter);
-                     request_num.fetch_sub(1);
-                 }
-                 return false;     // 同一事务不同操作解锁同一行，可能遇到该情况
              } else {
-                 grant_csn = "";
-                 MOTAdaptor::epoch_lock_set.insert(row_id, tid);     // 先插入当前epoch有锁集
-                 auto iter = lock_request_queue_map_.find(tid);
-                 if (iter != lock_request_queue_map_.end()) {
-                     lock_request_queue_.erase(iter->second);
-                     lock_request_queue_map_.erase(iter);
-                     request_num.fetch_sub(1);
-                 }
-                 grant_request.reset();
-                 if (tid == m_grant_csn) {
-                     m_grant_csn = "";
-                     m_grant_request.reset();
-                 }
-                 // 消除生效epoch
-                 epoch_ = UINT64_MAX;
-                 return true;
+                     std::lock_guard<std::mutex> lock(latch_);
+
+                     bool is_current = (grant_csn == tid);
+                     bool is_old = (old_grant_csn == tid);
+
+                     // 如果既不是新王也不是旧王，说明只是个在队列里陪跑的，直接删
+                     if (!is_current && !is_old) {
+                         if (grant_csn != "") res_tid = grant_csn;
+                         else if (old_grant_csn != "") res_tid = old_grant_csn;
+
+                         // 物理移除
+                         auto it = lock_request_map_.find(tid);
+                         if (it != lock_request_map_.end()) {
+                             sorted_lock_request_queue_.erase(it->second);
+                             lock_request_map_.erase(it);
+                             request_num.fetch_sub(1);
+                         }
+                         return false;
+                     }
+
+                     // 记录历史
+//                     MOTAdaptor::epoch_lock_set.insert(row_id, tid);
+
+                     // 物理移除
+                     auto it = lock_request_map_.find(tid);
+                     if (it != lock_request_map_.end()) {
+                         sorted_lock_request_queue_.erase(it->second);
+                         lock_request_map_.erase(it);
+                         request_num.fetch_sub(1);
+                     }
+
+                     if (is_current) {
+                         grant_csn = "";
+                         grant_request.reset();
+                         epoch_ = UINT64_MAX; // 清除生效 epoch
+                     }
+
+                     if (is_old) {
+                         old_grant_csn = "";
+                         old_grant_valid_limit_ = 0;
+                     }
+
+                     try_preempt_logic(GetLogicalEpoch());
+                     return true;
              }
          }
  
@@ -3120,20 +3378,47 @@
          }
  
          // 带有epoch判断锁是否生效，返回false，则当前上锁的事务从tid返回
-         bool available_row(std::string& row_id, std::string& tid, std::string& res, uint64_t epoch)
+         bool available_row(std::string& row_id, std::string& tid, std::string& res_tid, uint64_t check_epoch)
          {
-             std::lock_guard<std::mutex> lock(latch_);
-             bool result = false;
-             if (epoch <= epoch_) return true;
-             if (lock_request_queue_.size() <= 0)
-                 return true;
-             if (grant_csn == "" || grant_csn == tid) {
-                 return true;
+             if (!is_wound_wait_enable) {
+                 std::lock_guard<std::mutex> lock(latch_);
+                 bool result = false;
+                 if (check_epoch <= epoch_)
+                     return true;
+                 if (lock_request_queue_.size() <= 0)
+                     return true;
+                 if (grant_csn == "" || grant_csn == tid) {
+                     return true;
+                 } else {
+                     res_tid = grant_csn;
+                     result = false;
+                 }
+                 return result;
              } else {
-                 res = grant_csn;
-                 result = false;
+                 std::lock_guard<std::mutex> lock(latch_);
+                 // commit时才调用
+                 // <= old_grant_valid_limit_, old_grant生效，且old_grant_valid_limit_只有在commit时有用
+                 // >= epoch_, grant_csn生效
+
+                 // 1. 检查新王 (Current Owner)
+                 // 如果 check_epoch 已经到了新锁生效的时间，且持有者不是我 -> 冲突
+                 if (grant_csn != "" && check_epoch > epoch_) {
+                     if (grant_csn != tid) {
+                         res_tid = grant_csn;
+                         return false;
+                     }
+                 }
+
+                 // 2. 检查旧王 (Old Owner)
+                 // 如果旧锁还未过期 (check_epoch < limit)，且持有者不是我 -> 冲突
+                 if (old_grant_csn != "" && check_epoch <= old_grant_valid_limit_) {
+                     if (old_grant_csn != tid) {
+                         res_tid = old_grant_csn;
+                         return false;
+                     }
+                 }
+                 return true;
              }
-             return result;
          }
  
          // 当前行是否被上锁
@@ -3186,24 +3471,22 @@
  
          static bool cmp(const std::shared_ptr<LockRequest> a, const std::shared_ptr<LockRequest> b)
          {
-             // 排序
-             if(b == nullptr) return true;
+             if (!a || !b) {
+                 return a != nullptr && b == nullptr;
+             }
              bool bigger = false;
-             if (a->score_ > b->score_) {
-                 bigger = true;
-             } else if (a->commit_epoch_ < b->commit_epoch_) {     // a->commit_epoch_ > b->commit_epoch_
-                 bigger = true;
-             } else if (a->commit_epoch_ == b->commit_epoch_) {
-                 if (a->start_epoch_ > b->start_epoch_) {
-                     bigger = true;
-                 } else if (a->start_epoch_ == b->start_epoch_) {
-                     if (a->csn_ < b->csn_) {
-                         bigger = true;
-                     } else if (a->csn_ == b->csn_) {
-                         if (a->server_id_ < b->server_id_)
-                             bigger = true;
-                     }
-                 }
+             if (a->score_ != b->score_) {
+                 bigger = a->score_ > b->score_;
+             } else if (a->commit_epoch_ != b->commit_epoch_) {     // a->commit_epoch_ > b->commit_epoch_
+                 bigger = a->commit_epoch_ < b->commit_epoch_;
+             } else if (a->start_epoch_ != b->start_epoch_) {
+                 bigger = a->start_epoch_ > b->start_epoch_;
+             } else if (a->csn_ != b->csn_) {
+                 bigger = a->csn_ < b->csn_;
+             } else if (a->server_id_ != b->server_id_) {
+                 bigger = a->server_id_ < b->server_id_;
+             } else {
+                 bigger = a->tid_ < b->tid_;
              }
              return bigger;
          }
@@ -3231,7 +3514,8 @@
          {
              std::lock_guard<std::mutex> lock(latch_);
              // 锁未释放，或者没有剩余request则返回
-             if ((grant_csn != "") || (grant_csn == "" && m_grant_csn == "" && lock_request_queue_.size() <= 0)) return false;
+             if (grant_csn == "" && m_grant_csn == "" && lock_request_queue_.size() <= 0) return false;
+             if (grant_csn != "" && lock_request_queue_.size() > 1) return true;
              if (m_grant_csn == "" && lock_request_queue_.size() > 0) {  // 如果队里有request，则取第一个作为grant
                  // 找到最大的元素
                  auto max_element = std::max_element(lock_request_queue_.begin(), lock_request_queue_.end(), cmp);
@@ -3394,7 +3678,105 @@
              lock.unlock();
          }
      };
- 
+
+     class WoundWaitAbortMap {
+     public:
+         WoundWaitAbortMap() : shards_(kNumShards) {}
+         // 逻辑：
+         // 1. 如果 tid 不存在 -> 插入 invalid_epoch
+         // 2. 如果 tid 已存在 -> 不做更新
+         void register_abort(const std::string& tid, uint64_t invalid_epoch) {
+             // try_emplace 是原子的且线程安全的 (针对分片加锁)
+             // 返回 pair<iterator, bool>，bool 为 true 表示插入成功
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             shard.map.insert({tid, invalid_epoch});
+         }
+
+         // 检查事务在当前 epoch 是否应该存活
+         bool should_abort(const std::string& tid, uint64_t current_epoch) {
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             auto it = shard.map.find(tid);
+             if (it!= shard.map.end()) {
+                 // 找到了死期记录，检查当前时间是否已过死期
+                 return current_epoch > it->second;
+             }
+             return false;
+         }
+
+         bool should_abort(const std::string& tid, uint64_t current_epoch, uint64_t& abort_epoch) {
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             auto it = shard.map.find(tid);
+             if (it!= shard.map.end()) {
+                 // 找到了死期记录，检查当前时间是否已过死期
+                 abort_epoch = it->second;
+                 return current_epoch > it->second;
+             }
+             abort_epoch = 0;
+             return false;
+         }
+
+         bool running_should_abort(const std::string& tid, uint64_t current_epoch, uint64_t& abort_epoch) {
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             auto it = shard.map.find(tid);
+             if (it!= shard.map.end()) {
+                 // 找到了死期记录，检查当前时间是否已过死期
+                 abort_epoch = it->second;
+                 return current_epoch >= it->second;
+             }
+             abort_epoch = 0;
+             return false;
+         }
+
+         bool running_should_abort(const std::string& tid, uint64_t current_epoch) {
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             auto it = shard.map.find(tid);
+             if (it!= shard.map.end()) {
+                 return current_epoch >= it->second;
+             }
+             return false;
+         }
+
+
+         // 事务结束时清理
+         void clear_tid(const std::string& tid) {
+             size_t idx = get_shard_idx(tid);
+             Shard& shard = shards_[idx];
+
+             std::lock_guard<std::mutex> lock(shard.mtx);
+             shard.map.erase(tid);
+         }
+
+     private:
+         static const size_t kNumShards = 64;
+         struct alignas(64) Shard { // C++11 对齐语法，防止伪共享
+             std::mutex mtx;
+             // 使用标准 map，如果追求极致性能，未来可替换为 emhash 或 robin_map
+             std::unordered_map<std::string, uint64_t> map;
+        };
+
+         // 使用 vector 存储分片指针，避免 realloc 导致的锁移动问题
+         std::vector<Shard> shards_;
+
+         // 哈希函数
+         size_t get_shard_idx(const std::string& key) const {
+             return std::hash<std::string>{}(key) % kNumShards;
+         }
+     };
+
      // wzy: 等待图
      class WaitForGraph {
          ////////////// Spin lock//////////////
@@ -3556,7 +3938,6 @@
          }
  
          void removeNode(const std::string& node) {
- //            p_lock();
              std::lock_guard<std::mutex> graph_lock(mutex);
              if (vertex_set.count(node)) vertex_num.fetch_sub(1);
              vertex.remove(node);
@@ -3571,7 +3952,6 @@
                  graph_set[u].erase(node);
              }
              modify.store(true);
- //            p_unlock();
          }
  
          // 只删除所有以 from 为起点的边（用于锁释放或放弃时清理自己的出边）
@@ -3891,17 +4271,25 @@
          uint64_t maxSize_;
          uint64_t freq_;         // 每n个epoch选出大于freq的row作为hot rows
          uint64_t epoch_;
- 
+         uint64_t times_;
+
+         // ================= [新增滑动窗口需要的状态变量] =================
+         std::vector<std::unordered_map<std::string, uint64_t>> history_freqs_;
+         const int WINDOW_SIZE = 10;
+
          DynamicHotRow() {
              maxSize_ = 100;
              freq_ = kHotRowsFreq;
              epoch_ = 1;
+             times_ = 0;
              visits_num = 0;
              hot_rows_visit_num = 0;
              hot_rows_set_.reserve(2);
              for(int i = 0; i < 2; i ++) {
                  hot_rows_set_.emplace_back(std::make_shared<std::unordered_set<std::string>>());
              }
+             // 初始化滑动窗口
+             history_freqs_.resize(WINDOW_SIZE);
          }
  
          DynamicHotRow(uint64_t maxSize, uint64_t freq) {
@@ -3911,6 +4299,8 @@
              for(int i = 0; i < 2; i ++) {
                  hot_rows_set_.emplace_back(std::make_shared<std::unordered_set<std::string>>());
              }
+             // 初始化滑动窗口
+             history_freqs_.resize(WINDOW_SIZE);
          }
  
          // 增加访问数 table + rowId
@@ -3922,13 +4312,55 @@
                  active_rows.push_back(rowId);
              }
          }
- 
-         // 按照固定次数选举hot rows
+
          void get_hot_rows_by_freq() {
+             std::unordered_map<std::string, uint64_t> current_epoch_freq;
+
+             // 1. 极小化临界区：只负责拷贝当前 epoch 的数据，并立即清空以便 worker 线程继续工作
+             {
+                 std::lock_guard<std::mutex> lock(active_rows_mutex);
+                 for (std::string& r : active_rows) {
+                     uint64_t f = 0;
+                     row_freq_map_.get_element(r, f);
+                     current_epoch_freq[r] = f;
+                 }
+                 // 每 1 个 epoch 都会清空当前累加器，把负担交给滑动窗口
+                 row_freq_map_.clear();
+                 active_rows.clear();
+             } // 释放 active_rows_mutex，此时 Worker 线程可以无阻塞地继续执行 visit_row
+
+             // 2. 滑动窗口聚合计算 (独立加锁)
+             std::unique_lock<std::mutex> hot_lock(hot_rows_mutex_);
+             uint64_t tmp_epoch = (epoch_ + 1) % 2;      // 更新到下一轮
+
+             // 将刚结束的 epoch 数据放入环形缓冲区
+             history_freqs_[tmp_epoch] = std::move(current_epoch_freq);
+
+             // 汇总过去 10 个 epoch 的总访问量
+             std::unordered_map<std::string, uint64_t> sliding_window_total;
+             for (int i = 0; i < WINDOW_SIZE; ++i) {
+                 for (const auto& pair : history_freqs_[i]) {
+                     sliding_window_total[pair.first] += pair.second;
+                 }
+             }
+
+             // 3. 选举新一轮 Hot Rows
+             hot_rows_set_[tmp_epoch]->clear();
+             for (const auto& pair : sliding_window_total) {
+                 if (pair.second >= freq_) {
+                     hot_rows_set_[tmp_epoch]->insert(pair.first);
+                 }
+             }
+
+             times_++;
+             epoch_ = tmp_epoch;
+         }
+
+         // 按照固定次数选举hot rows
+         void get_hot_rows_by_freq0() {
              std::lock_guard<std::mutex> lock(active_rows_mutex);
              std::unique_lock<std::mutex> hot_lock(hot_rows_mutex_);
              uint64_t tmp_epoch = (epoch_ + 1) % 2;     // 更新到下一轮
-             // TODO: 如果会继承上一批的热点数据呢
  //            hot_rows_set_[tmp_epoch]->clear();      // 清空内容
              uint64_t f = 0;
              for (std::string r : active_rows) {
@@ -3937,13 +4369,16 @@
                      hot_rows_set_[tmp_epoch]->insert(r);
                  }
              }
-             // active row 和 freq map 清空
-             row_freq_map_.clear();
-             active_rows.clear();
+             times_++;
+             if (times_ % 10 == 0) {        // 每k秒统计一次hot，每k*10秒清空一次
+                 // active row 和 freq map 清空
+                 row_freq_map_.clear();
+                 active_rows.clear();
+             }
              epoch_ = tmp_epoch;
          }
- 
-         // TODO: 堆排序百分比
+
+         // 堆排序百分比
          void get_hot_rows_by_percent() {
          }
  

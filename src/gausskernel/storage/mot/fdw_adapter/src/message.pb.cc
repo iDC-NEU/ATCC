@@ -669,6 +669,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_message_2eproto::offsets[] PRO
   PROTOBUF_FIELD_OFFSET(::merge::Transaction, txnid_),
   PROTOBUF_FIELD_OFFSET(::merge::Transaction, isinteractive_),
   PROTOBUF_FIELD_OFFSET(::merge::Transaction, lockinfocount_),
+  PROTOBUF_FIELD_OFFSET(::merge::Transaction, isabort_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo_Row, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -689,6 +690,7 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_message_2eproto::offsets[] PRO
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, csn_),
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, server_id_),
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, txnid_),
+  PROTOBUF_FIELD_OFFSET(::merge::LockInfo, score_),
   PROTOBUF_FIELD_OFFSET(::merge::LockInfo, islock_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::merge::RLTraj_State, _internal_metadata_),
@@ -910,33 +912,33 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOB
   { 0, -1, sizeof(::merge::Transaction_Row_Column)},
   { 7, -1, sizeof(::merge::Transaction_Row)},
   { 18, -1, sizeof(::merge::Transaction)},
-  { 31, -1, sizeof(::merge::LockInfo_Row)},
-  { 40, -1, sizeof(::merge::LockInfo)},
-  { 52, -1, sizeof(::merge::RLTraj_State)},
-  { 64, -1, sizeof(::merge::RLTraj)},
-  { 71, -1, sizeof(::merge::Message)},
-  { 82, -1, sizeof(::merge::Request)},
-  { 98, -1, sizeof(::merge::Ping)},
-  { 105, -1, sizeof(::merge::Signal)},
-  { 111, -1, sizeof(::merge::LookupMasterRequest)},
-  { 118, -1, sizeof(::merge::ForwardEpochRequest)},
-  { 126, -1, sizeof(::merge::EpochReplicationAck)},
-  { 132, -1, sizeof(::merge::RaftPropose)},
-  { 138, -1, sizeof(::merge::RaftAcceptRequest)},
-  { 146, -1, sizeof(::merge::RaftCommitRequest)},
-  { 154, -1, sizeof(::merge::StatsRequest)},
-  { 162, -1, sizeof(::merge::ChangeServerStateRequest)},
-  { 173, -1, sizeof(::merge::Response)},
-  { 185, -1, sizeof(::merge::Pong)},
-  { 194, -1, sizeof(::merge::MasterMetadata)},
-  { 201, -1, sizeof(::merge::KeyMasterMetadata)},
-  { 208, -1, sizeof(::merge::LookupMasterResponse)},
-  { 215, -1, sizeof(::merge::RaftAcceptResponse)},
-  { 224, -1, sizeof(::merge::RaftCommitResponse)},
-  { 233, -1, sizeof(::merge::StatsResponse)},
-  { 241, -1, sizeof(::merge::ChangeServerStateResponse)},
-  { 251, -1, sizeof(::merge::ServerMessage_Msg)},
-  { 258, -1, sizeof(::merge::ServerMessage)},
+  { 32, -1, sizeof(::merge::LockInfo_Row)},
+  { 41, -1, sizeof(::merge::LockInfo)},
+  { 54, -1, sizeof(::merge::RLTraj_State)},
+  { 66, -1, sizeof(::merge::RLTraj)},
+  { 73, -1, sizeof(::merge::Message)},
+  { 84, -1, sizeof(::merge::Request)},
+  { 100, -1, sizeof(::merge::Ping)},
+  { 107, -1, sizeof(::merge::Signal)},
+  { 113, -1, sizeof(::merge::LookupMasterRequest)},
+  { 120, -1, sizeof(::merge::ForwardEpochRequest)},
+  { 128, -1, sizeof(::merge::EpochReplicationAck)},
+  { 134, -1, sizeof(::merge::RaftPropose)},
+  { 140, -1, sizeof(::merge::RaftAcceptRequest)},
+  { 148, -1, sizeof(::merge::RaftCommitRequest)},
+  { 156, -1, sizeof(::merge::StatsRequest)},
+  { 164, -1, sizeof(::merge::ChangeServerStateRequest)},
+  { 175, -1, sizeof(::merge::Response)},
+  { 187, -1, sizeof(::merge::Pong)},
+  { 196, -1, sizeof(::merge::MasterMetadata)},
+  { 203, -1, sizeof(::merge::KeyMasterMetadata)},
+  { 210, -1, sizeof(::merge::LookupMasterResponse)},
+  { 217, -1, sizeof(::merge::RaftAcceptResponse)},
+  { 226, -1, sizeof(::merge::RaftCommitResponse)},
+  { 235, -1, sizeof(::merge::StatsResponse)},
+  { 243, -1, sizeof(::merge::ChangeServerStateResponse)},
+  { 253, -1, sizeof(::merge::ServerMessage_Msg)},
+  { 260, -1, sizeof(::merge::ServerMessage)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -973,85 +975,86 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
 };
 
 const char descriptor_table_protodef_message_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\rmessage.proto\022\005merge\"\352\002\n\013Transaction\022#"
+  "\n\rmessage.proto\022\005merge\"\373\002\n\013Transaction\022#"
   "\n\003row\030\001 \003(\0132\026.merge.Transaction.Row\022\022\n\nS"
   "tartEpoch\030\002 \001(\004\022\023\n\013CommitEpoch\030\003 \001(\004\022\013\n\003"
   "CSN\030\004 \001(\004\022\021\n\tserver_id\030\005 \001(\004\022\r\n\005txnid\030\006 "
   "\001(\004\022\025\n\risInteractive\030\007 \001(\010\022\025\n\rlockInfoCo"
-  "unt\030\010 \001(\004\032\257\001\n\003Row\022\021\n\ttableName\030\001 \001(\t\022\013\n\003"
-  "key\030\002 \001(\014\022\014\n\004type\030\003 \001(\r\022-\n\006column\030\004 \003(\0132"
-  "\035.merge.Transaction.Row.Column\022\014\n\004data\030\005"
-  " \001(\014\022\030\n\020isInteractiveRow\030\006 \001(\010\032#\n\006Column"
-  "\022\n\n\002id\030\001 \001(\004\022\r\n\005value\030\002 \001(\014\"\327\001\n\010LockInfo"
-  "\022 \n\003row\030\001 \003(\0132\023.merge.LockInfo.Row\022\022\n\nSt"
-  "artEpoch\030\002 \001(\004\022\023\n\013CommitEpoch\030\003 \001(\004\022\013\n\003C"
-  "SN\030\004 \001(\004\022\021\n\tserver_id\030\005 \001(\004\022\r\n\005txnid\030\006 \001"
-  "(\004\022\016\n\006isLock\030\007 \001(\010\032A\n\003Row\022\021\n\ttableName\030\001"
-  " \001(\t\022\013\n\003key\030\002 \001(\014\022\014\n\004type\030\003 \001(\r\022\014\n\004data\030"
-  "\004 \001(\014\"\315\001\n\006RLTraj\022\"\n\005state\030\001 \003(\0132\023.merge."
-  "RLTraj.State\022\017\n\007session\030\002 \001(\004\032\215\001\n\005State\022"
-  "\021\n\ttxn_state\030\001 \001(\005\022\017\n\007latency\030\002 \001(\004\022\021\n\tr"
-  "ead_size\030\003 \001(\005\022\022\n\nwrite_size\030\004 \001(\005\022\023\n\013ho"
-  "t_visited\030\005 \001(\005\022\021\n\tretry_cnt\030\006 \001(\005\022\021\n\tcc"
-  "_option\030\007 \001(\005\"\302\001\n\007Message\022!\n\007request\030\001 \001"
-  "(\0132\016.merge.RequestH\000\022#\n\010response\030\002 \001(\0132\017"
-  ".merge.ResponseH\000\022!\n\003txn\030\003 \001(\0132\022.merge.T"
-  "ransactionH\000\022#\n\010lockinfo\030\004 \001(\0132\017.merge.L"
-  "ockInfoH\000\022\037\n\006rltraj\030\005 \001(\0132\r.merge.RLTraj"
-  "H\000B\006\n\004type\"\352\003\n\007Request\022\033\n\004ping\030\001 \001(\0132\013.m"
-  "erge.PingH\000\022\037\n\006signal\030\002 \001(\0132\r.merge.Sign"
-  "alH\000\0223\n\rlookup_master\030\003 \001(\0132\032.merge.Look"
-  "upMasterRequestH\000\0223\n\rforward_epoch\030\004 \001(\013"
-  "2\032.merge.ForwardEpochRequestH\000\022;\n\025epoch_"
-  "replication_ack\030\005 \001(\0132\032.merge.EpochRepli"
-  "cationAckH\000\022*\n\014raft_propose\030\006 \001(\0132\022.merg"
-  "e.RaftProposeH\000\022/\n\013raft_accept\030\007 \001(\0132\030.m"
-  "erge.RaftAcceptRequestH\000\022/\n\013raft_commit\030"
-  "\010 \001(\0132\030.merge.RaftCommitRequestH\000\022$\n\005sta"
-  "ts\030\t \001(\0132\023.merge.StatsRequestH\000\022>\n\023chang"
-  "e_server_state\030\n \001(\0132\037.merge.ChangeServe"
-  "rStateRequestH\000B\006\n\004type\" \n\004Ping\022\014\n\004from\030"
-  "\001 \001(\005\022\n\n\002to\030\002 \001(\005\"\026\n\006Signal\022\014\n\004from\030\001 \001("
-  "\005\"4\n\023LookupMasterRequest\022\017\n\007txn_ids\030\001 \003("
-  "\004\022\014\n\004keys\030\002 \003(\014\"A\n\023ForwardEpochRequest\022\014"
-  "\n\004from\030\001 \001(\005\022\n\n\002to\030\002 \001(\005\022\020\n\010epoch_id\030\003 \001"
-  "(\004\"\'\n\023EpochReplicationAck\022\020\n\010epoch_id\030\001 "
-  "\001(\004\"\034\n\013RaftPropose\022\r\n\005value\030\001 \001(\004\"\?\n\021Raf"
-  "tAcceptRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r"
-  "\022\020\n\010epoch_id\030\003 \001(\004\"\?\n\021RaftCommitRequest\022"
+  "unt\030\010 \001(\004\022\017\n\007isAbort\030\t \001(\010\032\257\001\n\003Row\022\021\n\tta"
+  "bleName\030\001 \001(\t\022\013\n\003key\030\002 \001(\014\022\014\n\004type\030\003 \001(\r"
+  "\022-\n\006column\030\004 \003(\0132\035.merge.Transaction.Row"
+  ".Column\022\014\n\004data\030\005 \001(\014\022\030\n\020isInteractiveRo"
+  "w\030\006 \001(\010\032#\n\006Column\022\n\n\002id\030\001 \001(\004\022\r\n\005value\030\002"
+  " \001(\014\"\346\001\n\010LockInfo\022 \n\003row\030\001 \003(\0132\023.merge.L"
+  "ockInfo.Row\022\022\n\nStartEpoch\030\002 \001(\004\022\023\n\013Commi"
+  "tEpoch\030\003 \001(\004\022\013\n\003CSN\030\004 \001(\004\022\021\n\tserver_id\030\005"
+  " \001(\004\022\r\n\005txnid\030\006 \001(\004\022\r\n\005score\030\007 \001(\004\022\016\n\006is"
+  "Lock\030\010 \001(\010\032A\n\003Row\022\021\n\ttableName\030\001 \001(\t\022\013\n\003"
+  "key\030\002 \001(\014\022\014\n\004type\030\003 \001(\r\022\014\n\004data\030\004 \001(\014\"\315\001"
+  "\n\006RLTraj\022\"\n\005state\030\001 \003(\0132\023.merge.RLTraj.S"
+  "tate\022\017\n\007session\030\002 \001(\004\032\215\001\n\005State\022\021\n\ttxn_s"
+  "tate\030\001 \001(\005\022\017\n\007latency\030\002 \001(\004\022\021\n\tread_size"
+  "\030\003 \001(\005\022\022\n\nwrite_size\030\004 \001(\005\022\023\n\013hot_visite"
+  "d\030\005 \001(\005\022\021\n\tretry_cnt\030\006 \001(\005\022\021\n\tcc_option\030"
+  "\007 \001(\005\"\302\001\n\007Message\022!\n\007request\030\001 \001(\0132\016.mer"
+  "ge.RequestH\000\022#\n\010response\030\002 \001(\0132\017.merge.R"
+  "esponseH\000\022!\n\003txn\030\003 \001(\0132\022.merge.Transacti"
+  "onH\000\022#\n\010lockinfo\030\004 \001(\0132\017.merge.LockInfoH"
+  "\000\022\037\n\006rltraj\030\005 \001(\0132\r.merge.RLTrajH\000B\006\n\004ty"
+  "pe\"\352\003\n\007Request\022\033\n\004ping\030\001 \001(\0132\013.merge.Pin"
+  "gH\000\022\037\n\006signal\030\002 \001(\0132\r.merge.SignalH\000\0223\n\r"
+  "lookup_master\030\003 \001(\0132\032.merge.LookupMaster"
+  "RequestH\000\0223\n\rforward_epoch\030\004 \001(\0132\032.merge"
+  ".ForwardEpochRequestH\000\022;\n\025epoch_replicat"
+  "ion_ack\030\005 \001(\0132\032.merge.EpochReplicationAc"
+  "kH\000\022*\n\014raft_propose\030\006 \001(\0132\022.merge.RaftPr"
+  "oposeH\000\022/\n\013raft_accept\030\007 \001(\0132\030.merge.Raf"
+  "tAcceptRequestH\000\022/\n\013raft_commit\030\010 \001(\0132\030."
+  "merge.RaftCommitRequestH\000\022$\n\005stats\030\t \001(\013"
+  "2\023.merge.StatsRequestH\000\022>\n\023change_server"
+  "_state\030\n \001(\0132\037.merge.ChangeServerStateRe"
+  "questH\000B\006\n\004type\" \n\004Ping\022\014\n\004from\030\001 \001(\005\022\n\n"
+  "\002to\030\002 \001(\005\"\026\n\006Signal\022\014\n\004from\030\001 \001(\005\"4\n\023Loo"
+  "kupMasterRequest\022\017\n\007txn_ids\030\001 \003(\004\022\014\n\004key"
+  "s\030\002 \003(\014\"A\n\023ForwardEpochRequest\022\014\n\004from\030\001"
+  " \001(\005\022\n\n\002to\030\002 \001(\005\022\020\n\010epoch_id\030\003 \001(\004\"\'\n\023Ep"
+  "ochReplicationAck\022\020\n\010epoch_id\030\001 \001(\004\"\034\n\013R"
+  "aftPropose\022\r\n\005value\030\001 \001(\004\"\?\n\021RaftAcceptR"
+  "equest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoc"
+  "h_id\030\003 \001(\004\"\?\n\021RaftCommitRequest\022\014\n\004from\030"
+  "\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_id\030\003 \001(\004\"7\n\014S"
+  "tatsRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\r\n"
+  "\005level\030\003 \001(\r\"}\n\030ChangeServerStateRequest"
+  "\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006target\030\003 \001"
+  "(\r\022\r\n\005state\030\004 \001(\r\022\026\n\016pull_server_id\030\005 \001("
+  "\r\022\020\n\010epoch_id\030\006 \001(\004\"\261\002\n\010Response\022\033\n\004pong"
+  "\030\001 \001(\0132\013.merge.PongH\000\0224\n\rlookup_master\030\002"
+  " \001(\0132\033.merge.LookupMasterResponseH\000\0220\n\013r"
+  "aft_accept\030\003 \001(\0132\031.merge.RaftAcceptRespo"
+  "nseH\000\0220\n\013raft_commit\030\004 \001(\0132\031.merge.RaftC"
+  "ommitResponseH\000\022%\n\005stats\030\005 \001(\0132\024.merge.S"
+  "tatsResponseH\000\022\?\n\023change_server_state\030\006 "
+  "\001(\0132 .merge.ChangeServerStateResponseH\000B"
+  "\006\n\004type\"@\n\004Pong\022\014\n\004from\030\001 \001(\005\022\n\n\002to\030\002 \001("
+  "\005\022\014\n\004time\030\003 \001(\003\022\020\n\010epoch_id\030\004 \001(\003\"5\n\016Mas"
+  "terMetadata\022\016\n\006master\030\001 \001(\r\022\023\n\013epoch_cou"
+  "nt\030\002 \001(\r\"I\n\021KeyMasterMetadata\022\013\n\003key\030\001 \001"
+  "(\014\022\'\n\010metadata\030\002 \001(\0132\025.merge.MasterMetad"
+  "ata\"Z\n\024LookupMasterResponse\022\020\n\010epoch_id\030"
+  "\001 \003(\004\0220\n\016lookup_results\030\002 \003(\0132\030.merge.Ke"
+  "yMasterMetadata\"P\n\022RaftAcceptResponse\022\014\n"
+  "\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_id\030\003 \001("
+  "\004\022\016\n\006result\030\004 \001(\r\"P\n\022RaftCommitResponse\022"
   "\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch_id\030\003 "
-  "\001(\004\"7\n\014StatsRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030"
-  "\002 \001(\r\022\r\n\005level\030\003 \001(\r\"}\n\030ChangeServerStat"
-  "eRequest\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006ta"
-  "rget\030\003 \001(\r\022\r\n\005state\030\004 \001(\r\022\026\n\016pull_server"
-  "_id\030\005 \001(\r\022\020\n\010epoch_id\030\006 \001(\004\"\261\002\n\010Response"
-  "\022\033\n\004pong\030\001 \001(\0132\013.merge.PongH\000\0224\n\rlookup_"
-  "master\030\002 \001(\0132\033.merge.LookupMasterRespons"
-  "eH\000\0220\n\013raft_accept\030\003 \001(\0132\031.merge.RaftAcc"
-  "eptResponseH\000\0220\n\013raft_commit\030\004 \001(\0132\031.mer"
-  "ge.RaftCommitResponseH\000\022%\n\005stats\030\005 \001(\0132\024"
-  ".merge.StatsResponseH\000\022\?\n\023change_server_"
-  "state\030\006 \001(\0132 .merge.ChangeServerStateRes"
-  "ponseH\000B\006\n\004type\"@\n\004Pong\022\014\n\004from\030\001 \001(\005\022\n\n"
-  "\002to\030\002 \001(\005\022\014\n\004time\030\003 \001(\003\022\020\n\010epoch_id\030\004 \001("
-  "\003\"5\n\016MasterMetadata\022\016\n\006master\030\001 \001(\r\022\023\n\013e"
-  "poch_count\030\002 \001(\r\"I\n\021KeyMasterMetadata\022\013\n"
-  "\003key\030\001 \001(\014\022\'\n\010metadata\030\002 \001(\0132\025.merge.Mas"
-  "terMetadata\"Z\n\024LookupMasterResponse\022\020\n\010e"
-  "poch_id\030\001 \003(\004\0220\n\016lookup_results\030\002 \003(\0132\030."
-  "merge.KeyMasterMetadata\"P\n\022RaftAcceptRes"
-  "ponse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epoch"
-  "_id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\"P\n\022RaftCommitR"
-  "esponse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\020\n\010epo"
-  "ch_id\030\003 \001(\004\022\016\n\006result\030\004 \001(\r\";\n\rStatsResp"
-  "onse\022\014\n\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\004\022\020\n\010epoch_"
-  "id\030\003 \001(\004\"f\n\031ChangeServerStateResponse\022\014\n"
-  "\004from\030\001 \001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006target\030\003 \001(\r\022"
-  "\020\n\010epoch_id\030\004 \001(\004\022\r\n\005state\030\005 \001(\r\"\214\001\n\rSer"
-  "verMessage\022\017\n\007send_ip\030\001 \001(\t\022\022\n\nreceive_i"
-  "p\030\002 \001(\t\022\014\n\004port\030\003 \001(\t\022%\n\003msg\030\004 \003(\0132\030.mer"
-  "ge.ServerMessage.Msg\032!\n\003Msg\022\013\n\003key\030\001 \001(\t"
-  "\022\r\n\005value\030\002 \001(\tb\006proto3"
+  "\001(\004\022\016\n\006result\030\004 \001(\r\";\n\rStatsResponse\022\014\n\004"
+  "from\030\001 \001(\r\022\n\n\002to\030\002 \001(\004\022\020\n\010epoch_id\030\003 \001(\004"
+  "\"f\n\031ChangeServerStateResponse\022\014\n\004from\030\001 "
+  "\001(\r\022\n\n\002to\030\002 \001(\r\022\016\n\006target\030\003 \001(\r\022\020\n\010epoch"
+  "_id\030\004 \001(\004\022\r\n\005state\030\005 \001(\r\"\214\001\n\rServerMessa"
+  "ge\022\017\n\007send_ip\030\001 \001(\t\022\022\n\nreceive_ip\030\002 \001(\t\022"
+  "\014\n\004port\030\003 \001(\t\022%\n\003msg\030\004 \003(\0132\030.merge.Serve"
+  "rMessage.Msg\032!\n\003Msg\022\013\n\003key\030\001 \001(\t\022\r\n\005valu"
+  "e\030\002 \001(\tb\006proto3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_message_2eproto_deps[1] = {
 };
@@ -1090,7 +1093,7 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_mes
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_message_2eproto_once;
 static bool descriptor_table_message_2eproto_initialized = false;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_message_2eproto = {
-  &descriptor_table_message_2eproto_initialized, descriptor_table_protodef_message_2eproto, "message.proto", 3143,
+  &descriptor_table_message_2eproto_initialized, descriptor_table_protodef_message_2eproto, "message.proto", 3175,
   &descriptor_table_message_2eproto_once, descriptor_table_message_2eproto_sccs, descriptor_table_message_2eproto_deps, 30, 0,
   schemas, file_default_instances, TableStruct_message_2eproto::offsets,
   file_level_metadata_message_2eproto, 30, file_level_enum_descriptors_message_2eproto, file_level_service_descriptors_message_2eproto,
@@ -1693,16 +1696,16 @@ Transaction::Transaction(const Transaction& from)
       row_(from.row_) {
   _internal_metadata_.MergeFrom(from._internal_metadata_);
   ::memcpy(&startepoch_, &from.startepoch_,
-    static_cast<size_t>(reinterpret_cast<char*>(&isinteractive_) -
-    reinterpret_cast<char*>(&startepoch_)) + sizeof(isinteractive_));
+    static_cast<size_t>(reinterpret_cast<char*>(&isabort_) -
+    reinterpret_cast<char*>(&startepoch_)) + sizeof(isabort_));
   // @@protoc_insertion_point(copy_constructor:merge.Transaction)
 }
 
 void Transaction::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_Transaction_message_2eproto.base);
   ::memset(&startepoch_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&isinteractive_) -
-      reinterpret_cast<char*>(&startepoch_)) + sizeof(isinteractive_));
+      reinterpret_cast<char*>(&isabort_) -
+      reinterpret_cast<char*>(&startepoch_)) + sizeof(isabort_));
 }
 
 Transaction::~Transaction() {
@@ -1730,8 +1733,8 @@ void Transaction::Clear() {
 
   row_.Clear();
   ::memset(&startepoch_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&isinteractive_) -
-      reinterpret_cast<char*>(&startepoch_)) + sizeof(isinteractive_));
+      reinterpret_cast<char*>(&isabort_) -
+      reinterpret_cast<char*>(&startepoch_)) + sizeof(isabort_));
   _internal_metadata_.Clear();
 }
 
@@ -1800,6 +1803,13 @@ const char* Transaction::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 64)) {
           lockinfocount_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // bool isAbort = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 72)) {
+          isabort_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -1879,6 +1889,12 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(8, this->_internal_lockinfocount(), target);
   }
 
+  // bool isAbort = 9;
+  if (this->isabort() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(9, this->_internal_isabort(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields(), target, stream);
@@ -1949,6 +1965,11 @@ size_t Transaction::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
+  // bool isAbort = 9;
+  if (this->isabort() != 0) {
+    total_size += 1 + 1;
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
         _internal_metadata_, total_size, &_cached_size_);
@@ -2002,6 +2023,9 @@ void Transaction::MergeFrom(const Transaction& from) {
   if (from.isinteractive() != 0) {
     _internal_set_isinteractive(from._internal_isinteractive());
   }
+  if (from.isabort() != 0) {
+    _internal_set_isabort(from._internal_isabort());
+  }
 }
 
 void Transaction::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -2033,6 +2057,7 @@ void Transaction::InternalSwap(Transaction* other) {
   swap(txnid_, other->txnid_);
   swap(lockinfocount_, other->lockinfocount_);
   swap(isinteractive_, other->isinteractive_);
+  swap(isabort_, other->isabort_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata Transaction::GetMetadata() const {
@@ -2449,9 +2474,16 @@ const char* LockInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::i
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
-      // bool isLock = 7;
+      // uint64 score = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 56)) {
+          score_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
+          CHK_(ptr);
+        } else goto handle_unusual;
+        continue;
+      // bool isLock = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 64)) {
           islock_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
@@ -2520,10 +2552,16 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(6, this->_internal_txnid(), target);
   }
 
-  // bool isLock = 7;
+  // uint64 score = 7;
+  if (this->score() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(7, this->_internal_score(), target);
+  }
+
+  // bool isLock = 8;
   if (this->islock() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(7, this->_internal_islock(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(8, this->_internal_islock(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2584,7 +2622,14 @@ size_t LockInfo::ByteSizeLong() const {
         this->_internal_txnid());
   }
 
-  // bool isLock = 7;
+  // uint64 score = 7;
+  if (this->score() != 0) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
+        this->_internal_score());
+  }
+
+  // bool isLock = 8;
   if (this->islock() != 0) {
     total_size += 1 + 1;
   }
@@ -2636,6 +2681,9 @@ void LockInfo::MergeFrom(const LockInfo& from) {
   if (from.txnid() != 0) {
     _internal_set_txnid(from._internal_txnid());
   }
+  if (from.score() != 0) {
+    _internal_set_score(from._internal_score());
+  }
   if (from.islock() != 0) {
     _internal_set_islock(from._internal_islock());
   }
@@ -2668,6 +2716,7 @@ void LockInfo::InternalSwap(LockInfo* other) {
   swap(csn_, other->csn_);
   swap(server_id_, other->server_id_);
   swap(txnid_, other->txnid_);
+  swap(score_, other->score_);
   swap(islock_, other->islock_);
 }
 

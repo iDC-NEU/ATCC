@@ -68,8 +68,9 @@
      // wzy:
      auto res = (row->m_rowHeader.GetStableCSN() == access->m_tid);
      uint64_t v = row->m_rowHeader.GetStableCSN();
-     if (!res && v <= access->m_tid) {
-         MOT_LOG_INFO("CheckVersion failed stable_csnWord = %llu, tid = %llu", v, access->m_tid);
+     std::string table_name = row->GetTable()->GetLongTableName();
+     if (!res) {
+         MOT_LOG_INFO("CheckVersion failed table = %s row id = %llu csnWord = %llu stable_csnWord = %llu, tid = %llu", table_name.c_str(), row->GetRowId(), row->m_rowHeader.GetCSN(), v, access->m_tid);
      }
      return res;
  //    return (row->m_rowHeader.GetCSN() == access->m_tid);
@@ -184,7 +185,7 @@
              std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
              string res_tid = "";
              if (!MOTAdaptor::IsRowAvailable(tmp_rowid, currentCSN, csn_tmp, res_tid)){
-                 MOT_LOG_INFO("ValidateOcc WriteSet IsRowAvailable() not available visited row : %s, cur csn : %s, locked csn : %s",  tmp_rowid.c_str(), csn_tmp.c_str(), res_tid.c_str());
+                 if (is_debug_print_enable) MOT_LOG_INFO("ValidateOcc WriteSet IsRowAvailable() not available visited row : %s, cur csn : %s, locked csn : %s",  tmp_rowid.c_str(), csn_tmp.c_str(), res_tid.c_str());
                  return false;
              }
          }
@@ -259,7 +260,7 @@
                  }
              }
              if (sleepTime > LOCK_TIME_OUT) {
-                  return false;       // 被其他事务上锁？被OCC事务上锁？
+                  return false;
              } else {
                  if (IsHighContention() == false) {
                      CpuCyclesLevelTime::Sleep(5);
@@ -628,8 +629,6 @@
          m_rowsLocked = true;
      } else {
          txMan->SetTxnState(TxnState::TXN_ROLLBACK); // HYBRID_CC: Set final state
-         // wzy
- //        if (cc_mode == 4) ReleaseHeaderLocksPlor(txMan, numSentinelLock);
          ReleaseHeaderLocks(txMan, numSentinelLock);
          MOTAdaptor::Silo_validation_abort_num.fetch_add(1);
          if (likely(rc == RC_ABORT)) {
@@ -637,7 +636,7 @@
          }
      }
  
-     HybridCcLogger::GetInstance().LogTransaction(txMan); // HYBRID_CC: Log transaction details before returning
+//     HybridCcLogger::GetInstance().LogTransaction(txMan); // HYBRID_CC: Log transaction details before returning
  
      return rc;
  }
@@ -711,7 +710,7 @@
          MOTAdaptor::Switch_validation_occ_abort_num.fetch_add(1);
      }
  
-     HybridCcLogger::GetInstance().LogTransaction(txMan); // HYBRID_CC: Log transaction details before returning
+//     HybridCcLogger::GetInstance().LogTransaction(txMan); // HYBRID_CC: Log transaction details before returning
  
      return rc;
  }
@@ -719,6 +718,9 @@
  // 为冷数据读集检验
  bool OccTransactionManager::ValidateReadSetPlor(TxnManager* txMan)
  {
+     uint64_t currentCSN = txMan->pre_csn;
+     std::string csn_tmp = std::to_string(currentCSN) + ":0";
+
      TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
      for (const auto& raPair : orderedSet) {
          const Access* ac = raPair.second;
@@ -726,9 +728,19 @@
              continue;
          }
          if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
- 
-         if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_tid, 0) || ac->m_origSentinel->IsLocked()) {
-             return false;
+         if (txMan->read_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+         // wzy: 测试，为什么这么多ValidateReadSetPlor失败的？
+         auto currRow = ac->m_localRow;
+         std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
+
+         if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_cts, ac->m_server_id) || ac->m_origSentinel->IsLocked()) {
+             if (is_debug_print_enable) {
+                 uint64_t v = ac->GetRowFromHeader()->m_rowHeader.GetStableCSN();
+                 uint64_t m_cts = ac->m_cts;
+                 uint64_t m_tid = ac->m_tid;
+                 MOT_LOG_INFO("ValidateReadSetPlor ReadSet failed visited row : %s, cur csn: %s, stable csn: %ld, m_cts: %ld, m_tid: %ld", tmp_rowid.c_str(), csn_tmp.c_str(), v, m_cts, m_tid);
+             }
+//             return false;
          }
      }
      return true;
@@ -747,9 +759,11 @@
          if (ac->m_type == RD) {
              continue;
          }
+         if (ac->m_localRow == nullptr) continue;       // TODO: 为什么会找不到？
  
          if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
- 
+//         if (txMan->write_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+
          if (kHotRow_Active && ac->m_type != INS && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
              if (!CheckVersion(ac)) {
                  return false;
@@ -904,7 +918,7 @@
                  row->GetRowHeader()->Lock();
                  row->GetRowHeader()->LockStable();
              }
-             else {      // TODO: 为什么Lock后会lock stable失败呢？
+             else {
                  row->GetRowHeader()->Lock();
                  row->GetRowHeader()->LockStable();
              }
@@ -1419,9 +1433,7 @@
          }
          return false;
      }
- 
-     if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
- 
+
      auto table = currRow->GetTable();
      if (table == nullptr) {
          result = false;
@@ -1430,6 +1442,21 @@
      table_name = table->GetLongTableName();
      rowId = currRow->GetRowId();
      tmp_rowid = table_name + ":" + to_string(rowId);
+ 
+     if (kHotRow_Active && txMan->hot_rowid_records.count(rowId) == 0) return true;
+
+     // 提前检验是否上过锁
+//     if (txMan->write_lock_rowid_records.count(rowId) != 0) return true;
+
+//     auto [it, inserted] = txMan->write_lock_rowid_records.emplace(rowId);
+//     if (inserted) {
+//         MOT_LOG_INFO("Inserted rowid: %llu address: %p", *it, &txMan->write_lock_rowid_records);
+//     } else {
+//         MOT_LOG_INFO("Rowid already exists: %llu",*it);
+//     }
+//     if (txMan->write_lock_rowid_records.count(rowId) == 0) {
+//         MOT_LOG_INFO("GetWriteLockPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
+//     }
  
      if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue){    // 未找到则创建新lock request
          new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
@@ -1505,7 +1532,10 @@
      }
  
      if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
- 
+     // 提前检验是否上过锁
+//     if (txMan->read_lock_rowid_records.count(currRow->GetRowId()) != 0) return true;
+     txMan->read_lock_rowid_records.emplace(currRow->GetRowId());
+
      auto table = currRow->GetTable();
      if (table == nullptr) {
          result = false;
@@ -1605,11 +1635,17 @@
  
              auto table = ac->m_localRow->GetTable();
              auto currRow = ac->m_localRow;
+
+             // 提前检验是否上过锁
+//             if (txMan->read_lock_rowid_records.count(currRow->GetRowId()) != 0) {
+//                 continue;
+//             }
  
              uint64_t start_time = now_to_us();
  
              // RLock
              if (!hot_rows) {
+                 txMan->read_lock_rowid_records.emplace(currRow->GetRowId());           // 添加read lock set
                  std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
                  if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) ||
                      !tmp_queue) {  // 未找到则创建新lock request
@@ -1635,6 +1671,7 @@
                  }
              }
              else if (hot_rows && txMan->hot_rowid_records.count(currRow->GetRowId()) != 0) {
+                 txMan->read_lock_rowid_records.emplace(currRow->GetRowId());           // 添加read lock set
                  std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
                  if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) ||
                      !tmp_queue) {  // 未找到则创建新lock request
@@ -1738,11 +1775,17 @@
                      if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI_Switching(ac->m_cts, ac->m_server_id)) result = false;
                  }
              }
+
  
              // RLock
              if (result) {
                  auto table = ac->m_localRow->GetTable();
                  auto currRow = ac->m_localRow;
+                 // 提前检验是否上过锁
+//                 if (txMan->read_lock_rowid_records.count(currRow->GetRowId()) != 0) {
+//                     continue;
+//                 }
+                 txMan->read_lock_rowid_records.emplace(currRow->GetRowId());           // 添加read lock set
                  std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
                  if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue) {    // 未找到则创建新lock request
                      new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
@@ -1807,20 +1850,36 @@
          }
          const Access *ac = raPair.second;
          if (ac->m_type == WR) {
+
              if (ac->m_localRow->GetTable() == nullptr) {
                  result = false;
                  break;
              }
              auto table = ac->m_localRow->GetTable();
              auto currRow = ac->m_localRow;
+             rowId = currRow->GetRowId();
+
+             // 提前检验是否上过锁
+//             if (txMan->write_lock_rowid_records.count(rowId) != 0) {
+//                 continue;
+//             }
  
              // 统计时是根据GetTableName
  //            std::string tmp_rowid = currRow->GetTable()->GetTableName() + ":" + to_string(currRow->GetRowId());
              std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
              // 只对热数据项上锁
-             if (hot_rows && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0)
-                 continue;
- 
+             if (hot_rows && txMan->hot_rowid_records.count(rowId) == 0) continue;
+//             auto [it, inserted] = txMan->write_lock_rowid_records.emplace(rowId);
+//             if (inserted) {
+//                 MOT_LOG_INFO("Inserted rowid: %llu address: %p", *it, &txMan->write_lock_rowid_records);
+//             } else {
+//                 MOT_LOG_INFO("Rowid already exists: %llu",*it);
+//             }
+//             if (txMan->write_lock_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("GetSwitchWriteLockPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
+//             }
+
+
              if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue){    // 未找到则创建新lock request
                  new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
              }
@@ -1894,14 +1953,20 @@
  
              // 非热数据，跳过
              if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) {
+                 MOT_LOG_INFO("ValidateWR() continue row is not Wlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
                  continue;
              }
- 
-             std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
- 
+
              table_name = table->GetLongTableName();
              rowId = ac->m_localRow->GetRowId();
              tmp_rowid = table_name + ":" + to_string(rowId);
+
+//             if (txMan->write_lock_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("ValidateWR() continue row is not Wlocked tmp_csn : %s , rowid : %llu address : %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
+//                 continue;
+//             }
+
+
              tmp_queue = nullptr;
              if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
                  auto res = tmp_queue->ValidateWR(tmp_rowid, txMan, server_id);      // wait
@@ -1948,7 +2013,15 @@
      std::string tmp_rowid;
      std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
      uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
- 
+     csn_temp = to_string(txMan->pre_csn) + ":" + to_string(server_id);
+
+     std::string write_records = "";
+//     for (auto v : txMan->write_lock_rowid_records) {
+//         write_records += (std::to_string(v) + " ");
+//     }
+//     if (is_debug_print_enable) MOT_LOG_INFO("UnlockReadWriteSet() write_lock_rowid_records : %s", write_records.c_str());
+
+
  //    if (abort) MOT_LOG_INFO("UnlockWriteSet() txn [Abort] tmp_csn : %s", tmp_csn.c_str());
      for (const auto& raPair : orderedSet) {
          // orderedSet中重复的read会被write覆盖
@@ -1959,16 +2032,23 @@
                  result = false;
                  continue;
              }
- 
-             // 非热数据，跳过
-             if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
-                 continue;
-             }
- 
+
              table_name = table->GetLongTableName();
              rowId = ac->m_localRow->GetRowId();
              res_csn = "";
              tmp_rowid = table_name + ":" + to_string(rowId);
+
+             // 非热数据，跳过
+//             if (kHotRow_Active && txMan->hot_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
+//                 continue;
+//             }
+//
+//             if (txMan->write_lock_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
+//                 continue;
+//             }
+
              tmp_queue = nullptr;
  
              if (csn == 0) {
@@ -1996,16 +2076,22 @@
                  result = false;
                  continue;
              }
- 
-             // 非热数据，跳过
-             if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
-                 continue;
-             }
- 
+
              table_name = table->GetLongTableName();
              rowId = ac->m_localRow->GetRowId();
              res_csn = "";
              tmp_rowid = table_name + ":" + to_string(rowId);
+
+             // 非热数据，跳过
+//             if (kHotRow_Active && txMan->hot_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Rlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
+//                 continue;
+//             }
+//             if (txMan->read_lock_rowid_records.count(rowId) == 0) {
+//                 MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Rlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
+//                 continue;
+//             }
+
              tmp_queue = nullptr;
              if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
                  auto res = tmp_queue->UnlockRD(tmp_rowid, csn);
@@ -2026,6 +2112,50 @@
      MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
      //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
  //    MOTAdaptor::txn_rowid_map.remove(tmp_csn);
+     return result;
+ }
+
+ bool OccTransactionManager::BoostPriority(TxnManager* txMan, uint32_t server_id)
+ {
+     TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
+     bool result = true;
+     std::string table_name, key, key_temp, csn_temp, csn_result;
+     string tmp_csn = to_string(txMan->pre_csn) + ":" + to_string(server_id);
+     string res_csn = "";
+     uint64_t rowId;
+     std::string tmp_rowid;
+     std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
+     uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
+     csn_temp = to_string(txMan->pre_csn) + ":" + to_string(server_id);
+     std::string write_records = "";
+     for (const auto& raPair : orderedSet) {
+         const Access* ac = raPair.second;
+         if (ac->m_type == WR || ac->m_type == RD) {
+             auto table = ac->m_localRow->GetTable();
+             if (table == nullptr) {
+                 result = false;
+                 continue;
+             }
+
+             table_name = table->GetLongTableName();
+             rowId = ac->m_localRow->GetRowId();
+             res_csn = "";
+             tmp_rowid = table_name + ":" + to_string(rowId);
+             tmp_queue = nullptr;
+
+             if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
+                 auto res = tmp_queue->BoostPriority(txMan, txMan->GetCurrentPriority(), server_id);
+                 if(!res) {
+                     if (is_debug_print_enable) MOT_LOG_INFO("BoostPriority() failed lock_request_queue grant_csn : %s, tmp_csn : %s  , tmp_rowid : %s", res_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
+                 }
+             } else {
+                 // do nothing
+                 if (is_debug_print_enable) MOT_LOG_INFO("BoostPriority() lock_request_queue not found tmp_csn : %s  , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
+             }
+             tmp_queue = nullptr;
+         } else
+             continue;
+     }
      return result;
  }
  
@@ -3093,6 +3223,19 @@
      std::shared_ptr<MOTAdaptor::LockRequestQueue> tmp_queue = nullptr;
      std::shared_ptr<MOTAdaptor::LockRequestQueue> new_queue = nullptr;
      auto currRow = static_cast<Row*>(row);
+     uint64_t epoch_mod = MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1);
+
+     if (is_wound_wait_enable) {
+         // 检查是否该中止，不检查当前epoch，是因为所有锁请求都应该执行后，再判断，除非该锁请求在之前的epoch就被中止
+         if (MOTAdaptor::wound_wait_abort_map.should_abort(tmp_csn, txMan->GetCommitEpoch())) {
+             MOT_LOG_INFO("[Wound] lock_row_local [failed] because of wound tmp_csn : %s epoch : %llu", tmp_csn.c_str(), txMan->GetCommitEpoch());
+             return false;  // 被死锁检测abort
+         }
+         if (MOTAdaptor::abort_transcation_csn_set.contain(tmp_csn, tmp_csn)) {
+             return false;  // 被死锁检测abort
+         }
+     }
+
      // 只有WR操作会调用
      auto table = currRow->GetTable();
      if (table == nullptr) {
@@ -3119,30 +3262,12 @@
              MOTAdaptor::txn_total_lockCnt.fetch_add(1);
              MOTAdaptor::local_lock_num.fetch_add(1);
              MOTAdaptor::AddCsnRequestQueue(tmp_csn, tmp_queue);
-             MOT_LOG_INFO("LockWriteSet() lock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), tmp_rowid.c_str());
+//             MOT_LOG_INFO("LockWriteSet() lock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s ", tmp_csn.c_str(), MOTAdaptor::GetLogicalEpoch() % (UINT64_MAX - 1), tmp_rowid.c_str());
          }
      }
+     MOT_LOG_INFO("LockWriteSet() lock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
      new_queue.reset();
      tmp_queue = nullptr;
- //
- //    if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
- //        auto res = tmp_queue->lock_row_local(tmp_rowid, txMan, server_id);
- //        if (!res) {
- //            MOT_LOG_INFO("LockWriteSet() lock_row_local [failed] because of duplicate tmp_csn : %s, tmp_rowid ： %s ", tmp_csn.c_str(), tmp_rowid.c_str());
- //        } else {
- //            MOT_LOG_INFO("LockWriteSet() lock_row_local tmp_csn : %s , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
- //        }
- //    } else {
- //        MOTAdaptor::row_lockrequest_map.insert(tmp_rowid, tmp_queue);
- //        auto res = tmp_queue->lock_row_local(tmp_rowid, txMan, server_id);
- //        if (!res) {
- //            MOT_LOG_INFO("LockWriteSet() lock_row_local [failed] because of duplicate tmp_csn : %s, tmp_rowid ： %s ", tmp_csn.c_str(), tmp_rowid.c_str());
- //        } else {
- //            MOT_LOG_INFO("LockWriteSet() lock_row_local tmp_csn : %s , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
- //        }
- //    }
- 
-     // wzy : 一次只发送一个lockinfo
      return result;
  }
  
@@ -3178,7 +3303,7 @@
      locked_csn = "-1";
  
      if(MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) && tmp_queue){
-         auto res = tmp_queue->get_grant_csn(locked_csn);
+         auto res = tmp_queue->get_grant_csn(tmp_csn, locked_csn);
          if(!res) {
              MOTAdaptor::abort_transcation_csn_set.insert(tmp_csn, tmp_csn);
              MOTAdaptor::deadlock_abort_set.insert(tmp_csn, tmp_csn);
@@ -3187,7 +3312,7 @@
          } else {
              // do nothing
              // if (locked_csn == "") MOTAdaptor::AddEpochActiveQueue(tmp_queue, MOTAdaptor::GetLogicalEpoch());
-             // MOT_LOG_INFO("CheckForLockSet() lock_request get success locked_csn : %s , tid : %s , tmp_rowid ： %s ", locked_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
+//             MOT_LOG_INFO("CheckForLockSet() lock_request get success locked_csn : %s , tid : %s , tmp_rowid ： %s ", locked_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
          }
      } else {
          locked_csn = "-1";
@@ -3238,7 +3363,7 @@
                  if(!res) {
                      MOT_LOG_INFO("UnlockWriteSet() lock_request_queue [error] grant_csn : %s, tmp_csn : %s  , tmp_rowid : %s ", res_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
                  } else {
-                     MOT_LOG_INFO("UnlockWriteSet() unlock_row_local tmp_csn : %s", tmp_csn.c_str());
+//                     MOT_LOG_INFO("UnlockWriteSet() unlock_row_local tmp_csn : %s", tmp_csn.c_str());
                  }
              } else {
                  MOT_LOG_INFO("UnlockWriteSet() lock_request_queue not found row id = %s", tmp_rowid.c_str());
@@ -3251,10 +3376,9 @@
              continue;
      }
      MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
-     MOTAdaptor::wait_for_graph.removeNode(tmp_csn);
- //    MOTAdaptor::csn_requests_map.remove(tmp_csn);
+     if (is_wound_wait_enable) MOTAdaptor::wound_wait_abort_map.clear_tid(tmp_csn);
+     else MOTAdaptor::wait_for_graph.removeNode(tmp_csn);
      MOTAdaptor::txn_rowid_map.remove(tmp_csn);
- 
      return result;
  }
  
@@ -3295,6 +3419,7 @@
                      } else if (!abort){
                          MOT_LOG_INFO("UnlockWriteSet() unlock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
                      }
+                     MOT_LOG_INFO("UnlockWriteSet() unlock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
                  } else {
                      // do nothing
                      // MOT_LOG_INFO("UnlockWriteSet() lock_request_queue not found tmp_csn : %s  , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
@@ -3308,9 +3433,8 @@
              continue;
      }
      MOTAdaptor::deadlock_abort_set.remove(tmp_csn);
-     MOTAdaptor::wait_for_graph.removeNode(tmp_csn);         // 清除等待图
- 
- //    MOTAdaptor::csn_requests_map.remove(tmp_csn);           // 清除tid对应的上锁队列指针
+     if (is_wound_wait_enable) MOTAdaptor::wound_wait_abort_map.clear_tid(tmp_csn);
+     else MOTAdaptor::wait_for_graph.removeNode(tmp_csn);         // 清除等待图
      MOTAdaptor::txn_rowid_map.remove(tmp_csn);
      return result;
  }
@@ -3351,8 +3475,7 @@
      }
      return RC::RC_ABORT;
  }
- 
- 
+
  bool OccTransactionManager::UpdateWriteHeaderForPCC(TxnManager *txMan, uint32_t server_id)  //Commit Phase set csn
  {
      TxnOrderedSet_t &orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
@@ -3483,7 +3606,7 @@
  
              MOT::RowHeader& row_header = ac->GetRowFromHeader()->m_rowHeader;
              if(row_header.GetCSN() != csn_tmp  || row_header.GetServerId() != server_id) {
-                 // MOT_LOG_INFO("abort %llu %llu %llu", row_header.GetCSN(), csn_tmp, row_header.Getcsn());
+                 MOT_LOG_INFO("abort %llu %llu %llu", row_header.GetCSN(), csn_tmp, row_header.Getcsn());
                  return false;
              }
          }

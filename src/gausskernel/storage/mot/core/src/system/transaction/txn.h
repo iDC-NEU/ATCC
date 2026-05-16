@@ -99,7 +99,7 @@
      std::unordered_map<Sentinel*, Row*> read_cache;
      std::mutex mutex;
  };
- 
+
  // 存放state-action，作为轨迹
  class StateAction{
  public:
@@ -109,21 +109,83 @@
      int write_cnt;
      int hot_cnt;
      int action;         // 0: OCC, 1: PCC
- 
+
      StateAction() {
- 
+
      }
- 
+
      StateAction(uint64_t execution_time, int retry_cnt, int read_cnt, int write_cnt, int hot_cnt, int action) :
      execution_time(execution_time), retry_cnt(retry_cnt), read_cnt(read_cnt), write_cnt(write_cnt), hot_cnt(hot_cnt), action(action) {
- 
+
      }
- 
+
      ~StateAction() {
- 
+
      }
  };
- 
+
+ struct TrajectoryStep {
+     // Current State (s) - 局部信息
+     int s_cont, s_work, s_retry;
+
+     // Current State (s) - 全局瞬间信息 (Contention indicators)
+     double s_global_abort_rate;
+     double s_global_throughput;
+     int s_lock_queue_length;
+
+     // Action (a) & Probability (pi_old)
+     int action;
+     double action_prob;
+
+     // Next State (S_{t+1}) - 必须显式记录，供 PPO Critic 网络评估转移价值
+     int ns_cont, ns_work, ns_retry;
+     double ns_global_abort_rate;
+     double ns_global_throughput;
+     int ns_lock_queue_length;
+
+     uint64_t exec_time;
+     uint64_t query_interval;
+     uint64_t priority_score;
+
+     // 冗余存储，便于 Python 处理
+     bool is_commit;
+     double step_latency; // 从事务开始到这一步的时间
+     bool done;
+ };
+
+ // 整个事务的轨迹记录（预分配 30 步）
+ struct TxnTrajectory {
+     static const int MAX_STEPS = 30;
+     uint64_t txn_id{};
+     uint64_t start_timestamp{};
+     int step_count = 0;
+     TrajectoryStep steps[MAX_STEPS]{}; // 栈上或预分配空间
+
+     // 事务最终结果
+     bool final_commit{};
+     double total_latency{};
+     uint64_t priority_score{};
+     uint32_t policy_version{};
+
+     void AddStep(int a, double p, int c, int w, int r, int ga, int gt, int lq, uint64_t t, uint64_t i, uint64_t score) {
+         // double prob = probs[action];
+         if (step_count < MAX_STEPS) {
+             auto& s = steps[step_count++];
+             s.action = a;
+             s.action_prob = p;
+             s.s_cont = c;
+             s.s_work = w;
+             s.s_retry = r;
+             s.s_global_abort_rate = ga;
+             s.s_global_throughput = gt;
+             s.s_lock_queue_length = lq;
+             s.exec_time = t;
+             s.query_interval = i;
+             s.priority_score = score;
+         }
+     }
+ };
+
  /**
   * @class TxnManager
   * @brief Transaction manager is used to manage the life cycle of a single
@@ -803,20 +865,28 @@
  
      Key* GetTxnKey(MOT::Index* index, void* buf);
      
-     void ClearEpochState() {
-         zip_time = write_size = zip_size = startEpoch = startLogicalEpoch = index_pack = CommitEpoch = block_time = mot_start_exec_time = mot_start_commit_time = 0;
-         read_cnt = write_cnt = 0;
-         pessimistic_flag = false;
-         first_time_pessimistic = false;
-         retry_cnt = 0;
-         pre_csn = 0;    // 用于unlock
-         score_ = 0;
-         abort_ = false;
-         hot_cnt = 0;
-         interactive = false;
-         hot_rowid_records.clear();
-         traj_index = 0;
-     }
+    void ClearEpochState() {
+        zip_time = write_size = zip_size = startEpoch = startLogicalEpoch = index_pack = CommitEpoch = block_time = mot_start_exec_time = mot_start_commit_time = 0;
+        read_cnt = write_cnt = 0;
+        pessimistic_flag = false;
+        first_time_pessimistic = false;
+        retry_cnt = 0;
+        pre_csn = 0;    // 用于unlock
+        score_ = 0;
+        abort_ = false;
+        hot_cnt = 0;
+        interactive = false;
+//        hot_rowid_records.clear();
+//        read_lock_rowid_records.clear();
+//        write_lock_rowid_records.clear();
+        traj_index = 0;
+        // HYBRID_CC: Reset operation interval tracking
+        m_lastOperationTime = 0;
+        m_totalOperationInterval = 0;
+        m_operationCount = 0;
+        m_recent_abort_rate = 0.0;
+        m_recent_global_tps = 0.0;
+    }
  
      RC SwitchToPCC();
  
@@ -853,21 +923,56 @@
          return hot_cnt;
      }
  
-     int GetWriteCnt(){
- 
-         return write_cnt;
-     }
- 
-     uint64_t GetScore();
+    int GetWriteCnt(){
+
+        return write_cnt;
+    }
+    
+    // HYBRID_CC: Record operation timestamp for interval calculation
+    void RecordOperation() {
+        uint64_t current_time = now_to_us();
+        if (m_operationCount > 0 && m_lastOperationTime > 0) {
+            m_totalOperationInterval += (current_time - m_lastOperationTime);
+        }
+        m_lastOperationTime = current_time;
+        m_operationCount++;
+    }
+    
+    // HYBRID_CC: Get average operation interval in milliseconds
+    double GetAvgOperationInterval() const {
+        if (m_operationCount <= 1) return 0.0;
+        return (double)m_totalOperationInterval / (double)(m_operationCount - 1) / 1000.0;  // 转换为毫秒
+    }
+
+    uint64_t CalculateScore();
+    
+    // HYBRID_CC: Priority boost functions for action=5
+    void BoostPriority(int boost_level = 1);
+    void BoostPriorityRelative();
+    void SetHighPriority();
+    uint64_t GetCurrentPriority() const { return score_; }
  
      bool ValidateTxnPessimistic(uint64_t curr_epoch);
- 
+     bool ShouldLock(bool isWrite, uint64_t rowId);
+
      // wzy: 存放轨迹
      void AddTraj(int action) {
          uint64_t execution_time = now_to_us() - start_time;
          (*traj)[traj_index++] = std::unique_ptr<StateAction>(
              new StateAction(execution_time, retry_cnt, read_cnt, write_cnt, hot_cnt, action));
      }
+
+     void InitTrajectory(uint64_t id) {
+         if (!m_trajectoryBuffer) {
+//             m_trajectoryBuffer = std::make_unique<MOT::TxnTrajectory>();
+            m_trajectoryBuffer = new MOT::TxnTrajectory();
+         }
+         m_trajectoryBuffer->txn_id = id;
+         m_trajectoryBuffer->step_count = 0;
+         m_trajectoryBuffer->start_timestamp = now_to_us();
+     }
+
+     void FinalizeAndPush();
  
  private:
  
@@ -883,7 +988,6 @@
      bool interactive;  // wzy: 指定为交互性事务
      ReadMVCC read_cache;
  
- 
  public:
      bool pessimistic_flag;        // wzy: 设置为悲观执行
      bool first_time_pessimistic;
@@ -893,21 +997,33 @@
      int read_cnt;  // wzy: 统计交互性事务执行到目前的成本
      int write_cnt;
      int hot_cnt;
- 
+
      std::unordered_set<uint64_t> hot_rowid_records;
+     std::unordered_set<uint64_t> read_lock_rowid_records;
+     std::unordered_set<uint64_t> write_lock_rowid_records;
  
      int traj_index;
      std::unique_ptr<std::vector<std::unique_ptr<StateAction>>> traj;        // 存放轨迹
- 
+
+     TxnTrajectory* m_trajectoryBuffer;
+
+
      uint32_t session_id;              // session id
      uint64_t pre_csn;
      uint64_t score_;
      bool abort_;
  
-     // HYBRID_CC: Stores the decided concurrency control action (0-4) for logging.
-     int m_hybridCcAction;
- 
-     static constexpr uint64_t HIGH_MASK = (1ULL << 48) - 1;     // pre_csn
+    // HYBRID_CC: Stores the decided concurrency control action (0-4) for logging.
+    int m_hybridCcAction;
+    
+    // HYBRID_CC: Fields for tracking operation intervals
+    uint64_t m_lastOperationTime;     // 上次操作的时间戳
+    uint64_t m_totalOperationInterval; // 累计操作间隔（微秒）
+    int m_operationCount;              // 操作计数
+    double m_recent_abort_rate;
+    double m_recent_global_tps;
+
+    static constexpr uint64_t HIGH_MASK = (1ULL << 48) - 1;     // pre_csn
  
      static std::atomic<uint64_t> start_txn_num;
      static std::atomic<uint64_t> start_interactive_txn_num;

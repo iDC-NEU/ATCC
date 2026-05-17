@@ -42,7 +42,7 @@ class DataLoader:
         files = [
             os.path.join(self.data_path, f)
             for f in os.listdir(self.data_path)
-            if f.endswith(".csv")
+            if f.endswith("_traj")
         ]
 
         if not files:

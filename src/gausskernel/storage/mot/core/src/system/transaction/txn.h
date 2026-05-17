@@ -166,6 +166,9 @@
      double total_latency{};
      uint64_t priority_score{};
      uint32_t policy_version{};
+     uint64_t retry_count{};
+     double global_tps{};
+     double abort_rate{};
 
      void AddStep(int a, double p, int c, int w, int r, int ga, int gt, int lq, uint64_t t, uint64_t i, uint64_t score) {
          // double prob = probs[action];

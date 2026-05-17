@@ -308,30 +308,85 @@ class RewardCalculator:
         self.config = config
 
         # 权重（可在yaml调）
-        self.w_commit = config.get("reward", {}).get("w_commit", 1.0)
-        self.w_abort = config.get("reward", {}).get("w_abort", 1.5)
-        self.w_latency = config.get("reward", {}).get("w_latency", 0.8)
-        self.w_tps = config.get("reward", {}).get("w_tps", 0.3)
-        self.w_abort_rate = config.get("reward", {}).get("w_abort_rate", 1.2)
-        self.max_latency_sla = 10.0      # 例如 10ms
-        self.max_tps_sla = 100000.0      # 例如 10万 TPS
+        # self.w_commit = config.get("reward", {}).get("w_commit", 1.0)
+        # self.w_abort = config.get("reward", {}).get("w_abort", 1.5)
+        # self.w_latency = config.get("reward", {}).get("w_latency", 0.8)
+        # self.w_tps = config.get("reward", {}).get("w_tps", 0.3)
+        # self.w_abort_rate = config.get("reward", {}).get("w_abort_rate", 1.2)
+
+        # 主干权重 (R_succ, R_fail)
+        self.r_succ = config.get("reward", {}).get("r_succ", 1.0)
+        self.r_fail = config.get("reward", {}).get("r_fail", 1.0)
+
+        # 子项 C(T) 权重 (omega_1, omega_2, omega_3)
+        self.omega1 = config.get("reward", {}).get("omega1", 0.1)
+        self.omega2 = config.get("reward", {}).get("omega2", 0.1)
+        self.omega3 = config.get("reward", {}).get("omega3", 0.2)
+
+        # 系统权重 (psi, eta, theta)
+        self.psi = config.get("reward", {}).get("psi", 0.5)      # 对应 r_wait (用 latency 替代)
+        self.eta = config.get("reward", {}).get("eta", 0.3)      # 对应 \Delta TPS
+        self.theta = config.get("reward", {}).get("theta", 0.8)  # 对应 \Delta Latency (用 abort_rate 替代)
+
+        self.max_latency_sla = 10.0      # 10ms
+        self.max_tps_sla = 100000.0      # 10万 TPS
+        self.prev_avg_tps = None
+        self.prev_p99_latency = None
 
     def compute(self, df):
         # 归一化
         df['lat_norm'] = df['latency'] / self.max_latency_sla
         df['tps_norm'] = df['tps'] / self.max_tps_sla
+        df['query_int_norm'] = df['query_interval'] / 10.0
         df['abort_rate_norm'] = df['abort_rate']
 
-        reward = (
-                self.w_commit * df['commit']
-                - self.w_abort * df['abort']
-                - self.w_latency * df['lat_norm']
-                + self.w_tps * df['tps_norm']
-                - self.w_abort_rate * df['abort_rate_norm']
+        # 2. C(T) = w1*f_interval + w2*f_rs_ws + w3*f_retry
+        c_t = (
+                self.omega1 * df['query_int_norm'] +   # 操作间隔
+                self.omega2 * df['s_work'] +        # 读写集大小
+                self.omega3 * df['s_retry']         # 重试次数
         )
 
-        # 标准化（PPO稳定关键）
+        # reward = (
+        #         self.w_commit * df['commit']
+        #         - self.w_abort * df['abort']
+        #         - self.w_latency * df['lat_norm']
+        #         + self.w_tps * df['tps_norm']
+        #         - self.w_abort_rate * df['abort_rate_norm']
+        # )
+
+        # 计算 \Delta TPS 和 \Delta Latency_p99
+        if self.prev_avg_tps is None or self.prev_p99_latency is None:
+            # 如果是系统刚启动的第一轮，没有历史对比，\Delta 设为 0 或者用绝对值近似
+            delta_tps_norm = 0.0
+            delta_lat_norm = 0.0
+        else:
+            # \Delta：当前事务的物理表现 减去 上一轮全局基线
+            delta_tps_norm = (df['tps'] - self.prev_avg_tps) / self.max_tps_sla
+            delta_lat_norm = (df['latency'] - self.prev_p99_latency) / self.max_latency_sla
+
+        # 3. R_t = I_commit * R_succ - I_abort * (R_fail + C(T)) - psi*r_wait + eta*TPS - theta*Latency
+        terminal_bonus = (
+                df['commit'] * self.r_succ
+                - df['abort'] * (self.r_fail + c_t)
+                - self.psi * df['lat_norm']            # 使用 latency 模拟锁等待
+                + self.eta * delta_tps_norm            # \Delta TPS 带来的增益
+                - self.theta * delta_lat_norm          # \Delta Latency 带来的系统级恶化
+        )
+
+        base_reward = 0.0
+
+        # 使用 numpy.where 进行向量化分支：
+        # 如果 df['done'] == 1（最后一步），给它 base_reward + terminal_bonus
+        # 如果 df['done'] == 0（中间步骤），只给它 base_reward
+        reward = np.where(df['done'] == 1, terminal_bonus, base_reward)
+        # 标准化
         reward = (reward - reward.mean()) / (reward.std() + 1e-8)
 
         df['reward'] = reward
         return df
+
+    def update_baselines(self, avg_tps, p99_latency):
+        """在每轮训练结束后被 pipeline 调用，更新全局基线"""
+        self.prev_avg_tps = avg_tps
+        self.prev_p99_latency = p99_latency

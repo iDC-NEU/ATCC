@@ -160,7 +160,7 @@ RC TxnManager::InsertRow(Row* row)
     // HYBRID_CC: Record operation for interval tracking
     RecordOperation();
 
-    // TODO: 先上锁再读取，避免并发修改读到旧数据
+    // 先上锁再读取，避免并发修改读到旧数据
     if (!isMVCC_Active && type == AccessType::RD && IsInteractive() && ValidateTxnPessimistic(cur_time)) {
         // 注意：你需要将原来的 GetReadLock 系列函数改造为接受 originalSentinel 或 RowId
         RC lock_rc = RC_OK;
@@ -1179,33 +1179,31 @@ uint64_t TxnManager::CalculateScore()
 
         // 获取当前时间（微秒级），假定环境中存在 now_to_us()，同你之前的代码
         uint64_t current_time = now_to_us();
+        uint64_t base_time_score = (~start_time) & 0x00FFFFFFFFFFFFFF;
+
         // Ops(T): 语句数量 / 计算资源投入
         uint64_t ops = (uint64_t)m_operationCount;
-        // ThinkTime(T): 交互时长与网络延迟
         uint64_t think_time = m_totalOperationInterval;
-        // 事务存活总时长 (Age)
         uint64_t age = (current_time > start_time) ? (current_time - start_time) : 0;
-        // Block(T): 阻塞时长 = 总存活时长 - 交互操作间隔 (防下溢出保护)
         uint64_t block_time = (age > think_time) ? (age - think_time) : 0;
 
         // 权重配置
-        double w_ops = 100.0;     // 保护大事务：防止投入大量资源的事务被轻易中止
+        double w_ops = 10.0;     // 保护大事务：防止投入大量资源的事务被轻易中止
         double w_block = 1.0;     // 缓解排队饥饿：基于微秒的时长通常数值极大，因此基础权重可设低些
-        double w_think = 10.0;     // 交互成本补偿：给予交互型事务适度加分以快速释放其持有的锁
+        double w_think = 15.0;     // 交互成本补偿：给予交互型事务适度加分以快速释放其持有的锁
 
        if (m_recent_abort_rate > 0.2) {
             w_block *= (1.0 + (m_recent_abort_rate * 5.0));
         }
 
-        double sub_score_f = (w_ops * ops) + (w_block * block_time) + (w_think * think_time);
-        uint64_t sub_score = (uint64_t)sub_score_f;
-
+        uint64_t dynamic_boost = (w_ops * ops) + (w_block * block_time) + (w_think * think_time);
+        uint64_t virtual_age = base_time_score + dynamic_boost;
+        virtual_age &= 0x00FFFFFFFFFFFFFF;
         // 安全截断：强行限制子分数最多只占 56 位（最大值约 7.2 * 10^16），
         // 绝对防止极端情况下数值溢出覆盖到高位的 Retry 计数。
-        sub_score &= 0xFFFFFFFFFFFFFF;
 
         // Retry(T) 放置于最高 8 位，拥有统治级优先级（支持高达 255 次重试严格排序）
-        score_ = ((uint64_t)retry_cnt << 56) | sub_score;
+        score_ = ((uint64_t)retry_cnt << 56) | virtual_age;
     } else {
         score_ = 0;
         uint64_t f = UINT64_MAX - start_time;
@@ -1327,7 +1325,7 @@ bool TxnManager::ShouldLock(bool isWrite, uint64_t rowId)
       if (pessimistic_flag) return true;
       first_time_pessimistic = true;
       pessimistic_flag = true;
-//      m_hybridCcAction = 4;
+      m_hybridCcAction = 4;
       return true;
     }
 
@@ -1340,16 +1338,19 @@ bool TxnManager::ShouldLock(bool isWrite, uint64_t rowId)
         m_recent_abort_rate = MOTAdaptor::recent_abort_rate;
         int action = 0;
         if (kTrainAction > 4) {
-            action = HybridCcManager::GetInstance().Decide(this);
+//            action = HybridCcManager::GetInstance().Decide(this);
+              action = HybridCcManager::GetInstance().DecideTraj(this);
         } else {
             action = kTrainAction;
+            double action_prob = 0.2;
+            uint32_t policy_version = HybridCcManager::GetInstance().GetCurrentVersion();
+            HybridCcManager::GetInstance().RecordDecisionTraj(this, action, action_prob, policy_version);
         }
 
-        this->m_hybridCcAction = action;
         //        if (cc_mode == 1 && action > 0) return true;
         if (action > 0) {
             pessimistic_flag = true;
-            RC rc = HybridCcManager::GetInstance().ExecuteAction(this, action);
+            RC rc = HybridCcManager::GetInstance().ExecuteAction(this, action, this->m_hybridCcAction);
             if (rc != MOT::RC_OK) abort_ = true;
             return true;
         }
@@ -1435,6 +1436,10 @@ void TxnManager::FinalizeAndPush() {
 
         last_step.done = true; // MDP 终止符
         last_step.is_commit = is_commit;
+
+        m_trajectoryBuffer->retry_count = retry_cnt;
+        m_trajectoryBuffer->global_tps = MOTAdaptor::recent_global_tps;
+        m_trajectoryBuffer->abort_rate = MOTAdaptor::recent_abort_rate;
 
         // 移交 unique_ptr 所有权，零拷贝进入无锁队列
         MOTAdaptor::GlobalLockFreeQueue.enqueue(std::unique_ptr<MOT::TxnTrajectory>(m_trajectoryBuffer));
@@ -1666,16 +1671,16 @@ void TxnManager::FinalizeAndPush() {
                  if (rc != MOT::RC_OK) return rc;
              } else {
                  // wzy: 只对交互型事务的hot row上写锁
-//                if ((kHotRow_Active && !is_hybrid_cc_enable && hot_rowid_records.count(updatedRow->GetRowId()) != 0)
-//                      || (is_hybrid_cc_enable && ShouldLock(true, updatedRow->GetRowId()))) {
-                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
+                if ((kHotRow_Active && !is_hybrid_cc_enable && hot_rowid_records.count(updatedRow->GetRowId()) != 0)
+                      || (is_hybrid_cc_enable && ShouldLock(true, updatedRow->GetRowId()))) {
+//                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
                      if (GetCommitSequenceNumber() == 0) {
                          SetCommitSequenceNumber(now_to_us());
                          InitInteractiveTxn();
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
-                 } else if(!kHotRow_Active) {
+                 } else if(!kHotRow_Active && !is_hybrid_cc_enable) {
                      // else if(!kHotRow_Active && !is_hybrid_cc_enable)
                      // 未启用热行上锁策略则全部行上锁
                      if (GetCommitSequenceNumber() == 0) {

@@ -23,6 +23,21 @@ class ActorCriticNet(nn.Module):
         # Critic头：输出状态的标量价值
         self.critic = nn.Linear(64, 1)
 
+        # =========================================================
+        # ✅ 专家先验注入 (Expert Initialization)
+        # 强制让未经训练的网络初始输出 P(action=4) ≈ 70%
+        # =========================================================
+        actor_last_layer = self.actor[0] # 获取 nn.Linear(64, action_dim)
+        # 1. 把最后一层权重初始化得非常小，让 bias 占据绝对主导
+        torch.nn.init.orthogonal_(actor_last_layer.weight, gain=0.01)
+        # 2. 初始化 bias 为 0
+        torch.nn.init.constant_(actor_last_layer.bias, 0.0)
+        # 3. 注入先验偏差：ln(0.70 / 0.075) ≈ 2.2336
+        # action_dim=5 的情况下，索引 4 就是动作 4 (全悲观锁)
+        actor_last_layer.bias.data[4] = 2.4849
+        # actor_last_layer.bias.data[5] = 1.3862
+        # =========================================================
+
     def forward(self, x):
         features = self.shared(x)
         action_probs = self.actor(features)
@@ -189,6 +204,11 @@ class PPOTrainer:
         # 7. PPO Multi-Epoch Update
         # ====================================================
         total_loss = 0.0
+        sum_total_loss = 0.0
+        sum_actor_loss = 0.0
+        sum_critic_loss = 0.0
+        sum_entropy = 0.0
+        update_steps = 0  # 记录总共执行了多少次 mini-batch 更新
 
         for epoch in range(self.epochs):
             np.random.shuffle(indices)
@@ -276,12 +296,22 @@ class PPOTrainer:
 
                 self.optimizer.step()
                 total_loss += loss.item()
+                sum_total_loss += loss.item()
+                sum_actor_loss += actor_loss.item()
+                sum_critic_loss += critic_loss.item()
+                sum_entropy += entropy.item()
+                update_steps += 1
 
         avg_loss = total_loss / (
                 self.epochs * (dataset_size // self.batch_size + 1)
         )
-
-        return avg_loss
+        return {
+            "total_loss": sum_total_loss / update_steps,
+            "actor_loss": sum_actor_loss / update_steps,
+            "critic_loss": sum_critic_loss / update_steps,
+            "entropy": sum_entropy / update_steps
+        }
+        # return avg_loss
 
 
     def predict(self, state):
@@ -315,27 +345,28 @@ class RewardCalculator:
         # self.w_abort_rate = config.get("reward", {}).get("w_abort_rate", 1.2)
 
         # 主干权重 (R_succ, R_fail)
-        self.r_succ = config.get("reward", {}).get("r_succ", 1.0)
+        self.r_succ = config.get("reward", {}).get("r_succ", 2.0)
         self.r_fail = config.get("reward", {}).get("r_fail", 1.0)
 
-        # 子项 C(T) 权重 (omega_1, omega_2, omega_3)
+        # 子项 C(T) 权重 (omega_1, omega_2, omega_3) C(T) = w1*f_interval + w2*f_rs_ws + w3*f_retry
         self.omega1 = config.get("reward", {}).get("omega1", 0.1)
-        self.omega2 = config.get("reward", {}).get("omega2", 0.1)
-        self.omega3 = config.get("reward", {}).get("omega3", 0.2)
+        self.omega2 = config.get("reward", {}).get("omega2", 0.5)
+        self.omega3 = config.get("reward", {}).get("omega3", 1.5)
 
         # 系统权重 (psi, eta, theta)
-        self.psi = config.get("reward", {}).get("psi", 0.5)      # 对应 r_wait (用 latency 替代)
-        self.eta = config.get("reward", {}).get("eta", 0.3)      # 对应 \Delta TPS
-        self.theta = config.get("reward", {}).get("theta", 0.8)  # 对应 \Delta Latency (用 abort_rate 替代)
+        self.psi = config.get("reward", {}).get("psi", 2.0)      # 对应 r_wait (用 latency 替代)
+        self.eta = config.get("reward", {}).get("eta", 8.0)      # 对应 \Delta TPS
+        self.theta = config.get("reward", {}).get("theta", 3.0)  # 对应 \Delta Latency (用 abort_rate 替代)
 
-        self.max_latency_sla = 10.0      # 10ms
-        self.max_tps_sla = 100000.0      # 10万 TPS
+        self.max_latency_sla = 1000.0      # 10000ms
+        self.max_tps_sla = 200000.0      # 20万 TPS
         self.prev_avg_tps = None
         self.prev_p99_latency = None
 
     def compute(self, df):
         # 归一化
-        df['lat_norm'] = df['latency'] / self.max_latency_sla
+        # df['lat_norm'] = df['latency'] / self.max_latency_sla
+        df['lat_norm'] = np.clip(df['latency'] / self.max_latency_sla, 0.0, 3.0)
         df['tps_norm'] = df['tps'] / self.max_tps_sla
         df['query_int_norm'] = df['query_interval'] / 10.0
         df['abort_rate_norm'] = df['abort_rate']
@@ -363,7 +394,12 @@ class RewardCalculator:
         else:
             # \Delta：当前事务的物理表现 减去 上一轮全局基线
             delta_tps_norm = (df['tps'] - self.prev_avg_tps) / self.max_tps_sla
-            delta_lat_norm = (df['latency'] - self.prev_p99_latency) / self.max_latency_sla
+            # 同样对 delta 进行截断保护 (-3.0 到 3.0)
+            delta_lat_norm = np.clip(
+                (df['latency'] - self.prev_p99_latency) / self.max_latency_sla,
+                -3.0, 3.0
+            )
+            # delta_lat_norm = (df['latency'] - self.prev_p99_latency) / self.max_latency_sla
 
         # 3. R_t = I_commit * R_succ - I_abort * (R_fail + C(T)) - psi*r_wait + eta*TPS - theta*Latency
         terminal_bonus = (

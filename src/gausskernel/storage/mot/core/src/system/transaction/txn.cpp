@@ -1177,11 +1177,11 @@ uint64_t TxnManager::CalculateScore()
 //        score_ |= ((uint64_t)retry_cnt << 57);
 //        score_ |= (f & 0x1FFFFFFFFFFFFFF);
 
-        // 获取当前时间（微秒级），假定环境中存在 now_to_us()，同你之前的代码
+        // 获取当前时间（微秒级）
         uint64_t current_time = now_to_us();
         uint64_t base_time_score = (~start_time) & 0x00FFFFFFFFFFFFFF;
 
-        // Ops(T): 语句数量 / 计算资源投入
+        // Ops(T), block_time, think_time, exec_time
         uint64_t ops = (uint64_t)m_operationCount;
         uint64_t think_time = m_totalOperationInterval;
         uint64_t age = (current_time > start_time) ? (current_time - start_time) : 0;
@@ -1202,7 +1202,7 @@ uint64_t TxnManager::CalculateScore()
         // 安全截断：强行限制子分数最多只占 56 位（最大值约 7.2 * 10^16），
         // 绝对防止极端情况下数值溢出覆盖到高位的 Retry 计数。
 
-        // Retry(T) 放置于最高 8 位，拥有统治级优先级（支持高达 255 次重试严格排序）
+        // Retry(T) 放置于最高 8 位，拥有最高优先级（支持高达 255 次重试严格排序）
         score_ = ((uint64_t)retry_cnt << 56) | virtual_age;
     } else {
         score_ = 0;

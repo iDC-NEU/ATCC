@@ -12,6 +12,8 @@ from .ppo_trainer import RewardCalculator
 from .ppo_trainer import PPOTrainer
 from .ldt_manager import LdtManager
 
+import pandas as pd
+import numpy as np
 
 def notify_cpp(version, host="127.0.0.1", port=1556):
     try:
@@ -37,7 +39,7 @@ def run_training_pipeline(config_path='config/default.yaml'):
     ldt_manager = LdtManager(config)
 
     min_samples = config.get("training", {}).get("min_samples", 20000)
-    interval = config.get("training", {}).get("interval_sec", 6000)
+    interval = config.get("training", {}).get("interval_sec", 600)
 
     state_cols = config['features']['state_columns']
     next_state_cols = config['features']['next_state_columns']
@@ -46,7 +48,7 @@ def run_training_pipeline(config_path='config/default.yaml'):
     num_actions = config['optimizer']['num_actions']
 
     ppo = PPOTrainer(state_dim, num_actions, config)
-    model_path = "models/ppo.pt"
+    model_path = "models/ppo_v1.pt"
     model_dir = os.path.dirname(model_path)
     os.makedirs(model_dir, exist_ok=True)
 
@@ -58,27 +60,33 @@ def run_training_pipeline(config_path='config/default.yaml'):
     latest_version = ldt_manager.get_current_version()
     # latest_version = 5
 
-    state_matrix, all_state_keys = all_states()
+    state_matrix, all_state_keys, all_combinations = all_states()
 
     print("=== PPO Training Service Started===")
     print(f"=== Current Latest version : {latest_version} =========")
 
     while True:
 
+        now = time.time()
+        if now - last_train_time < interval:
+            time.sleep(interval - now + last_train_time)
+            continue
+
         raw_df = data_loader.load_data()
         if raw_df.empty:
-            time.sleep(600)
+            time.sleep(60)
             continue
 
         filtered_df = data_filter.filter_by_policy_version(raw_df, latest_version)
         if len(filtered_df) < min_samples:
             print("[Pipeline] Not enough data, waiting...")
-            time.sleep(600)
-            continue
-
-        now = time.time()
-        if now - last_train_time < interval:
-            time.sleep(60)
+            # all_probs = ppo.predict_batch(state_matrix)
+            # prob_policy = {}
+            # for key, probs in zip(all_state_keys, all_probs):
+            #     prob_policy[key] = [round(float(p), 4) for p in probs]
+            # version = ldt_manager.save_ldt_prob(prob_policy)
+            # ppo.save(model_path)
+            # time.sleep(120)
             continue
 
         print("\n=== Start Training ===")
@@ -102,8 +110,12 @@ def run_training_pipeline(config_path='config/default.yaml'):
         next_states = final_df[next_state_cols].values
         dones = final_df['done'].values.astype(float)
 
-        loss = ppo.train(states, actions, old_probs, rewards, next_states, dones)
-        print(f"[PPO] Training done. Loss={loss:.4f}")
+        losses = ppo.train(states, actions, old_probs, rewards, next_states, dones)
+        # print(f"[PPO] Training done. Loss={loss:.4f}")
+        print(f"Total: {losses['total_loss']:.2f} | "
+              f"Actor: {losses['actor_loss']:.4f} | "
+              f"Critic: {losses['critic_loss']:.2f} | "
+              f"Entropy: {losses['entropy']:.4f}")
         print(final_df['reward'].describe())
 
         # ✅ 生成LDT
@@ -120,13 +132,36 @@ def run_training_pipeline(config_path='config/default.yaml'):
         all_probs = ppo.predict_batch(state_matrix)
 
         prob_policy = {}
-        for key, probs in zip(all_state_keys, all_probs):
-            prob_policy[key] = [round(float(p), 4) for p in probs]
+        for key, probs, combo in zip(all_state_keys, all_probs, all_combinations):
+            c, w, r, ga, gt = combo
+            # prob_policy[key] = [round(float(p), 4) for p in probs]
+            # 【冷启动规则：仅在 latest_version == 0 时触发】
+            if latest_version == 0:
+                if num_actions == 6:
+                    # 版本 A：包含提权动作 5
+                    if c == 0 and r == 0:
+                        prob_policy[key] = [0.60, 0.10, 0.10, 0.05, 0.10, 0.05]
+                    elif r >= 1:
+                        prob_policy[key] = [0.01, 0.01, 0.01, 0.05, 0.62, 0.30]
+                    else:
+                        prob_policy[key] = [round(float(p), 4) for p in probs]
+
+                elif num_actions == 5:
+                    # 版本 B：没有动作 5，只有 0~4
+                    if c == 0 and r == 0:
+                        prob_policy[key] = [0.60, 0.20, 0.10, 0.05, 0.05]
+                    elif r >= 1:
+                        prob_policy[key] = [0.01, 0.02, 0.02, 0.05, 0.90]
+                    else:
+                        prob_policy[key] = [round(float(p), 4) for p in probs]
+            else:
+                # 训练开始后，完全交由 PPO 网络接管
+                prob_policy[key] = [round(float(p), 4) for p in probs]
 
         version = ldt_manager.save_ldt_prob(prob_policy)
         latest_version = version
 
-        # ✅ 通知 C++
+        # ✅ 通知数据库
         notify_cpp(version)
         ppo.save(model_path)
         print(f"=== Model saved in : {model_path} ===\n")
@@ -146,6 +181,11 @@ def run_training_pipeline(config_path='config/default.yaml'):
             print("[Warning] No completed trajectories found in this batch!")
 
         print(f"[Stats] Round completed -> Avg TPS: {current_avg_tps:.2f}, P99 Latency: {current_p99_lat:.2f}, Avg Abort Rate: {current_avg_abort:.4f}")
+
+        # 计算本批次的真实平均 Reward（仅限最终提交/中止的回合，更科学）
+        avg_reward = rewarded_df[rewarded_df['done'] == 1]['reward'].mean()
+        print(f"[PPO] Training done. Total: {losses['total_loss']:.2f}, Avg Reward={avg_reward:.4f}")
+
         # 更新基线
         reward_calc.update_baselines(current_avg_tps, current_p99_lat)
 
@@ -174,7 +214,7 @@ def adapt_columns(df):
 
 import itertools
 import numpy as np
-def all_states() -> tuple[np.ndarray, list]:
+def all_states() -> tuple[np.ndarray, list, list]:
     print("[Pipeline] Generating full Cartesian product LDT for all states...")
     # 定义每个特征的 Tier 范围 (0, 1, 2)
     tier_range = [0, 1, 2]
@@ -200,7 +240,7 @@ def all_states() -> tuple[np.ndarray, list]:
         state_vec = [c, w, r, ga, gt]
         all_state_vecs.append(state_vec)
     state_matrix = np.array(all_state_vecs, dtype=np.float32)
-    return state_matrix, all_state_keys
+    return state_matrix, all_state_keys, all_combinations
 
 if __name__ == "__main__":
     # notify_cpp(7)

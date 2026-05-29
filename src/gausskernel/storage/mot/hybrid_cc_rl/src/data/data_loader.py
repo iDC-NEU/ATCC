@@ -7,7 +7,7 @@ from .schema import REQUIRED_COLUMNS
 class DataLoader:
     def __init__(self, config: dict):
         self.config = config
-        self.data_path = config.get("data", {}).get("path", "logs/")
+        self.data_path = config.get("data", {}).get("path", "input/")
         self.file_type = config.get("data", {}).get("type", "csv")
 
     def _load_csv_files(self, files: List[str]) -> pd.DataFrame:

@@ -6015,6 +6015,13 @@ void ReGetServerInfo() {
     tinyxml2::XMLElement* is_retry_priority_check = root->FirstChildElement("is_retry_priority_enable");
     is_retry_priority_enable = std::stoi(is_retry_priority_check->GetText()) == 0 ? false : true;
 
+    tinyxml2::XMLElement* is_rl_model_check = root->FirstChildElement("is_rl_model_enable");
+    is_rl_model_enable = std::stoi(is_rl_model_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_dynamic_priority_check = root->FirstChildElement("is_dynamic_priority_enable");
+    is_dynamic_priority = std::stoi(is_dynamic_priority_check->GetText()) == 0 ? false : true;
+
+
     // 开启事务并发控制切换
     tinyxml2::XMLElement* is_CC_Switch_check = root->FirstChildElement("is_CC_Switch_enable");
     is_CC_Switch_enable = std::stoi(is_CC_Switch_check->GetText()) == 0 ? false : true;

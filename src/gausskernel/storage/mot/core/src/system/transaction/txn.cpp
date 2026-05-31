@@ -1172,6 +1172,7 @@ RC TxnManager::InsertRow(Row* row)
 uint64_t TxnManager::CalculateScore()
 {
     if (is_retry_priority_enable) {
+        calculate_score_time = now_to_us();
         score_ = 0;
 //        uint64_t f = UINT64_MAX - start_time;
 //        score_ |= ((uint64_t)retry_cnt << 57);
@@ -1326,6 +1327,7 @@ bool TxnManager::ShouldLock(bool isWrite, uint64_t rowId)
       first_time_pessimistic = true;
       pessimistic_flag = true;
       m_hybridCcAction = 4;
+      if (is_dynamic_priority && (cur_time - calculate_score_time > 20000)) BoostPriority(0);         // 测试定期更新优先级
       return true;
     }
 
@@ -3452,16 +3454,15 @@ void TxnManager::FinalizeAndPush() {
              return RC_ABORT;     // 被死锁检测abort，已经被自动解锁
          }
  
-         if (is_debug_print_enable) MOT_LOG_INFO("CommitPhaseWoundWait() before tmp_csn : %s ", csn_temp.c_str());
- 
-         if(m_occManager.ValidationPhaseWoundWait(this, local_ip_index) == RC_ABORT) {
-             if (IsInteractive()) {
-                 if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhaseWoundWait() local failed tmp_csn : %s ", csn_temp.c_str());
-                 MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
-             }
-             MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
-             return RC_ABORT;
-         }
+
+//         if(m_occManager.ValidationPhaseWoundWait(this, local_ip_index) == RC_ABORT) {
+//             if (IsInteractive()) {
+//                 if (is_debug_print_enable) MOT_LOG_INFO("[Abort] CommitPhaseWoundWait() local failed tmp_csn : %s ", csn_temp.c_str());
+//                 MOTAdaptor::CommitPhase_abort_interactive_num.fetch_add(1);
+//             }
+//             MOTAdaptor::CommitPhase_abort_num.fetch_add(1);
+//             return RC_ABORT;
+//         }
  
          if (is_debug_print_enable) MOT_LOG_INFO("CommitPhaseWoundWait() after tmp_csn : %s ", csn_temp.c_str());
  
@@ -3482,17 +3483,14 @@ void TxnManager::FinalizeAndPush() {
          if(rc != RC_ABORT){
              // 移动到Lock释放后，避免死锁，乐观和悲观Plor执行的同步提交，释放锁
              // rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
- 
-             // TODO: 对热点数据进行读写检验，复用silo代码，失败则释放锁
-             if (kHotRow_Active) {
-                 auto time1 = now_to_us();
-                 rc = m_occManager.ValidateOccPlor(this);
-                 auto time2 = now_to_us();
-                 MOTAdaptor::txn_total_validate_hotOccTime.fetch_add(time2 - time1);
-                 MOTAdaptor::txn_total_validate_hotOccCnt.fetch_add(1);
-                 MOTAdaptor::txn_temp_total_validate_hotOccTime.fetch_add(time2 - time1);
-                 MOTAdaptor::txn_temp_total_validate_hotOccCnt.fetch_add(1);
-             }
+             // 对未上锁的行进行检查
+             auto time1 = now_to_us();
+             rc = m_occManager.ValidateOccPlor(this);
+             auto time2 = now_to_us();
+             MOTAdaptor::txn_total_validate_hotOccTime.fetch_add(time2 - time1);
+             MOTAdaptor::txn_total_validate_hotOccCnt.fetch_add(1);
+             MOTAdaptor::txn_temp_total_validate_hotOccTime.fetch_add(time2 - time1);
+             MOTAdaptor::txn_temp_total_validate_hotOccCnt.fetch_add(1);
          }
  
          if(rc == RC_OK){
@@ -3527,7 +3525,7 @@ void TxnManager::FinalizeAndPush() {
              }
          }
          // 只读事务解锁
-         rc = m_occManager.UnlockReadWriteLockPlor(this, local_ip_index, pre_csn, false);
+         rc = m_occManager.UnlockReadWriteLockWoundWait(this, local_ip_index, pre_csn, false);
  
          if(is_breakdown) {
              auto time2 = now_to_us();

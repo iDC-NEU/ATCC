@@ -261,7 +261,7 @@ uint64_t cc_mode = 0;           // wzy: 并发控制模式，1：混合 2：Plor
 int kTrainAction = 0;
 
 bool isMVCC_Active = false, kInteractive_Active = false, kPriority_Active = false, kAllPessimisticLock = false, kHotRow_Active = false, kPreLockCheck_Active = false,
-     is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false, is_perf_enable = false, is_retry_priority_enable = true, is_rl_model_enable = false;
+     is_CC_Switch_enable = false, is_wound_wait_enable = false, is_debug_print_enable = false, is_perf_enable = false, is_retry_priority_enable = true, is_rl_model_enable = false, is_dynamic_priority = false;
 uint64_t kEpochLimit = 10, kReadCntLimit = 10, kWriteCntLimit = 10, kHotCntEpochLen = 10, kHotCntLimit = 10, kEpochWeight = 0, kReadCntWeight = 0, kWriteCntWeight = 0, kSwitchLimit = 0;
 uint64_t kPredictThread = 1;
 
@@ -11739,6 +11739,10 @@ void GetServerInfo(){
 
     tinyxml2::XMLElement* is_rl_model_check = root->FirstChildElement("is_rl_model_enable");
     is_rl_model_enable = std::stoi(is_rl_model_check->GetText()) == 0 ? false : true;
+
+    tinyxml2::XMLElement* is_dynamic_priority_check = root->FirstChildElement("is_dynamic_priority_enable");
+    is_dynamic_priority = std::stoi(is_dynamic_priority_check->GetText()) == 0 ? false : true;
+
 
     // 开启事务并发控制切换
     tinyxml2::XMLElement* is_CC_Switch_check = root->FirstChildElement("is_CC_Switch_enable");

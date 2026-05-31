@@ -2620,8 +2620,7 @@ void FDWEpochMessageCacheManagerThreadMain(uint64_t id){
 }
 void FDWEpochMessageManagerThreadMain(uint64_t id){
 //    EpochMessageManagerThreadMain(id);
-    // 死锁检测， wound-wait中止释放锁处理
-    if (cc_mode == 4) BackgroundLogConsumer();
+    if (cc_mode == 3 || cc_mode == 4) BackgroundLogConsumer();
     else EpochLockThreadMain(id);
 }
 

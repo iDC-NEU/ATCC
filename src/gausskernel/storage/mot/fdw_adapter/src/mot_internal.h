@@ -1953,7 +1953,8 @@
  public:
  
      ///////////////// Lock Request ///////////////////////
-     // wzy : 上锁和死锁检测
+     enum LockMode { LOCKROW_NONE = 0, LOCKROW_SH = 1, LOCKROW_EX = 2 };
+     // 上锁和死锁检测
      class LockRequest {
      public:
          uint64_t server_id_;
@@ -1968,6 +1969,15 @@
  
          std::string key_;
          std::string table_name_;
+
+         // wound-wait
+         LockMode type_;
+         std::atomic<bool> is_ready_{false};
+         bool waiting_for_woundees_{false};
+
+         LockRequest(MOT::TxnManager* t, uint32_t sid, LockMode m)
+             : txMan_(t), server_id_(sid), csn_(t->pre_csn), type_(m) {}
+
          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
              : csn_(csn), server_id_(server_id), start_epoch_(start_epoch)
          {
@@ -2230,27 +2240,29 @@
              uint64_t start_time = now_to_us();
  
              if (!is_wound_wait_enable) {
-                 // PLOR 算法，若当前reader tid < 写者tid，则写者abort
-                 while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
-                     if (!excl_sig.load()) break;
-                     if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
-                         AbortTransactinRequest(writer_.load());
-                     }
-                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                         RemoveReaderRequest(tid);
-                         RemoveWriterRequest(tid);
-                         return false;
-                     }
-                     lock.unlock();
- 
-                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                         DebugMessage();
-                         //  return false;
-                     }
-                     if (now_to_us() - start_time > 3000000) return false;
-                     std::this_thread::yield();
-                     lock.lock();
-                 }
+//                 // PLOR 算法，若当前reader tid < 写者tid，则写者abort
+//                 while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
+//                     if (!excl_sig.load()) break;
+//                     if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
+//                         AbortTransactinRequest(writer_.load());
+//                     }
+//                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+//                         RemoveReaderRequest(tid);
+//                         RemoveWriterRequest(tid);
+//                         return false;
+//                     }
+//                     lock.unlock();
+//
+//                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+//                         DebugMessage();
+//                         //  return false;
+//                     }
+//                     if (now_to_us() - start_time > 3000000) return false;
+//                     std::this_thread::yield();
+//                     lock.lock();
+//                 }
+                lock.unlock();
+                return LockGet(LOCKROW_SH, txMan, server_id);
              } else {
                  // wound-wait block
                  while (writer_.load() != INVALID_TID) {
@@ -2272,8 +2284,7 @@
                      }
                      if (now_to_us() - start_time > 3000000) return false;
                      std::this_thread::yield();
- 
-                     lock.lock();        // test
+                     lock.lock();
                  }
              }
  
@@ -2310,34 +2321,42 @@
  
              uint64_t start_time = now_to_us();
  
-             // PLOR 算法等待成功上锁后再继续执行
-             uint64_t expected = 0L;
-             if (!writer_.compare_exchange_weak(expected, tid)) {
-                 while (writer_.load() != tid) {
-                     lock.lock();
-                     if (writer_.load() == INVALID_TID) writer_.store(tid);
-                     if (tid == writer_.load()) break;
-                     if (now_to_us() - start_time > 3000) {
-                         if (!IsSmallerThanWriter(tid, tid_score)) {
-                             if (tid != writer_.load()) AbortTransactinRequest(writer_.load());
+             // 等待成功上锁后再继续执行
+             if (!is_wound_wait_enable) {
+                 return LockGet(LOCKROW_EX, txMan, server_id);
+             } else {
+                 uint64_t expected = 0L;
+                 if (!writer_.compare_exchange_weak(expected, tid)) {
+                     while (writer_.load() != tid) {
+                         lock.lock();
+                         if (writer_.load() == INVALID_TID)
+                             writer_.store(tid);
+                         if (tid == writer_.load())
+                             break;
+                         if (now_to_us() - start_time > 3000) {
+                             if (!IsSmallerThanWriter(tid, tid_score)) {
+                                 if (tid != writer_.load())
+                                     AbortTransactinRequest(writer_.load());
+                             }
+                             start_time = now_to_us();
                          }
-                         start_time = now_to_us();
-                     }
- 
-                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                         RemoveReaderRequest(tid);
-                         RemoveWriterRequest(tid);
+
+                         if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                             RemoveReaderRequest(tid);
+                             RemoveWriterRequest(tid);
+                             lock.unlock();
+                             return false;
+                         }
                          lock.unlock();
-                         return false;
+                         if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                             DebugMessage();
+                             // MOT_LOG_INFO("LockWR() csn : %s , rowid : %s", s_tid.c_str(), row_id.c_str());
+                             //                        return false;
+                         }
+                         if (now_to_us() - start_time > 3000000)
+                             return false;
+                         std::this_thread::yield();
                      }
-                     lock.unlock();
-                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                         DebugMessage();
-                         // MOT_LOG_INFO("LockWR() csn : %s , rowid : %s", s_tid.c_str(), row_id.c_str());
- //                        return false;
-                     }
-                     if (now_to_us() - start_time > 3000000) return false;
-                     std::this_thread::yield();
                  }
              }
              writer_score_.store(tid_score);         // 自己获得锁
@@ -2345,44 +2364,59 @@
          }
  
          bool UnlockRD(std::string& row_id, uint64_t& tid) {
+             if (!is_wound_wait_enable) {
+                 LockRelease(LOCKROW_SH, tid, 0);
+             }
              std::lock_guard<std::mutex> lock(p_latch_);
              RemoveReaderRequest(tid);
              return true;
          }
  
          bool UnlockWR(std::string& row_id, uint64_t& tid, std::string& res_tid, uint32_t& server_id) {
-             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
-             std::lock_guard<std::mutex> lock(p_latch_);
-             bool res = true;
-             if (writer_.load() == INVALID_TID || writer_.load() != tid) {
-                 res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
-                 RemoveReaderRequest(tid);
-                 RemoveWriterRequest(tid);
-                 res = false;            // 同一事务不同操作解锁同一行，可能遇到该情况
-             } else {
-                 writer_.store(INVALID_TID);
- //                MOTAdaptor::epoch_lock_set.insert(row_id, s_tid);     // 先插入当前epoch有锁集, 需要吗?
-                 RemoveReaderRequest(tid);
-                 RemoveWriterRequest(tid);
-                 // 消除exclusive模式
-                 excl_sig.store(false);
+             if (!is_wound_wait_enable) {
+                 LockRelease(LOCKROW_EX, tid, 0);
              }
-             if (writer_.load() == INVALID_TID) {
-                 // 获取优先级最高的tid，获取写锁
-                 if (!writer_list_.empty() && m_writer_.load() == INVALID_TID) {  // 如果队里有request，则取第一个作为grant
-                     // 找到最大的元素
-                     auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
-                     m_writer_.store((*max_element)->csn_);
-                     if ((*max_element)->txMan_ != nullptr) m_writer_score_.store((*max_element)->txMan_->GetCurrentPriority());
-                    else m_writer_score_.store((*max_element)->score_);
+             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
+             bool res = true;
+             std::lock_guard<std::mutex> lock(p_latch_);
+             if (!is_wound_wait_enable) {
+                 RemoveWriterRequest(tid);
+                 RemoveReaderRequest(tid);
+             } else {
+                 if (writer_.load() == INVALID_TID || writer_.load() != tid) {
+                     res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
+                     RemoveReaderRequest(tid);
+                     RemoveWriterRequest(tid);
+                     res = false;  // 同一事务不同操作解锁同一行，可能遇到该情况
+                 } else {
+                     writer_.store(INVALID_TID);
+                     //                MOTAdaptor::epoch_lock_set.insert(row_id, s_tid);     // 先插入当前epoch有锁集, 需要吗?
+                     RemoveReaderRequest(tid);
+                     RemoveWriterRequest(tid);
+                     // 消除exclusive模式
+                     excl_sig.store(false);
                  }
-                 writer_score_.store(m_writer_score_.load());
-                 writer_.store(m_writer_.load());
+                 if (writer_.load() == INVALID_TID) {
+                     // 获取优先级最高的tid，获取写锁
+                     if (!writer_list_.empty() &&
+                         m_writer_.load() == INVALID_TID) {  // 如果队里有request，则取第一个作为grant
+                         // 找到最大的元素
+                         auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
+                         m_writer_.store((*max_element)->csn_);
+                         if ((*max_element)->txMan_ != nullptr)
+                             m_writer_score_.store((*max_element)->txMan_->GetCurrentPriority());
+                         else
+                             m_writer_score_.store((*max_element)->score_);
+                     }
+                     writer_score_.store(m_writer_score_.load());
+                     writer_.store(m_writer_.load());
+                 }
              }
              return res;
          }
  
          bool ValidateWR(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
+             if (!is_wound_wait_enable) return true;
              uint64_t tid = txMan->pre_csn;
              std::string s_tid = to_string(tid) + ":" + to_string(server_id);
              if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
@@ -2454,16 +2488,14 @@
          bool AvailableRowPlor(std::string& row_id, uint64_t& tid, std::string& s_tid, std::string& res)
          {
              bool result = true;
-             if (writer_.load() == tid) return true;         // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
              std::lock_guard<std::mutex> lock(p_latch_);
- //            p_lock();
+             if (writer_.load() != INVALID_TID && writer_.load() == tid) return true;         // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
              if (!reader_list_.empty()) result = false;        // 没有读者
              if (writer_list_.size() > 0) result = false;
              if (writer_.load() != INVALID_TID && writer_.load() != tid) {
                  res = writer_.load();
                  result = false;
              }
- //            p_unlock();
              return result;
          }
  
@@ -2511,6 +2543,34 @@
              }
              return false;
          }
+
+         // helper : target_request > tid returns true
+         bool IsSmallerThanRequest(uint64_t tid, uint64_t tid_score, const std::shared_ptr<LockRequest>& target_request) {
+             // 判空保护
+             if (target_request == nullptr) {
+                 return false;
+             }
+             // 动态更新目标 Request 的 score
+//             if (target_request->txMan_ != nullptr) {
+//                 uint64_t latest_score = target_request->txMan_->GetCurrentPriority();
+//                 target_request->score_ = latest_score;
+//             }
+             uint64_t target_score = target_request->score_;
+             uint64_t target_tid = target_request->csn_; // 假设 Request 中使用 csn_ 表示事务 ID
+
+             // 比较逻辑（完全镜像原有的 IsSmallerThanWriter）
+             if (target_score > tid_score) {
+                 return true;
+             } else if (target_score == tid_score) {
+                 // 分数相同时，通过 tid (csn) 决断
+                 if (target_tid < tid) {
+                     return true;
+                 } else {
+                     return false;
+                 }
+             }
+             return false;
+         }
  
          inline std::string makeSid(uint64_t tid, uint32_t server_id) {
              return std::to_string(tid) + ":" + std::to_string(server_id);
@@ -2520,7 +2580,267 @@
          inline bool higherPriority(uint64_t a_score, uint64_t b_score) {
              return a_score > b_score;
          }
- 
+
+         LockMode lock_type_ = LOCKROW_NONE;
+         std::list<std::shared_ptr<LockRequest>> owners_;    // 当前持有锁的事务(群)
+         std::list<std::shared_ptr<LockRequest>> waiters_;   // 等待队列 (按 CSN 降序排列)
+         std::list<std::shared_ptr<LockRequest>> woundees_;  // 被打上死亡标记，正在回滚的事务
+
+         bool ConflictLock(LockMode l1, LockMode l2) {
+             if (l1 == LOCKROW_NONE || l2 == LOCKROW_NONE) return false;
+             if (l1 == LOCKROW_EX || l2 == LOCKROW_EX) return true;
+             return false; // 两个都是 SH 时不冲突
+         }
+
+         bool LockGet(LockMode type, MOT::TxnManager* txMan, uint32_t server_id)
+         {
+             uint64_t tid = txMan->pre_csn;
+             std::string s_tid = std::to_string(tid) + ":" + std::to_string(server_id);
+             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
+
+             std::unique_lock<std::mutex> lock(p_latch_);
+
+             // =====================================================
+             // 重入与升级
+             // =====================================================
+             std::shared_ptr<LockRequest> my_owner_req = nullptr;
+             bool has_other_owners = false;
+
+             for (auto& en : owners_) {
+                 if (!en) continue;
+                 if (en->csn_ == tid) my_owner_req = en;
+                 else has_other_owners = true;
+             }
+
+             if (my_owner_req) {
+                 // EX 重入
+                 if (my_owner_req->type_ == LOCKROW_EX) return true;
+                 // SH 重入
+                 if (type == LOCKROW_SH) return true;
+                 // SH -> EX 升级
+                 if (!has_other_owners) {
+                     my_owner_req->type_ = LOCKROW_EX;
+                     lock_type_ = LOCKROW_EX;
+                     return true;
+                 } else {
+                     // 锁升级处理
+                     return true;
+                 }
+             }
+
+             auto entry = std::make_shared<LockRequest>(txMan, server_id, type);
+             // =====================================================
+             // dbx1000逻辑开始
+             // =====================================================
+             bool lock_conflict = ConflictLock(lock_type_, type);
+             bool fairness_conflict = false;
+             // dbx1000:
+             // if (!conflict &&
+             //     waiters_head &&
+             //     txn->ts > waiters_tail->txn->ts)
+             //     conflict = true;
+
+             if (!lock_conflict && !waiters_.empty())
+             {
+                 uint64_t oldest_waiter = waiters_.front()->csn_;
+                 if (tid > oldest_waiter) fairness_conflict = true;
+             }
+
+             // =====================================================
+             // Case1: 无冲突
+             // =====================================================
+             if (!lock_conflict && !fairness_conflict)
+             {
+                 bool ready = true;
+                 if (!owners_.empty()) {
+                     ready = !owners_.front()->waiting_for_woundees_;
+                 }
+                 entry->waiting_for_woundees_ = !ready;
+                 entry->is_ready_.store(ready);
+                 owners_.push_back(entry);
+                 lock_type_ = type;
+                 if (ready) return true;
+                 my_owner_req = entry;
+             }
+
+             // =====================================================
+             // Case2: 公平性冲突
+             // =====================================================
+
+             else if (!lock_conflict && fairness_conflict)
+             {
+                 entry->waiting_for_woundees_ = false;
+                 entry->is_ready_.store(false);
+                 auto it = waiters_.begin();
+                 while (it != waiters_.end() && (*it) && tid > (*it)->csn_) {
+                     ++it;
+                 }
+                 waiters_.insert(it, entry);
+                 my_owner_req = entry;
+             }
+
+             // =====================================================
+             // Case3: 锁冲突
+             // =====================================================
+
+             else {
+                 bool wound = false;
+                 for (auto& en : owners_) {
+                     if (!en)continue;
+                     if (en->csn_ > tid) {
+                         wound = true;
+                         break;
+                     }
+                 }
+
+                 // ---------------------------------
+                 // WOUND
+                 // ---------------------------------
+
+                 if (wound)
+                 {
+                     std::vector<uint64_t> to_kill;
+                     for (auto& en : owners_) {
+                         if (!en)continue;
+                         woundees_.push_back(en);
+                         to_kill.push_back(en->csn_);
+                     }
+                     owners_.clear();
+                     entry->waiting_for_woundees_ = true;
+                     entry->is_ready_.store(false);
+                     owners_.push_back(entry);
+                     lock_type_ = type;
+                     my_owner_req = entry;
+                     for (auto tid_to_kill : to_kill)
+                         AbortTransactinRequest(tid_to_kill);
+                     lock.unlock();
+                     goto WAIT_PHASE;
+                 }
+
+                 // ---------------------------------
+                 // WAIT
+                 // ---------------------------------
+                 entry->waiting_for_woundees_ = false;
+                 entry->is_ready_.store(false);
+                 auto it = waiters_.begin();
+                 while (it != waiters_.end() &&(*it) &&tid > (*it)->csn_){
+                     ++it;
+                 }
+                 waiters_.insert(it, entry);
+                 my_owner_req = entry;
+             }
+             lock.unlock();
+
+         WAIT_PHASE:
+             uint64_t start_time =now_to_us();
+             while (!my_owner_req->is_ready_.load()){
+                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)){
+                     LockRelease(type,tid,server_id);
+                     return false;
+                 }
+                 if (now_to_us() - start_time > 3000000){
+                     DebugMessage();
+                 }
+                 std::this_thread::yield();
+             }
+             return true;
+         }
+
+         void LockRelease(LockMode type, uint64_t& tid, uint32_t server_id)
+         {
+             std::unique_lock<std::mutex> lock(p_latch_);
+             bool released_woundee = false;
+
+             // =====================================================
+             // owner
+             // =====================================================
+
+             auto owner_it =
+                 std::find_if(owners_.begin(),owners_.end(),[tid](const std::shared_ptr<LockRequest>& req){
+                     return req && req->csn_ == tid;
+                     });
+
+             if (owner_it != owners_.end()){
+                 owners_.erase(owner_it);
+                 if (owners_.empty()) lock_type_ = LOCKROW_NONE;
+             }
+             else
+             {
+                 // =================================================
+                 // waiter
+                 // =================================================
+                 auto waiter_it = std::find_if(waiters_.begin(),waiters_.end(),[tid](const std::shared_ptr<LockRequest>& req){
+                             return req &&req->csn_ == tid;
+                         });
+
+                 if (waiter_it != waiters_.end()) {
+                     waiters_.erase(waiter_it);
+                 }
+                 else {
+                     // =============================================
+                     // woundee
+                     // =============================================
+                     auto woundee_it =
+                         std::find_if(woundees_.begin(),woundees_.end(),[tid](const std::shared_ptr<LockRequest>& req){
+                                 return req &&req->csn_ == tid;
+                             });
+
+                     if (woundee_it !=woundees_.end())
+                     {
+                         woundees_.erase(woundee_it);
+                         released_woundee = true;
+                     }
+                 }
+             }
+
+             // =====================================================
+             // woundee 全死
+             // =====================================================
+             bool woke_wound_owner = false;
+             if (released_woundee && woundees_.empty()){
+                 int waiting_owner = 0;
+
+                 for (auto& en : owners_) {
+                     if (!en)continue;
+                     if (en->waiting_for_woundees_)
+                     {
+                         waiting_owner++;
+                         en->waiting_for_woundees_ =false;
+                         en->is_ready_.store(true);
+                         woke_wound_owner = true;
+                     }
+                 }
+//                 return;
+             }
+
+             // =====================================================
+             // oldest-first promotion
+             // =====================================================
+
+             while (!waiters_.empty())
+             {
+                 auto oldest = waiters_.front();
+                 if (!oldest){
+                     waiters_.pop_front();
+                     continue;
+                 }
+                 if (ConflictLock(lock_type_,oldest->type_)){
+                     break;
+                 }
+                 if (woke_wound_owner && oldest->type_ == LOCKROW_EX) {
+                     break;
+                 }
+                 waiters_.pop_front();
+                 oldest->waiting_for_woundees_ =false;
+                 oldest->is_ready_.store(true);
+                 owners_.push_back(oldest);
+                 lock_type_ =oldest->type_;
+             }
+
+             if (owners_.empty())
+                 lock_type_ = LOCKROW_NONE;
+         }
+
          bool LockRD_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
  
              uint64_t tid = txMan->pre_csn;
@@ -2529,14 +2849,11 @@
              if (tid == writer_.load()) return true;
  
              std::unique_lock<std::mutex> lock(p_latch_);
- //            p_lock();
  
              if (reader_list_map_.count(tid)) {
- //                p_unlock();
                  return true;           // 重复则不管
              }
              if (writer_list_map_.count(tid)) {
- //                p_unlock();
                  return true;           // 重复则不管
              }
  
@@ -2547,7 +2864,6 @@
              if (writer_.load() != INVALID_TID && switch_phase) {
                  RemoveReaderRequest(tid);
                  RemoveWriterRequest(tid);
- //                p_unlock();
                  return false;
              }
  
@@ -2555,111 +2871,36 @@
              if (IsSmallerThanWriter(tid, tid_score) && switch_phase) {
                  RemoveReaderRequest(tid);
                  RemoveWriterRequest(tid);
- //                p_unlock();
                  return false;
              }
              uint64_t start_time = now_to_us();
  
-             if (is_wound_wait_enable) {
-                 // 比较writer优先级，waitForGraph添加边
-                 uint64_t w_tid = writer_.load();
-                 if (w_tid != INVALID_TID) {
-                     std::string s_w = makeSid(w_tid, server_id);
-                     // 低优先级 reader 等待读写者
-                     if (!higherPriority(tid_score, writer_score_.load()) || excl_sig.load()) {
-                         wait_for_graph.addEdge(s_tid, s_w, tid_score, writer_score_.load(), 5);
-                     }
+             while (writer_.load() != INVALID_TID) {
+                 // 如果当前事务被其他事务中止，立刻跳出
+                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                     RemoveReaderRequest(tid);
+                     RemoveWriterRequest(tid);
+                     return false;
                  }
- 
-                 // wzy: 在环内等待的reader
-                 waiting_reader_list_.push_back(tid);
-                 waiting_reader_score_map_[tid] = tid_score;
-                 waiting_reader_list_map_[tid] = std::prev(waiting_reader_list_.end());  // 插入迭代器
- 
-                 // wound-wait block
-                 while (writer_.load() != INVALID_TID || excl_sig.load()) {
-                     // 优先级高，且没有在验证阶段的不被阻塞
-                     if (!IsSmallerThanWriter(tid, tid_score) && !excl_sig.load())
-                         break;
-                     if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score) && excl_sig.load()) {
-                         AbortTransactinRequest(writer_.load());
-                     }
-                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                         wait_for_graph.removeNode(s_tid);
-                         RemoveReaderRequest(tid);
-                         RemoveWriterRequest(tid);
- //                        p_unlock();
-                         return false;
-                     }
- //                    p_unlock();
-                     lock.unlock();
- 
-                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                         DebugMessage();
-                     }
-                     //                if (now_to_us() - start_time > 3000000) {
-                     //                    wait_for_graph.removeNode(s_tid);
-                     //                    return false;
-                     //                }
-                     std::this_thread::yield();
- 
- //                    p_lock();
-                     lock.lock();
+
+                 // Wound-Wait 核心逻辑：老事务（高优）杀新事务（低优）
+                 // 注意：这里的比较逻辑假设 IsSmallerThanWriter 代表 "请求者优先级比持有者高"
+                 if (IsSmallerThanWriter(tid, tid_score)) {
+                     AbortTransactinRequest(writer_.load());
                  }
- 
-                 // 删除等待
-                 // wzy: 在环内等待的reader
-                 if (waiting_reader_list_map_.count(tid)) {
-                     auto iter1 = waiting_reader_list_map_.find(tid);
-                     if (iter1 != waiting_reader_list_map_.end()) {
-                         waiting_reader_list_.erase(iter1->second);
-                         waiting_reader_list_map_.erase(iter1);
-                     }
-                     auto iter2 = waiting_reader_score_map_.find(tid);
-                     if (iter2 != waiting_reader_score_map_.end()) {
-                         waiting_reader_score_map_.erase(iter2);
-                     }
+
+                 lock.unlock();
+                 if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                     DebugMessage();
                  }
- 
-                 // 无需等待任何事务
-                 wait_for_graph.removeEdgesFrom(s_tid);
-             } else {
-                 // plor
-                 while (excl_sig.load()) {      // 其他事务的写集，进入commit阶段// lock.lock();
-                     if (!excl_sig.load()) break;
-                     if (writer_.load() != INVALID_TID && !IsSmallerThanWriter(tid, tid_score)) {
-                         AbortTransactinRequest(writer_.load());
-                     }
-                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                         RemoveReaderRequest(tid);
-                         RemoveWriterRequest(tid);
- //                        p_unlock();
-                         return false;
-                     }
- //                    p_unlock();
-                     lock.unlock();
- 
-                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                         DebugMessage();
-                     }
-                     //                if (now_to_us() - start_time > 3000000) {
-                     //                    wait_for_graph.removeNode(s_tid);
-                     //                    return false;
-                     //                }
-                     std::this_thread::yield();
- //                    p_lock();
-                     lock.lock();
-                 }
+                 if (now_to_us() - start_time > 3000000) return false;
+
+                 std::this_thread::yield(); // 等待原写者响应中止并释放锁
+                 lock.lock();
              }
  
              reader_list_.push_back(new_request);
              reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
- 
-             snapshot_reader_list_.push_back(tid);
-             snapshot_reader_score_map_[tid] = tid_score;
-             snapshot_reader_list_map_[tid] = std::prev(snapshot_reader_list_.end());        // 插入迭代器
- 
- //            p_unlock();
  
              return true;
          }
@@ -2672,213 +2913,103 @@
              if (writer_.load() == tid) return true;
  
              std::unique_lock<std::mutex> lock(p_latch_);
- //            p_lock();
  
              if (writer_list_map_.count(tid)) {
- //                p_unlock();
                  return true;           // 重复则不管
              }
  
              auto new_request = std::make_shared<LockRequest>(txMan, server_id);
              uint64_t tid_score = new_request->score_;
-             if (tid_score > m_writer_score_) {
-                 m_writer_ = tid;
-                 m_writer_score_ = tid_score;
-             }
-             writer_list_.push_back(new_request);
-             writer_list_map_[tid] = std::prev(writer_list_.end());
-             request_num.fetch_add(1);
- 
              uint64_t start_time = now_to_us();
  
-             uint64_t cur_owner = writer_.load();
-             if (cur_owner != INVALID_TID) {
-                 std::string s_owner = makeSid(cur_owner, server_id);
-                 wait_for_graph.addEdge(s_tid, s_owner, tid_score, writer_score_.load(), 0);
-             }
- 
              // 等待成功上锁后再继续执行
-             uint64_t expected = 0L;
-             if (!writer_.compare_exchange_weak(expected, tid)) {
-                 while (writer_.load() != tid) {
-                     if (writer_.load() == INVALID_TID) writer_.store(tid);
-                     if (tid == writer_.load()) break;
- 
-                     if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                         wait_for_graph.removeNode(s_tid);
-                         RemoveReaderRequest(tid);
-                         RemoveWriterRequest(tid);
- //                        p_unlock();
-                         return false;
-                     }
- //                    p_unlock();
-                     lock.unlock();
- 
-                     if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                         DebugMessage();
-                     }
- //                    if (now_to_us() - start_time > 3000000) {
- //                        wait_for_graph.removeNode(s_tid);
- //                        return false;
- //                    }
-                     std::this_thread::yield();
- 
-                     lock.lock();
- //                    p_lock();
+             while (true) {
+                 // 如果自己在自旋期间被其他高优事务干掉了，立刻退出
+                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
+                     RemoveReaderRequest(tid);
+                     RemoveWriterRequest(tid);
+                     return false;
                  }
-             }
- 
- //            if (cur_owner != INVALID_TID) {
- //                std::string s_owner = makeSid(cur_owner, server_id);
- //                wait_for_graph.removeEdge(s_tid, s_owner);
- //            }
- 
-             // 无需等待任何事务
-             wait_for_graph.removeEdgesFrom(s_tid);
- 
-             // 加入 writer list 中的每个writer
-             for (auto quest : writer_list_) {
-                 if (quest->csn_ == tid) continue;
-                 std::string s_writer = quest->tid_;
-                 wait_for_graph.addEdge(s_writer, s_tid, quest->score_, tid_score, 1);
-             }
- 
-             if (is_wound_wait_enable) {
-                 // 加入 reader list 中的每个 reader
-                 for (auto rid : waiting_reader_list_) {
-                     std::string s_r = makeSid(rid, server_id);
-                     uint64_t r_score = waiting_reader_score_map_[rid];
-                     if (!higherPriority(r_score, tid_score)) {
-                         // 低优先级 reader：reader 等待写者
-                         wait_for_graph.addEdge(s_r, s_tid, r_score, tid_score, 2);
+
+                 bool can_acquire = true;
+
+                 // 检测写-写冲突
+                 uint64_t cur_writer = writer_.load();
+                 if (cur_writer != INVALID_TID && cur_writer != tid) {
+                     can_acquire = false; // 有写者，无法拿锁
+                     // Wound-Wait：如果我优先级更高（假设分数越小优先级越高），干掉当前写者
+                     if (tid_score < writer_score_.load()) {
+                         AbortTransactinRequest(cur_writer);
                      }
                  }
+
+                 // 检测写-读冲突（遍历 list/vector 提升性能）
+                 // 只有当没有写者，或者写者被标记中止时，我们才去处理读者
+                 if (!reader_list_.empty()) {
+                     can_acquire = false; // 有读者，无法直接拿写锁
+
+                     for (auto it = reader_list_.begin(); it != reader_list_.end();) {
+                         auto reader_req = *it;
+                         if (reader_req == nullptr || reader_req->csn_ == tid) {
+                             ++it;
+                             continue;
+                         }
+                         // 如果请求者 (tid) 优先级不比读者 (reader_req) 小（即请求者更年轻/优先级低）
+                         if (!IsSmallerThanRequest(tid, tid_score, reader_req)) {
+                             ++it;
+                             AbortTransactinRequest(reader_req->csn_);
+                         } else {
+                             ++it;
+                         }
+                     }
+                 }
+
+                 // 成功条件：既没有写者，也没有读者（除了自己）
+                 if (can_acquire) {
+                     writer_.store(tid);
+                     writer_score_.store(tid_score);
+                     break; // 成功拿到锁，跳出循环
+                 }
+
+                 // 无法拿锁，让出 CPU 并等待一会
+                 lock.unlock(); // 必须解锁让其他事务有机会响应中止并执行 Unlock
+
+                 if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
+                     DebugMessage();
+                 }
+                 if (now_to_us() - start_time > 3000000) return false; // 超时退出
+
+                 std::this_thread::yield();
+                 lock.lock(); // 重新加锁，进行下一轮状态检查
              }
  
              writer_score_.store(tid_score);         // 自己获得锁
- //            p_unlock();
              return true;
          }
  
          bool UnlockRD_WoundWait(std::string& row_id, uint64_t& tid) {
- //            p_lock();
              std::lock_guard<std::mutex> lock(p_latch_);
              RemoveReaderRequest(tid);
- //            p_unlock();
              return true;
          }
  
          bool UnlockWR_WoundWait(std::string& row_id, uint64_t& tid, std::string& res_tid, uint32_t& server_id) {
-             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
              std::lock_guard<std::mutex> lock(p_latch_);
- //            p_lock();
- 
-             bool res = true;
-             if (writer_.load() == INVALID_TID || writer_.load() != tid) {
-                 res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
-                 RemoveReaderRequest(tid);
-                 RemoveWriterRequest(tid);
-                 res = false;            // 同一事务不同操作解锁同一行，可能遇到该情况
-             } else {
+             if (writer_.load() == tid) {
                  writer_.store(INVALID_TID);
-                 RemoveReaderRequest(tid);
                  RemoveWriterRequest(tid);
-                 // 消除exclusive模式
-                 excl_sig.store(false);
+             } else {
+                 // 同一事务可能发生错误解锁
+                 res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
+                 RemoveWriterRequest(tid);
+                 return false;
              }
-             if (writer_.load() == INVALID_TID) {
-                 // 获取优先级最高的tid，获取写锁
-                 if (!writer_list_.empty() && m_writer_.load() == INVALID_TID) {  // 如果队里有request，则取第一个作为grant
-                     // 找到最大的元素
-                     auto max_element = std::max_element(writer_list_.begin(), writer_list_.end(), cmp);
-                     m_writer_.store((*max_element)->csn_);
-                     m_writer_score_.store((*max_element)->score_);
-                 }
-                 writer_score_.store(m_writer_score_.load());
-                 writer_.store(m_writer_.load());
-             }
- //            p_unlock();
-             return res;
+             // 锁释放后，优先级最高且熬过一劫的自旋事务会自动竞争到锁
+             return true;
          }
  
          bool ValidateWR_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
-             uint64_t tid = txMan->pre_csn;
-             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
-             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
-             if (writer_.load() != tid) return false;
-             std::unique_lock<std::mutex> lock(p_latch_);
- 
- //            p_lock();
- 
-             uint64_t tid_score = writer_score_.load();
- 
-             SetExcl(tid);
- 
-             int d_index = 0;
-             std::vector<uint64_t> delayed_abort_list(64);
-             std::list<uint64_t> snapshot_queue(snapshot_reader_list_);
-             std::unordered_map<uint64_t, uint64_t> snapshot_score_map(snapshot_reader_score_map_);
- 
-             uint64_t start_time = now_to_us();
-             for (auto reader : snapshot_queue) {
-                 uint64_t r_score = snapshot_score_map[reader];
-                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                     wait_for_graph.removeNode(s_tid);
-                     RemoveReaderRequest(tid);
-                     RemoveWriterRequest(tid);
- //                    p_unlock();
-                     return false;
-                 }
-                 if (reader == tid) continue;
-                 if (!reader_list_map_.count(reader)) continue;
- 
-                 if (IsSmallerThanWriter(reader, r_score)){
-                     // 延迟abort?
-                     delayed_abort_list[d_index++] = reader;
-                 } else {
-                     // 等待该reader commit
-                     auto r = reader;
-                     std::string s_reader = makeSid(r, server_id);
-                     wait_for_graph.addEdge(s_tid, s_reader, tid_score, r_score, 3);
-                     while (r != tid && reader_list_map_.count(r)) {
-                         if (IsSmallerThanWriter(r, r_score)){
-                             delayed_abort_list.emplace_back(r);
-                             break;
-                         }
-                         if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                             wait_for_graph.removeNode(s_tid);
-                             RemoveReaderRequest(tid);
-                             RemoveWriterRequest(tid);
- //                            p_unlock();
-                             return false;
-                         }
-                         lock.unlock();
- //                        p_unlock();
- 
-                         // TODO: 触发死锁检测，或者死锁检测线程
- 
-                         if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                             DebugMessage();
-                         }
- //                        if (now_to_us() - start_time > 3000000) {
- //                            wait_for_graph.removeNode(s_tid);
- //                            return false;
- //                        }
-                         std::this_thread::yield();
-                         lock.lock();
- //                        p_lock();
-                     }
-                     // 不再等待
-                     wait_for_graph.removeEdgesFrom(s_tid);
-                 }
-             }
- 
-             // 对delayed list进行中止
-             for (auto r : delayed_abort_list) {
-                 if (reader_list_map_.count(r)) AbortTransactinRequest(r);
-             }
- 
- //            p_unlock();
+             // 普通wound-wait不用validate
              return true;
          }
  
@@ -3662,7 +3793,6 @@
          }
  
          void DebugMessage() {
- //            p_lock();
              std::unique_lock<std::mutex> lock(p_latch_);
              bool temp_excl = excl_sig.load();
              uint64_t temp_writer = writer_.load();
@@ -3674,7 +3804,6 @@
              std::list<uint64_t> temp_waiting_reader_queue(waiting_reader_list_);
              WaitForGraph w;
              MOTAdaptor::wait_for_graph.CopyGraph(w);
- //            p_unlock();
              lock.unlock();
          }
      };

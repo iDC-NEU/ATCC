@@ -1000,6 +1000,7 @@
      int read_cnt;  // wzy: 统计交互性事务执行到目前的成本
      int write_cnt;
      int hot_cnt;
+     uint64_t calculate_score_time;
 
      std::unordered_set<uint64_t> hot_rowid_records;
      std::unordered_set<uint64_t> read_lock_rowid_records;

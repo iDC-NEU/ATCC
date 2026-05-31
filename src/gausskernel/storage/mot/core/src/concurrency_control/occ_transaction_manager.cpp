@@ -729,16 +729,21 @@
          }
          if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
          if (txMan->read_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
-         // wzy: 测试，为什么这么多ValidateReadSetPlor失败的？
+
          auto currRow = ac->m_localRow;
          std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
 
          if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_cts, ac->m_server_id) || ac->m_origSentinel->IsLocked()) {
              if (is_debug_print_enable) {
                  uint64_t v = ac->GetRowFromHeader()->m_rowHeader.GetStableCSN();
+                 uint64_t e = ac->GetRowFromHeader()->m_rowHeader.GetStableCommitEpoch();
+                 bool is_locked = ac->m_origSentinel->IsLocked();
+                 bool is_stable_locked = ac->GetRowFromHeader()->m_rowHeader.IsStableLocked();
+                 uint64_t stable_server = ac->GetRowFromHeader()->m_rowHeader.GetStableServerId();
                  uint64_t m_cts = ac->m_cts;
                  uint64_t m_tid = ac->m_tid;
-                 MOT_LOG_INFO("ValidateReadSetPlor ReadSet failed visited row : %s, cur csn: %s, stable csn: %ld, m_cts: %ld, m_tid: %ld", tmp_rowid.c_str(), csn_tmp.c_str(), v, m_cts, m_tid);
+                 MOT_LOG_INFO("ValidateReadSetPlor ReadSet failed visited row : %s, cur csn: %s, stable csn: %ld, stable epoch: %ld, m_cts: %ld, m_tid: %ld, is sentinel locked : %ld, is_stable_locked : %ld, stable_server : %ld",
+                     tmp_rowid.c_str(), csn_tmp.c_str(), v, e, m_cts, m_tid, is_locked, is_stable_locked, stable_server);
              }
 //             return false;
          }
@@ -759,7 +764,7 @@
          if (ac->m_type == RD) {
              continue;
          }
-         if (ac->m_localRow == nullptr) continue;       // TODO: 为什么会找不到？
+         if (ac->m_localRow == nullptr) continue;
  
          if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
 //         if (txMan->write_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
@@ -1431,6 +1436,7 @@
              txMan->abort_ = true;
              MOTAdaptor::WriteLock_pcc_abort_num.fetch_add(1);
          }
+         if (is_debug_print_enable) MOT_LOG_INFO("GetWriteLockPlor() LockRD [abort] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
          return false;
      }
 
@@ -1528,6 +1534,7 @@
              txMan->abort_ = true;
              MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
          }
+         if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [abort] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
          return false;
      }
  
@@ -1552,13 +1559,14 @@
      auto time1 = now_to_us();
      if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
          auto res = tmp_queue->LockRD(tmp_rowid, txMan, server_id, false);
-         if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
-             if (!txMan->abort_) {
-                 txMan->abort_ = true;
-                 MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
-             }
-             return false;
-         }
+//         if (MOTAdaptor::deadlock_abort_set.contain(tmp_csn, tmp_csn)) {
+//             if (!txMan->abort_) {
+//                 txMan->abort_ = true;
+//                 MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+//             }
+//             if (is_debug_print_enable) MOT_LOG_INFO("GetReadLockPlor() LockRD [abort] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
+//             return false;
+//         }
          // 添加到新的 epoch lock request queue 中，没有取模
          // MOTAdaptor::AddEpochActiveQueue(tmp_queue, MOTAdaptor::GetLogicalEpoch());
  //        MOTAdaptor::AddActiveQueue(tmp_queue, rowId);
@@ -1653,6 +1661,14 @@
                  }
                  if (MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue) {
                      auto res = tmp_queue->LockRD(tmp_rowid, txMan, server_id, true);
+                      if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                          if (!txMan->abort_) {
+                              txMan->abort_ = true;
+                              MOTAdaptor::ReadLock_pcc_abort_num.fetch_add(1);
+                          }
+                          if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchReadLockPlorPrevRLock() LockRD [abort] because of wound_wait tmp_csn : %s, tmp_rowid : %s ", csn_temp.c_str(), tmp_rowid.c_str());
+                          result = false;
+                      }
                      if (!res) {
                          if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchReadLockPlorPrevRLock() LockRD [error] tmp_csn : %s  , tmp_rowid : %s",
                                  csn_temp.c_str(),
@@ -1890,6 +1906,13 @@
  
              if(MOTAdaptor::row_lockrequest_map.get_or_create_queue(tmp_rowid, tmp_queue, new_queue) && tmp_queue){
                  auto res = tmp_queue->LockWR(tmp_rowid, txMan, server_id);
+                 if (MOTAdaptor::deadlock_abort_set.contain(csn_temp, csn_temp)) {
+                     if (!txMan->abort_) {
+                         txMan->abort_ = true;
+                         MOTAdaptor::WriteLock_switch_pcc_abort_num.fetch_add(1);
+                     }
+                     return false;
+                 }
                  if(!res) {
                      if (is_debug_print_enable) MOT_LOG_INFO("GetSwitchWriteLockPlor() LockWR [error] tmp_csn : %s  , tmp_rowid : %s", csn_temp.c_str(), tmp_rowid.c_str());
                      if (!txMan->abort_) {
@@ -2097,14 +2120,14 @@
                  auto res = tmp_queue->UnlockRD(tmp_rowid, csn);
  //                MOTAdaptor::RemoveActiveQueue(tmp_queue, rowId);    // 移除活跃队列
                  MOTAdaptor::local_unlock_num.fetch_add(1);
-                 if(!res && !abort) {
-                     if (is_debug_print_enable) MOT_LOG_INFO("UnlockRD() lock_request_queue [error] grant_csn : %s, tmp_csn : %s  , tmp_rowid : %s", res_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
-                 } else if (!abort){
+                 if(abort) {
+                     if (is_debug_print_enable) MOT_LOG_INFO("UnlockRD() abort lock_request_queue grant_csn : %s, tmp_csn : %s  , tmp_rowid : %s", res_csn.c_str(), tmp_csn.c_str(), tmp_rowid.c_str());
+                 } else{
                      if (is_debug_print_enable) MOT_LOG_INFO("UnlockRD() unlock_row_local tmp_csn : %s , epoch : %llu , tmp_rowid : %s", tmp_csn.c_str(), epoch_mod, tmp_rowid.c_str());
                  }
              } else {
                  // do nothing
-                 if (is_debug_print_enable) MOT_LOG_INFO("UnlockWriteSet() lock_request_queue not found tmp_csn : %s  , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
+                 if (is_debug_print_enable) MOT_LOG_INFO("UnlockReadSet() lock_request_queue not found tmp_csn : %s  , tmp_rowid : %s ", tmp_csn.c_str(), tmp_rowid.c_str());
              }
          } else
              continue;

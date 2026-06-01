@@ -1732,7 +1732,7 @@ void TxnManager::FinalizeAndPush() {
  // 单机切换PCC
  MOT::RC TxnManager::SwitchToPCC() {
      MOT::RC rc = MOT::RC_OK;
-     if (cc_mode == 1 || cc_mode == 2) return rc;
+     if (cc_mode == 0 || cc_mode == 1 || cc_mode == 2) return rc;
      if (first_time_pessimistic) {
          // wzy：第一次切换为悲观，先上读锁再读集检验
          auto time1 = now_to_us();
@@ -2518,7 +2518,7 @@ void TxnManager::FinalizeAndPush() {
                          (*MOTAdaptor::write_abort_before_send_txn_num[(
                              GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
                              ->fetch_add(1);
-                         //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (is_debug_print_enable) MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
                          if (IsInteractive())
                              MOTAdaptor::ValidateReadInMergeForSnap_abort_interactive_num.fetch_add(1);
                          return RC_ABORT;
@@ -2528,7 +2528,7 @@ void TxnManager::FinalizeAndPush() {
                          (*MOTAdaptor::write_abort_before_send_txn_num[(
                              GetStartEpoch() % MOTAdaptor::_max_length)])[GetIndexPack()]
                              ->fetch_add(1);
-                         //                    MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
+                         if (is_debug_print_enable) MOT_LOG_INFO("write_abort_before_send_txn_num error RC_ABORT");
                          if (IsInteractive())
                              MOTAdaptor::ValidateReadInMerge_abort_interactive_num.fetch_add(1);
                          return RC_ABORT;

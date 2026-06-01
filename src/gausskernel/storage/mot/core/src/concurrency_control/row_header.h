@@ -149,7 +149,7 @@ public:
     void Release()
     {
         // COMPILER_BARRIER       // wzy: 测试屏障
-        asm volatile("mfence" ::: "memory");
+//        asm volatile("mfence" ::: "memory");
         MOT_ASSERT(m_csnWord & LOCK_BIT);
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
         m_csnWord = m_csnWord & (~LOCK_BIT);
@@ -325,7 +325,7 @@ public:
         return (stable_csnWord & LOCK_BIT) == LOCK_BIT;
     }
 
-    uint64_t GetStableCSN() {
+    uint64_t GetStableCsnWord() {
         return stable_csnWord;
     }
 
@@ -333,7 +333,7 @@ public:
 
     void ReleaseStable(){
         // COMPILER_BARRIER       // wzy: 测试屏障
-        asm volatile("mfence" ::: "memory");
+//        asm volatile("mfence" ::: "memory");
         MOT_ASSERT(stable_csnWord & LOCK_BIT);
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
         stable_csnWord = stable_csnWord & (~LOCK_BIT);

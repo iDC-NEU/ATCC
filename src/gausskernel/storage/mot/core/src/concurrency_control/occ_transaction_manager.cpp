@@ -745,7 +745,7 @@
                  MOT_LOG_INFO("ValidateReadSetPlor ReadSet failed visited row : %s, cur csn: %s, stable csn: %ld, stable epoch: %ld, m_cts: %ld, m_tid: %ld, is sentinel locked : %ld, is_stable_locked : %ld, stable_server : %ld",
                      tmp_rowid.c_str(), csn_tmp.c_str(), v, e, m_cts, m_tid, is_locked, is_stable_locked, stable_server);
              }
-//             return false;
+             return false;
          }
      }
      return true;
@@ -929,7 +929,7 @@
              }
              lockCnt++;
              lock_map[row] = true;
-             if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu Lock & LockStable row = %llu success row stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+             if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu Lock & LockStable row = %llu success row stable_csn = %llu stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN(), row->GetRowHeader()->GetStableCsnWord());
          }
      }
  
@@ -1029,10 +1029,10 @@
              else {
                  row->GetRowHeader()->ReleaseStable();
                  if (row->GetRowHeader()->IsStableLocked()) {
-                     if (is_debug_print_enable) ("Write changes error pre_csn = %llu csn = %llu row = %llu stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+                     if (is_debug_print_enable) ("Write changes error pre_csn = %llu csn = %llu row = %llu stable_csn = %llu stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN(), row->GetRowHeader()->GetStableCsnWord());
                      row->GetRowHeader()->ReleaseStable();
                  }
-                 if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu UnLockStable row = %llu success row stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN());
+                 if (is_debug_print_enable) MOT_LOG_INFO("pre_csn = %llu csn = %llu UnLockStable row = %llu success row stable_csn = %llu stable_csnWord = %llu", txMan->pre_csn, txMan->GetCommitSequenceNumber(), row->GetRowId(), row->GetRowHeader()->GetStableCSN(), row->GetRowHeader()->GetStableCsnWord());
                  row->GetRowHeader()->Release();
              }
              lockCnt--;
@@ -1048,8 +1048,7 @@
  }
  
  
- 
- // TODO: 设置index标志位（删除）但索引本身不删
+
  void OccTransactionManager::CleanRowsFromIndexes(TxnManager* txMan)
  {
      if (m_deleteSetSize == 0) {

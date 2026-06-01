@@ -2740,6 +2740,8 @@
                  }
                  if (now_to_us() - start_time > 3000000){
                      DebugMessage();
+                     LockRelease(type,tid,server_id);
+                     return false;
                  }
                  std::this_thread::yield();
              }
@@ -2842,169 +2844,25 @@
          }
 
          bool LockRD_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id, bool switch_phase) {
- 
-             uint64_t tid = txMan->pre_csn;
-             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
-             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
-             if (tid == writer_.load()) return true;
- 
-             std::unique_lock<std::mutex> lock(p_latch_);
- 
-             if (reader_list_map_.count(tid)) {
-                 return true;           // 重复则不管
-             }
-             if (writer_list_map_.count(tid)) {
-                 return true;           // 重复则不管
-             }
- 
-             auto new_request = std::make_shared<LockRequest>(txMan, server_id);
-             uint64_t tid_score = new_request->score_;
- 
-             // switch阶段上读锁 采用no-wait
-             if (writer_.load() != INVALID_TID && switch_phase) {
-                 RemoveReaderRequest(tid);
-                 RemoveWriterRequest(tid);
-                 return false;
-             }
- 
-             // switch阶段上锁
-             if (IsSmallerThanWriter(tid, tid_score) && switch_phase) {
-                 RemoveReaderRequest(tid);
-                 RemoveWriterRequest(tid);
-                 return false;
-             }
-             uint64_t start_time = now_to_us();
- 
-             while (writer_.load() != INVALID_TID) {
-                 // 如果当前事务被其他事务中止，立刻跳出
-                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                     RemoveReaderRequest(tid);
-                     RemoveWriterRequest(tid);
-                     return false;
-                 }
-
-                 // Wound-Wait 核心逻辑：老事务（高优）杀新事务（低优）
-                 // 注意：这里的比较逻辑假设 IsSmallerThanWriter 代表 "请求者优先级比持有者高"
-                 if (IsSmallerThanWriter(tid, tid_score)) {
-                     AbortTransactinRequest(writer_.load());
-                 }
-
-                 lock.unlock();
-                 if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                     DebugMessage();
-                 }
-                 if (now_to_us() - start_time > 3000000) return false;
-
-                 std::this_thread::yield(); // 等待原写者响应中止并释放锁
-                 lock.lock();
-             }
- 
-             reader_list_.push_back(new_request);
-             reader_list_map_[tid] = std::prev(reader_list_.end());        // 插入迭代器
- 
-             return true;
+             return LockGet(LOCKROW_SH, txMan, server_id);
          }
  
          bool LockWR_WoundWait(std::string& row_id, MOT::TxnManager*& txMan, uint32_t& server_id) {
-             // 分配tid不相同，直接用uint64_t
-             uint64_t tid = txMan->pre_csn;
-             std::string s_tid = to_string(tid) + ":" + to_string(server_id);
-             if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) return false;
-             if (writer_.load() == tid) return true;
- 
-             std::unique_lock<std::mutex> lock(p_latch_);
- 
-             if (writer_list_map_.count(tid)) {
-                 return true;           // 重复则不管
-             }
- 
-             auto new_request = std::make_shared<LockRequest>(txMan, server_id);
-             uint64_t tid_score = new_request->score_;
-             uint64_t start_time = now_to_us();
- 
-             // 等待成功上锁后再继续执行
-             while (true) {
-                 // 如果自己在自旋期间被其他高优事务干掉了，立刻退出
-                 if (MOTAdaptor::deadlock_abort_set.contain(s_tid, s_tid)) {
-                     RemoveReaderRequest(tid);
-                     RemoveWriterRequest(tid);
-                     return false;
-                 }
-
-                 bool can_acquire = true;
-
-                 // 检测写-写冲突
-                 uint64_t cur_writer = writer_.load();
-                 if (cur_writer != INVALID_TID && cur_writer != tid) {
-                     can_acquire = false; // 有写者，无法拿锁
-                     // Wound-Wait：如果我优先级更高（假设分数越小优先级越高），干掉当前写者
-                     if (tid_score < writer_score_.load()) {
-                         AbortTransactinRequest(cur_writer);
-                     }
-                 }
-
-                 // 检测写-读冲突（遍历 list/vector 提升性能）
-                 // 只有当没有写者，或者写者被标记中止时，我们才去处理读者
-                 if (!reader_list_.empty()) {
-                     can_acquire = false; // 有读者，无法直接拿写锁
-
-                     for (auto it = reader_list_.begin(); it != reader_list_.end();) {
-                         auto reader_req = *it;
-                         if (reader_req == nullptr || reader_req->csn_ == tid) {
-                             ++it;
-                             continue;
-                         }
-                         // 如果请求者 (tid) 优先级不比读者 (reader_req) 小（即请求者更年轻/优先级低）
-                         if (!IsSmallerThanRequest(tid, tid_score, reader_req)) {
-                             ++it;
-                             AbortTransactinRequest(reader_req->csn_);
-                         } else {
-                             ++it;
-                         }
-                     }
-                 }
-
-                 // 成功条件：既没有写者，也没有读者（除了自己）
-                 if (can_acquire) {
-                     writer_.store(tid);
-                     writer_score_.store(tid_score);
-                     break; // 成功拿到锁，跳出循环
-                 }
-
-                 // 无法拿锁，让出 CPU 并等待一会
-                 lock.unlock(); // 必须解锁让其他事务有机会响应中止并执行 Unlock
-
-                 if (is_debug_print_enable && now_to_us() - start_time > 3000000) {
-                     DebugMessage();
-                 }
-                 if (now_to_us() - start_time > 3000000) return false; // 超时退出
-
-                 std::this_thread::yield();
-                 lock.lock(); // 重新加锁，进行下一轮状态检查
-             }
- 
-             writer_score_.store(tid_score);         // 自己获得锁
-             return true;
+             return LockGet(LOCKROW_EX, txMan, server_id);
          }
  
          bool UnlockRD_WoundWait(std::string& row_id, uint64_t& tid) {
+             LockRelease(LOCKROW_SH, tid, 0);
              std::lock_guard<std::mutex> lock(p_latch_);
              RemoveReaderRequest(tid);
              return true;
          }
  
          bool UnlockWR_WoundWait(std::string& row_id, uint64_t& tid, std::string& res_tid, uint32_t& server_id) {
+             LockRelease(LOCKROW_EX, tid, 0);
              std::lock_guard<std::mutex> lock(p_latch_);
-             if (writer_.load() == tid) {
-                 writer_.store(INVALID_TID);
-                 RemoveWriterRequest(tid);
-             } else {
-                 // 同一事务可能发生错误解锁
-                 res_tid = to_string(writer_.load()) + ":" + to_string(server_id);
-                 RemoveWriterRequest(tid);
-                 return false;
-             }
-             // 锁释放后，优先级最高且熬过一劫的自旋事务会自动竞争到锁
+             RemoveWriterRequest(tid);
+             RemoveReaderRequest(tid);
              return true;
          }
  

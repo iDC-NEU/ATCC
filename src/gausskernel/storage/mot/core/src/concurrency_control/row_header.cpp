@@ -279,14 +279,22 @@ void RowHeader::WriteChangesToRow(const Access* access, TxnManager* txMan, TxnAc
                         AddNewVersion(tx, row, t_xmin_csn, ts);
                         row->Copy(access->m_localRow);
 
+                        row->GetRowHeader()->Lock();
+                        row->GetRowHeader()->LockStable();
+                        row->Copy(access->m_localRow);
                         m_csnWord = (csn | LOCK_BIT);
+
                         // t_xmin_csn = (m_csnWord & CSN_BITS);
                         t_xmin_csn = ts;
                         t_xmax_csn = -1;
                         MOTAdaptor::AddCleanRow(row);
+                        if (is_debug_print_enable) MOT_LOG_INFO("Write changes to row csn = %llu  -> m_csnWord = %llu ", csn, m_csnWord);
                     } else {
+                        row->GetRowHeader()->Lock();
+                        row->GetRowHeader()->LockStable();
                         row->Copy(access->m_localRow);
                         m_csnWord = (csn | LOCK_BIT);
+                        if (is_debug_print_enable) MOT_LOG_INFO("Write changes to row csn = %llu  -> m_csnWord = %llu ", csn, m_csnWord);
                     }
                 }
             }
@@ -300,6 +308,7 @@ void RowHeader::WriteChangesToRow(const Access* access, TxnManager* txMan, TxnAc
                     t_xmin_csn = ts;
                     t_xmax_csn = -1;
                     MOTAdaptor::AddCleanRow(row);
+                    if (is_debug_print_enable) MOT_LOG_INFO("Write changes to row csn = %llu  -> m_csnWord = %llu ", csn, m_csnWord);
                 } else {
                     row->Copy(access->m_localRow);
                     m_csnWord = (csn | LOCK_BIT);
@@ -361,7 +370,7 @@ void RowHeader::Lock()
         v = m_csnWord;
     }
     // COMPILER_BARRIER       // wzy: 测试屏障
-    asm volatile("mfence" ::: "memory");
+//    asm volatile("mfence" ::: "memory");
 }
 
 void RowHeader::LockStable()
@@ -372,7 +381,7 @@ void RowHeader::LockStable()
         v = stable_csnWord;
     }
     // COMPILER_BARRIER       // wzy: 测试屏障
-    asm volatile("mfence" ::: "memory");
+//    asm volatile("mfence" ::: "memory");
 }
 
 // wzy:

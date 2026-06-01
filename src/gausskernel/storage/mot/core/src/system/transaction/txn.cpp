@@ -501,6 +501,7 @@ RC TxnManager::InsertRow(Row* row)
      SetInteractive(interactive_);
      MOTAdaptor::start_num_start_txn.fetch_add(1);
      start_time = now_to_us();       // wzy: 访问多版本用
+     pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
      txnId = MOTAdaptor::start_txn_num.fetch_add(1);
      write_cnt = read_cnt = 0;
      retry_cnt = 0;
@@ -1642,18 +1643,15 @@ void TxnManager::FinalizeAndPush() {
              } else {
                  // wzy: 只对交互型事务的hot row上写锁
                  if (kHotRow_Active && MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         InitInteractiveTxn();
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
                  } else if(!kHotRow_Active) {
                      // 未启用热行上锁策略则全部行上锁
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         session_id = u_sess->mot_cxt.session_id;
-                         InitInteractiveTxn();
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_WoundWait(updatedRow);     // Plor上写锁
@@ -1676,18 +1674,16 @@ void TxnManager::FinalizeAndPush() {
                 if ((kHotRow_Active && !is_hybrid_cc_enable && hot_rowid_records.count(updatedRow->GetRowId()) != 0)
                       || (is_hybrid_cc_enable && ShouldLock(true, updatedRow->GetRowId()))) {
 //                 if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         InitInteractiveTxn();
-                     }
+                    if (pre_csn == 0) {
+                        pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                    }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
                  } else if(!kHotRow_Active && !is_hybrid_cc_enable) {
                      // else if(!kHotRow_Active && !is_hybrid_cc_enable)
                      // 未启用热行上锁策略则全部行上锁
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         InitInteractiveTxn();
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
@@ -1708,17 +1704,15 @@ void TxnManager::FinalizeAndPush() {
              } else {
                  // wzy: 只对交互型事务的hot row上写锁
                  if (kHotRow_Active && hot_rowid_records.count(updatedRow->GetRowId()) != 0) {
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         InitInteractiveTxn();
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_DL(updatedRow);     // Plor上写锁
                  } else if(!kHotRow_Active) {
                      // 未启用热行上锁策略则全部行上锁
-                     if (GetCommitSequenceNumber() == 0) {
-                         SetCommitSequenceNumber(now_to_us());
-                         InitInteractiveTxn();
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }
                      updatedRow->SetRowInteractive(true);
                      rc = GetWriteLock_DL(updatedRow);     // Plor上写锁

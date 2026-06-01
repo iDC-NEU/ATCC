@@ -2489,12 +2489,28 @@
          {
              bool result = true;
              std::lock_guard<std::mutex> lock(p_latch_);
-             if (writer_.load() != INVALID_TID && writer_.load() == tid) return true;         // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
-             if (!reader_list_.empty()) result = false;        // 没有读者
-             if (writer_list_.size() > 0) result = false;
-             if (writer_.load() != INVALID_TID && writer_.load() != tid) {
-                 res = writer_.load();
+             if (!is_wound_wait_enable) {
+                 // 判断有无读者写者
+                 if (owners_.empty() && waiters_.empty()) return true;
+                 std::shared_ptr<LockRequest> my_owner_req = nullptr;
+                 for (auto& en : owners_) {
+                     if (!en) continue;
+                     if (en->csn_ == tid) result = true;
+                     res = en->tid_;
+                 }
                  result = false;
+             } else {
+                 if (tid == writer_.load()) return true;
+                 if (tid == INVALID_TID && reader_list_.empty() && !excl_sig.load())
+                     return true;  // 当前线程是写者，则可以无视读者（因为进入独占模式，读者无法读取）
+                 if (!reader_list_.empty())
+                     result = false;  // 没有读者
+                 if (writer_list_.size() > 0)
+                     result = false;
+                 if (writer_.load() != INVALID_TID && writer_.load() != tid) {
+                     res = writer_.load();
+                     result = false;
+                 }
              }
              return result;
          }

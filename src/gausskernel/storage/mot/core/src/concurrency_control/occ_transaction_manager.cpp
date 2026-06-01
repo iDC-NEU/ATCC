@@ -733,7 +733,7 @@
          auto currRow = ac->m_localRow;
          std::string tmp_rowid = currRow->GetTable()->GetLongTableName() + ":" + to_string(currRow->GetRowId());
 
-         if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_cts, ac->m_server_id) || ac->m_origSentinel->IsLocked()) {
+         if (!ac->GetRowFromHeader()->m_rowHeader.ValidateReadI(ac->m_tid, ac->m_server_id) || ac->m_origSentinel->IsLocked()) {
              if (is_debug_print_enable) {
                  uint64_t v = ac->GetRowFromHeader()->m_rowHeader.GetStableCSN();
                  uint64_t e = ac->GetRowFromHeader()->m_rowHeader.GetStableCommitEpoch();

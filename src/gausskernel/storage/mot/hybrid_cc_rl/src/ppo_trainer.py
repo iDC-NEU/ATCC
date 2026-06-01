@@ -364,6 +364,7 @@ class RewardCalculator:
         self.prev_p99_latency = None
 
     def compute(self, df):
+        target_abort_rate = 0.005
         # 归一化
         # df['lat_norm'] = df['latency'] / self.max_latency_sla
         df['lat_norm'] = np.clip(df['latency'] / self.max_latency_sla, 0.0, 3.0)
@@ -385,6 +386,12 @@ class RewardCalculator:
         #         + self.w_tps * df['tps_norm']
         #         - self.w_abort_rate * df['abort_rate_norm']
         # )
+
+        abort_excess = np.maximum(
+            0,
+            df['abort_rate'] - target_abort_rate
+        )
+
 
         # 计算 \Delta TPS 和 \Delta Latency_p99
         if self.prev_avg_tps is None or self.prev_p99_latency is None:
@@ -408,6 +415,7 @@ class RewardCalculator:
                 - self.psi * df['lat_norm']            # 使用 latency 模拟锁等待
                 + self.eta * delta_tps_norm            # \Delta TPS 带来的增益
                 - self.theta * delta_lat_norm          # \Delta Latency 带来的系统级恶化
+                - 20 * abort_excess
         )
 
         base_reward = 0.0

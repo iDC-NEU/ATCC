@@ -3890,11 +3890,11 @@ void OUTPUTLOGAbort_txn() {
                     \n===== HotLock in PCC : HotRow_quick_validation_abort_num %llu , HotRow_read_validation_abort_num %llu , HotRow_write_validation_abort_num %llu\
                     \n===== Silo Abort: Silo_validation_abort %llu , Silo_quick_validation_abort_num %llu , Silo_lockheader_abort_num %llu, Silo_lockheader_abort_by_interactive_num %llu, write_validation_abort_num %llu, read_validation_abort_num %llu \
                     \n===== WaitForGraph: wait_for_graph node : %llu\
-                    \n===== [ALL TXN]: commit_txn_num %llu PCC_txn_num %llu commit_interactive_txn_num %llu \
+                    \n===== [ALL TXN]: commit_txn_num %llu PCC_txn_num %llu commit_interactive_txn_num %llu commit_pcc_interactive_txn_num %llu commit_occ_interactive_txn_num %llu\
                     \n===== start_txn_num %llu start_interactive_txn_num %llu start_num_start_txn %llu start_num_txn_construct %llu \
                     \n===== PCC_txn_num %llu PCC_priority_txn_num %llu PCC_hot_visits_txn_num %llu \
                     \n===== txn_total_switchTime %llu txn_total_read_lockTime %llu txn_total_write_lockTime %llu txn_total_validate_lockTime %llu txn_total_validate_hotOccTime %llu \
-                    \n===== txn_total_switchCnt %llu txn_total_read_lockCnt %llu txn_total_write_lockCnt %llu txn_total_validate_lockCnt %llu txn_total_validate_hotOccCnt %llu",
+                    \n===== txn_total_switchCnt %llu txn_total_read_lockCnt %llu txn_total_write_lockCnt %llu txn_total_validate_lockCnt %llu txn_total_validate_hotOccCnt %llu ",
 
 
         MOTAdaptor::abort_transcation_csn_set.size(), MOTAdaptor::deadlock_abort_set.size(), MOTAdaptor::DeadLock_abort_num.load(), MOTAdaptor::LockCheck_abort_num.load(), MOTAdaptor::Commit_abort_num.load(),
@@ -3911,7 +3911,7 @@ void OUTPUTLOGAbort_txn() {
         MOTAdaptor::Silo_validation_abort_num.load(), MOTAdaptor::Silo_quick_validation_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_num.load(), MOTAdaptor::Silo_lockheader_abort_by_interactive_num.load(), MOTAdaptor::Silo_write_validation_abort_num.load(), MOTAdaptor::Silo_read_validation_abort_num.load(),
         MOTAdaptor::wait_for_graph.vertex_num.load(),
 
-        MOTAdaptor::commit_txn_num.load(), MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::commit_interactive_txn_num.load(),
+        MOTAdaptor::commit_txn_num.load(), MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::commit_interactive_txn_num.load(), MOTAdaptor::commit_pcc_interactive_txn_num.load(), MOTAdaptor::commit_occ_interactive_txn_num.load(),
         MOTAdaptor::start_txn_num.load(), MOTAdaptor::start_interactive_txn_num.load(), MOTAdaptor::start_num_start_txn.load(), MOTAdaptor::start_num_txn_construct.load(),
 
         MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::pessimisitic_priority_txn_num.load(), MOTAdaptor::pessimisitic_hot_visits_txn_num.load(),

@@ -2836,6 +2836,7 @@ std::atomic<uint64_t> MOTAdaptor::Remote_CommitCheck_abort_num{0};
 
 // 统计最近一段时间内的中止率、tps
 std::atomic<uint64_t> MOTAdaptor::prev_abort_interactive_txn_num;
+std::atomic<uint64_t> MOTAdaptor::prev_commit_interactive_txn_num;
 std::atomic<uint64_t> MOTAdaptor::prev_commit_txn_num;
 std::atomic<uint64_t> MOTAdaptor::prev_time;
 std::atomic<double> MOTAdaptor::recent_abort_rate;
@@ -3891,6 +3892,7 @@ void OUTPUTLOGAbort_txn() {
                     \n===== Silo Abort: Silo_validation_abort %llu , Silo_quick_validation_abort_num %llu , Silo_lockheader_abort_num %llu, Silo_lockheader_abort_by_interactive_num %llu, write_validation_abort_num %llu, read_validation_abort_num %llu \
                     \n===== WaitForGraph: wait_for_graph node : %llu\
                     \n===== [ALL TXN]: commit_txn_num %llu PCC_txn_num %llu commit_interactive_txn_num %llu commit_pcc_interactive_txn_num %llu commit_occ_interactive_txn_num %llu\
+                    \n===== [Static]: recent_abort_rate %f recent_global_tps %f \
                     \n===== start_txn_num %llu start_interactive_txn_num %llu start_num_start_txn %llu start_num_txn_construct %llu \
                     \n===== PCC_txn_num %llu PCC_priority_txn_num %llu PCC_hot_visits_txn_num %llu \
                     \n===== txn_total_switchTime %llu txn_total_read_lockTime %llu txn_total_write_lockTime %llu txn_total_validate_lockTime %llu txn_total_validate_hotOccTime %llu \
@@ -3912,6 +3914,7 @@ void OUTPUTLOGAbort_txn() {
         MOTAdaptor::wait_for_graph.vertex_num.load(),
 
         MOTAdaptor::commit_txn_num.load(), MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::commit_interactive_txn_num.load(), MOTAdaptor::commit_pcc_interactive_txn_num.load(), MOTAdaptor::commit_occ_interactive_txn_num.load(),
+        MOTAdaptor::recent_abort_rate.load(), MOTAdaptor::recent_global_tps.load(),
         MOTAdaptor::start_txn_num.load(), MOTAdaptor::start_interactive_txn_num.load(), MOTAdaptor::start_num_start_txn.load(), MOTAdaptor::start_num_txn_construct.load(),
 
         MOTAdaptor::pessimisitic_txn_num.load(), MOTAdaptor::pessimisitic_priority_txn_num.load(), MOTAdaptor::pessimisitic_hot_visits_txn_num.load(),
@@ -4147,27 +4150,30 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
                 MOTAdaptor::txn_temp_total_validate_hotOccTime.store(0);
             }
 
-            if (kInteractive_Active && epoch_mod % 10 == 0) {
+            if (kInteractive_Active && epoch_mod % 100 == 0) {
                 uint64_t current_time = now_to_us();
                 // 计算最近中止率、吞吐量
                 uint64_t current_commit = MOTAdaptor::commit_txn_num.load(std::memory_order_relaxed);
                 uint64_t current_abort = MOTAdaptor::Abort_interactive_txn_num.load(std::memory_order_relaxed);
+                uint64_t current_interactive_commit = MOTAdaptor::commit_interactive_txn_num.load(std::memory_order_relaxed);
 
                 // 快照上次的总数
                 uint64_t prev_commit = MOTAdaptor::prev_commit_txn_num.load(std::memory_order_relaxed);
                 uint64_t prev_abort = MOTAdaptor::prev_abort_interactive_txn_num.load(std::memory_order_relaxed);
+                uint64_t prev_interactive_commit = MOTAdaptor::prev_commit_interactive_txn_num.load(std::memory_order_relaxed);
 
                 // 计算增量 (做容错处理，防止极端情况的溢出回绕)
                 uint64_t delta_commit = (current_commit >= prev_commit) ? (current_commit - prev_commit) : 0;
+                uint64_t delta_interactive_commit = (current_interactive_commit >= prev_interactive_commit) ? (current_interactive_commit - prev_interactive_commit) : 0;
                 uint64_t delta_abort = (current_abort >= prev_abort) ? (current_abort - prev_abort) : 0;
-                uint64_t delta_total = delta_commit + delta_abort;
+                uint64_t delta_total = delta_interactive_commit + delta_abort;
                 uint64_t delta_time = current_time - MOTAdaptor::prev_time;
 
                 // 3. 计算 TPS (此处定义为：每秒完成的事务总数，你也可以改成只算 Commit)
                 double tps = 0.0;
                 if (delta_time > 0) {
                     // delta_time 是微秒，转化为秒需要乘 1,000,000
-                    tps = (static_cast<double>(delta_total) / static_cast<double>(delta_time)) * 1000000.0;
+                    tps = (static_cast<double>(delta_commit) / static_cast<double>(delta_time)) * 1000000.0;
                 }
 
                 // 4. 计算中止率
@@ -4183,6 +4189,8 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
                 // 6. 推进窗口，为下一轮计算做准备
                 MOTAdaptor::prev_commit_txn_num.store(current_commit, std::memory_order_relaxed);
                 MOTAdaptor::prev_abort_interactive_txn_num.store(current_abort, std::memory_order_relaxed);
+                MOTAdaptor::prev_commit_interactive_txn_num.store(current_interactive_commit, std::memory_order_relaxed);
+                MOTAdaptor::prev_time.store(current_time);
             }
 
 
@@ -4423,27 +4431,30 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
                 MOTAdaptor::txn_temp_total_validate_hotOccTime.store(0);
             }
 
-            if (kInteractive_Active && epoch_mod % 10 == 0) {
+            if (kInteractive_Active && epoch_mod % 100 == 0) {
                 uint64_t current_time = now_to_us();
                 // 计算最近中止率、吞吐量
                 uint64_t current_commit = MOTAdaptor::commit_txn_num.load(std::memory_order_relaxed);
                 uint64_t current_abort = MOTAdaptor::Abort_interactive_txn_num.load(std::memory_order_relaxed);
+                uint64_t current_interactive_commit = MOTAdaptor::commit_interactive_txn_num.load(std::memory_order_relaxed);
 
                 // 快照上次的总数
                 uint64_t prev_commit = MOTAdaptor::prev_commit_txn_num.load(std::memory_order_relaxed);
                 uint64_t prev_abort = MOTAdaptor::prev_abort_interactive_txn_num.load(std::memory_order_relaxed);
+                uint64_t prev_interactive_commit = MOTAdaptor::prev_commit_interactive_txn_num.load(std::memory_order_relaxed);
 
                 // 计算增量 (做容错处理，防止极端情况的溢出回绕)
                 uint64_t delta_commit = (current_commit >= prev_commit) ? (current_commit - prev_commit) : 0;
+                uint64_t delta_interactive_commit = (current_interactive_commit >= prev_interactive_commit) ? (current_interactive_commit - prev_interactive_commit) : 0;
                 uint64_t delta_abort = (current_abort >= prev_abort) ? (current_abort - prev_abort) : 0;
-                uint64_t delta_total = delta_commit + delta_abort;
+                uint64_t delta_total = delta_interactive_commit + delta_abort;
                 uint64_t delta_time = current_time - MOTAdaptor::prev_time;
 
                 // 3. 计算 TPS (此处定义为：每秒完成的事务总数，你也可以改成只算 Commit)
                 double tps = 0.0;
                 if (delta_time > 0) {
                     // delta_time 是微秒，转化为秒需要乘 1,000,000
-                    tps = (static_cast<double>(delta_total) / static_cast<double>(delta_time)) * 1000000.0;
+                    tps = (static_cast<double>(delta_commit) / static_cast<double>(delta_time)) * 1000000.0;
                 }
 
                 // 4. 计算中止率
@@ -4459,6 +4470,7 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
                 // 6. 推进窗口，为下一轮计算做准备
                 MOTAdaptor::prev_commit_txn_num.store(current_commit, std::memory_order_relaxed);
                 MOTAdaptor::prev_abort_interactive_txn_num.store(current_abort, std::memory_order_relaxed);
+                MOTAdaptor::prev_commit_interactive_txn_num.store(current_interactive_commit, std::memory_order_relaxed);
             }
 
             // MultiRaftState::ClearRaftEpochState(epoch_mod);

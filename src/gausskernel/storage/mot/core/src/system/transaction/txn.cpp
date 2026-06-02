@@ -210,10 +210,14 @@ RC TxnManager::InsertRow(Row* row)
      } else {
          res = AccessLookupMVCC(type, originalSentinel, local_row);
      }
+
+
  
      // wzy: 插入全局活跃事务表
      Row* r_local_row = nullptr;
-     if (type == AccessType::RD && local_row) MOTAdaptor::AddActiveTxnRow(GetInternalTransactionId(), local_row);
+     if (type == AccessType::RD && local_row) {
+         MOTAdaptor::AddActiveTxnRow(GetInternalTransactionId(), local_row);
+     }
  
      switch (res) {
          case RC::RC_LOCAL_ROW_DELETED:
@@ -231,6 +235,8 @@ RC TxnManager::InsertRow(Row* row)
                      temp_header->AddActiveTxnList(GetInternalTransactionId(), 0);
                  }
                  read_cache.AddReadCache(originalSentinel, local_row);
+                 std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                 MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
                  return local_row;
              }
              return nullptr;
@@ -270,7 +276,8 @@ RC TxnManager::InsertRow(Row* row)
 //             if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
 //                 if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
 //             }
- 
+             std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+             MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
              return local_row;
          }
          case RC::RC_LOCAL_ROW_NOT_FOUND:
@@ -315,6 +322,8 @@ RC TxnManager::InsertRow(Row* row)
 //                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
 //                         if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
 //                     }
+                     std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                     MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
                      return local_row;
                  }
                  else {
@@ -358,7 +367,8 @@ RC TxnManager::InsertRow(Row* row)
 //                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && is_hybrid_cc_enable) {
 //                         if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
 //                     }
- 
+                     std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+                     MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
                      return local_row;
                  }
              } else

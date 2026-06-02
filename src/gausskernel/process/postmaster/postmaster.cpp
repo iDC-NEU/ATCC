@@ -11656,8 +11656,10 @@ void GetServerInfo(){
 
 
     if(kServerNum > 1){
+        tinyxml2::XMLElement* listen_send_thread_num = root->FirstChildElement("listen_send_thread_num");
+        kListenThreadNum = std::stoull(listen_send_thread_num->GetText());
         // kSendThreadNum = kListenThreadNum = kPackageNum + 1;
-        kSendThreadNum = kListenThreadNum = 3;
+        kSendThreadNum = kListenThreadNum;
     }
     else{
         kSendThreadNum = kListenThreadNum = 1;

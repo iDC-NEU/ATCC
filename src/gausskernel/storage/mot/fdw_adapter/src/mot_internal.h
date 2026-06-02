@@ -1020,6 +1020,7 @@
 
      // 统计最近一段时间内的中止率、tps
      static std::atomic<uint64_t> prev_abort_interactive_txn_num;
+     static std::atomic<uint64_t> prev_commit_interactive_txn_num;
      static std::atomic<uint64_t> prev_commit_txn_num;
      static std::atomic<uint64_t> prev_time;
      static std::atomic<double> recent_abort_rate;

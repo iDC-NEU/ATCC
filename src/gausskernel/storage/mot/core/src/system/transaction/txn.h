@@ -957,6 +957,7 @@
  
      bool ValidateTxnPessimistic(uint64_t curr_epoch);
      bool ShouldLock(bool isWrite, uint64_t rowId);
+     bool ShouldValidate(bool isWrite, uint64_t rowId);
 
      // wzy: 存放轨迹
      void AddTraj(int action) {

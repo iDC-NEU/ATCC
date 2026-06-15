@@ -4121,7 +4121,7 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
             OUTPUTLOG("==================完成一个Epoch的合并");
             OUTPUTLOGAbort_txn();
 
-            if (kInteractive_Active && epoch_mod % 100 == 0) {
+            if (kInteractive_Active && epoch_mod % kHotCntEpochLen == 0) {
                 uint64_t time1 = now_to_us();
                 uint64_t pre_num = MOTAdaptor::dynamic_hot_rows.size();
                 MOTAdaptor::dynamic_hot_rows.get_hot_rows_by_freq();       // wzy: 每100 epoch生成热门row
@@ -4402,7 +4402,7 @@ void EpochLogicalTimerManagerThreadMain(uint64_t id){
             // ============= 结束处理 ==================
             //远端事务已经写完，不写完无法开始下一个logical epoch
 
-            if (kInteractive_Active && epoch_mod % 100 == 0) {
+            if (kInteractive_Active && epoch_mod % kHotCntEpochLen == 0) {
                 uint64_t time1 = now_to_us();
                 uint64_t pre_num = MOTAdaptor::dynamic_hot_rows.size();
                 MOTAdaptor::dynamic_hot_rows.get_hot_rows_by_freq();       // wzy: 生成热门row

@@ -160,11 +160,20 @@ RC TxnManager::InsertRow(Row* row)
     // HYBRID_CC: Record operation for interval tracking
     RecordOperation();
 
+    Row* lock_row = originalSentinel->GetData();
+    if (lock_row) {
+        std::string tmp_rowid =
+            lock_row->GetTable()->GetLongTableName() + ":" + to_string(lock_row->GetRowId());
+        MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);
+        if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+            AddHotRowCnt();                                       // wzy: 添加统计
+            hot_rowid_records.emplace(lock_row->GetRowId());
+        }
+    }
     // 先上锁再读取，避免并发修改读到旧数据
     if (!isMVCC_Active && type == AccessType::RD && IsInteractive() && ValidateTxnPessimistic(cur_time)) {
         // 注意：你需要将原来的 GetReadLock 系列函数改造为接受 originalSentinel 或 RowId
         RC lock_rc = RC_OK;
-        Row* lock_row = originalSentinel->GetData();
         if (lock_row != nullptr) {
             if (!is_hybrid_cc_enable || !is_rl_model_enable) {
                 if (first_time_pessimistic) {
@@ -179,7 +188,8 @@ RC TxnManager::InsertRow(Row* row)
                     else if (cc_mode == 5)
                         lock_rc = GetReadLock_DL(lock_row);
                 }
-            } else {
+            }
+            else if (is_hybrid_cc_enable || is_rl_model_enable){
                 // is_hybrid_cc_enable 的情况
                 if (cc_mode == 4 && ShouldLock(false, lock_row->GetRowId())) {
                     lock_rc = GetReadLock_Plor(lock_row);
@@ -236,7 +246,7 @@ RC TxnManager::InsertRow(Row* row)
                  }
                  read_cache.AddReadCache(originalSentinel, local_row);
                  std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
-                 MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
+//                 MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
                  return local_row;
              }
              return nullptr;
@@ -263,7 +273,7 @@ RC TxnManager::InsertRow(Row* row)
                  if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
                      AddHotRowCnt();      // wzy: 添加统计
                      // 设置row header是hot，用于仅对热数据加锁
-                     if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
+                     hot_rowid_records.emplace(local_row->GetRowId());
                  }
              }
  
@@ -277,7 +287,7 @@ RC TxnManager::InsertRow(Row* row)
 //                 if (cc_mode == 4 && ShouldLock(false, local_row->GetRowId())) rc = GetReadLock_Plor(local_row);
 //             }
              std::string tmp_rowid = local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
-             MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
+//             MOTAdaptor::dynamic_hot_rows.visit_row(tmp_rowid);      // wzy: 添加统计
              return local_row;
          }
          case RC::RC_LOCAL_ROW_NOT_FOUND:
@@ -305,14 +315,14 @@ RC TxnManager::InsertRow(Row* row)
                              read_cache.AddReadCache(originalSentinel, local_row);
                          }
                      }
-                     if (local_row) {
-                         std::string tmp_rowid =
-                             local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
-                         if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
-                             AddHotRowCnt();                                       // wzy: 添加统计
-                             if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
-                         }
-                     }
+//                     if (local_row) {
+//                         std::string tmp_rowid =
+//                             local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+//                         if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+//                             AddHotRowCnt();                                       // wzy: 添加统计
+//                             hot_rowid_records.emplace(local_row->GetRowId());
+//                         }
+//                     }
 //                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag && !is_hybrid_cc_enable) {
 //                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
 //                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
@@ -350,14 +360,14 @@ RC TxnManager::InsertRow(Row* row)
                              read_cache.AddReadCache(originalSentinel, local_row);
                          }
                      }
-                     if (local_row) {
-                         std::string tmp_rowid =
-                             local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
-                         if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
-                             AddHotRowCnt();                                       // wzy: 添加统计
-                             if(kHotRow_Active) hot_rowid_records.emplace(local_row->GetRowId());
-                         }
-                     }
+//                     if (local_row) {
+//                         std::string tmp_rowid =
+//                             local_row->GetTable()->GetLongTableName() + ":" + to_string(local_row->GetRowId());
+//                         if (MOTAdaptor::dynamic_hot_rows.isHotRows(tmp_rowid)) {  // wzy: INS操作没有现存的row id
+//                             AddHotRowCnt();                                       // wzy: 添加统计
+//                             hot_rowid_records.emplace(local_row->GetRowId());
+//                         }
+//                     }
 //                     if (local_row && !isMVCC_Active && type == AccessType::RD && IsInteractive() && pessimistic_flag && !is_hybrid_cc_enable) {
 //                         if (cc_mode == 2) rc = GetReadLock_Plor(local_row);          // Plor上读锁
 //                         else if (cc_mode == 3) rc = GetReadLock_WoundWait(local_row);
@@ -1200,9 +1210,9 @@ uint64_t TxnManager::CalculateScore()
         uint64_t block_time = (age > think_time) ? (age - think_time) : 0;
 
         // 权重配置
-        double w_ops = 10.0;     // 保护大事务：防止投入大量资源的事务被轻易中止
-        double w_block = 1.0;     // 缓解排队饥饿：基于微秒的时长通常数值极大，因此基础权重可设低些
-        double w_think = 15.0;     // 交互成本补偿：给予交互型事务适度加分以快速释放其持有的锁
+        double w_ops = 5.0;     // 保护大事务：防止投入大量资源的事务被轻易中止
+        double w_block = 10.0;     // 缓解排队饥饿：基于微秒的时长通常数值极大，因此基础权重可设低些
+        double w_think = 1.0;     // 交互成本补偿：给予交互型事务适度加分以快速释放其持有的锁
 
        if (m_recent_abort_rate > 0.2) {
             w_block *= (1.0 + (m_recent_abort_rate * 5.0));
@@ -1301,7 +1311,30 @@ void TxnManager::SetHighPriority()
                      csn_temp.c_str(), old_retry_cnt, retry_cnt, old_score, score_);
     }
 }
- 
+
+bool TxnManager::ShouldValidate(bool isWrite, uint64_t rowId) {
+    const bool isHot = (hot_rowid_records.count(rowId) != 0);
+    switch (this->m_hybridCcAction) {
+        case 0:
+            return true;                        // 0: 不加锁
+
+        case 1:
+            return !isWrite || !isHot;             // 1: 仅热点写
+
+        case 2:
+            return !isHot;                        // 2: 所有热点(读/写)
+
+        case 3:
+            return !isWrite && !isHot;             // 3: 所有写 + 热点读（写无条件加锁，读仅热点加锁）
+
+        case 4:
+            return false;                         // 4: 访问到的行一律加锁
+
+        default:
+            return true;                        // 未知动作，保守为不加锁或按需调整
+    }
+}
+
 // 判断当前行是否满足action，再进行上锁
 bool TxnManager::ShouldLock(bool isWrite, uint64_t rowId)
 {
@@ -1692,6 +1725,12 @@ void TxnManager::FinalizeAndPush() {
                  } else if(!kHotRow_Active && !is_hybrid_cc_enable) {
                      // else if(!kHotRow_Active && !is_hybrid_cc_enable)
                      // 未启用热行上锁策略则全部行上锁
+                     if (pre_csn == 0) {
+                         pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
+                     }
+                     updatedRow->SetRowInteractive(true);
+                     rc = GetWriteLock_Plor(updatedRow);     // Plor上写锁
+                 } else if (is_hybrid_cc_enable && ShouldLock(true, updatedRow->GetRowId())) {
                      if (pre_csn == 0) {
                          pre_csn = ((start_time & HIGH_MASK) << 16) | (session_id & 0xFFFF);
                      }

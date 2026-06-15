@@ -714,7 +714,7 @@
  
      return rc;
  }
- 
+
  // 为冷数据读集检验
  bool OccTransactionManager::ValidateReadSetPlor(TxnManager* txMan)
  {
@@ -727,7 +727,8 @@
          if (ac->m_type != RD) {
              continue;
          }
-         if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+         if (!txMan->ShouldValidate(false, ac->m_localRow->GetRowId())) continue;
+//         if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
          if (txMan->read_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
 
          auto currRow = ac->m_localRow;
@@ -765,11 +766,12 @@
              continue;
          }
          if (ac->m_localRow == nullptr) continue;
- 
-         if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
-//         if (txMan->write_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
 
-         if (kHotRow_Active && ac->m_type != INS && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
+         if (!txMan->ShouldValidate(true, ac->m_localRow->GetRowId())) continue;
+//         if (kHotRow_Active && txMan->hot_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+         if (txMan->write_lock_rowid_records.count(ac->m_localRow->GetRowId()) != 0) continue;
+
+         if (ac->m_type != INS && txMan->write_lock_rowid_records.count(ac->m_localRow->GetRowId()) == 0) {
              if (!CheckVersion(ac)) {
                  return false;
              }
@@ -1448,20 +1450,11 @@
      rowId = currRow->GetRowId();
      tmp_rowid = table_name + ":" + to_string(rowId);
  
-     if (kHotRow_Active && txMan->hot_rowid_records.count(rowId) == 0) return true;
+//     if (kHotRow_Active && txMan->hot_rowid_records.count(rowId) == 0) return true;
 
      // 提前检验是否上过锁
-//     if (txMan->write_lock_rowid_records.count(rowId) != 0) return true;
-
-//     auto [it, inserted] = txMan->write_lock_rowid_records.emplace(rowId);
-//     if (inserted) {
-//         MOT_LOG_INFO("Inserted rowid: %llu address: %p", *it, &txMan->write_lock_rowid_records);
-//     } else {
-//         MOT_LOG_INFO("Rowid already exists: %llu",*it);
-//     }
-//     if (txMan->write_lock_rowid_records.count(rowId) == 0) {
-//         MOT_LOG_INFO("GetWriteLockPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
-//     }
+     if (txMan->write_lock_rowid_records.count(rowId) != 0) return true;
+     txMan->write_lock_rowid_records.emplace(rowId);
  
      if (!MOTAdaptor::row_lockrequest_map.get_element(tmp_rowid, tmp_queue) || !tmp_queue){    // 未找到则创建新lock request
          new_queue = std::make_shared<MOTAdaptor::LockRequestQueue>(tmp_rowid);
@@ -1537,9 +1530,9 @@
          return false;
      }
  
-     if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
+//     if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) return true;
      // 提前检验是否上过锁
-//     if (txMan->read_lock_rowid_records.count(currRow->GetRowId()) != 0) return true;
+     if (txMan->read_lock_rowid_records.count(currRow->GetRowId()) != 0) return true;
      txMan->read_lock_rowid_records.emplace(currRow->GetRowId());
 
      auto table = currRow->GetTable();
@@ -1974,10 +1967,14 @@
              m_writeSetSize++;       // 统计write大小?
  
              // 非热数据，跳过
-             if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) {
-                 MOT_LOG_INFO("ValidateWR() continue row is not Wlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
-                 continue;
-             }
+//             if (kHotRow_Active && txMan->hot_rowid_records.count(currRow->GetRowId()) == 0) {
+//                 if (is_debug_enable) MOT_LOG_INFO("ValidateWR() continue row is not Wlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
+//                 continue;
+//             }
+//             if (txMan->write_lock_rowid_records.count(currRow->GetRowId()) == 0) {
+//                 if (is_debug_print_enable) MOT_LOG_INFO("ValidateWR() continue row is not Wlocked tmp_csn : %s , rowid : %llu ", csn_temp.c_str(), rowId);
+//                 continue;
+//             }
 
              table_name = table->GetLongTableName();
              rowId = ac->m_localRow->GetRowId();
@@ -2067,7 +2064,7 @@
 //             }
 //
 //             if (txMan->write_lock_rowid_records.count(rowId) == 0) {
-//                 MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
+//                 if (is_debug_print_enable) MOT_LOG_INFO("UnlockReadWriteRowPlor() continue row is not Wlocked tmp_csn : %s , rowid : %llu write_lock_rowid_records address: %p", csn_temp.c_str(), rowId, &txMan->write_lock_rowid_records);
 //                 continue;
 //             }
 

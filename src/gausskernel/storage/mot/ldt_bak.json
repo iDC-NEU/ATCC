@@ -1,0 +1,62 @@
+{
+  "tiers": {
+    "exec_time": [
+      14660.76,
+      62688.45
+    ],
+    "query_interval": [
+      4.32,
+      10.18
+    ],
+    "priority_score": [
+      7.231618963661648e+16,
+      3.400971439285067e+17
+    ],
+    "contention_tier": [
+      0.5,
+      1.67
+    ],
+    "workload_tier": [
+      208458.84,
+      683182.36
+    ],
+    "retry_tier": [
+      1,
+      3
+    ]
+  },
+  "table": {
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 3,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 3,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_1": 1,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_2": 4,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_2": 5,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_2": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_2": 5,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_2": 4,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_2": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_1": 4,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_1": 4,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_2,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_0,workload_TIER_2,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_0,workload_TIER_1,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_0,workload_TIER_1,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 5,
+    "YCSB,contention_TIER_0,workload_TIER_1,retry_count_TIER_0,exec_time_TIER_2,query_interval_TIER_0,priority_score_TIER_0": 5,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 5,
+    "YCSB,contention_TIER_0,workload_TIER_2,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 5
+  }
+}

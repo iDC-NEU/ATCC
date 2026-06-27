@@ -1,0 +1,1 @@
+src/common/backend/utils/mb/encnames.o src/common/backend/utils/mb/conv.o src/common/backend/utils/mb/mbutils.o src/common/backend/utils/mb/wchar.o src/common/backend/utils/mb/wstrcmp.o src/common/backend/utils/mb/wstrncmp.o

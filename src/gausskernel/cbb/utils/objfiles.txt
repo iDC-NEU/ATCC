@@ -1,0 +1,10 @@
+src/gausskernel/cbb/utils/aes/aes.o src/gausskernel/cbb/utils/aes/cipherfn.o src/gausskernel/cbb/utils/aes/evp_cipher.o
+src/gausskernel/cbb/utils/biginteger/biginteger.o
+src/gausskernel/cbb/utils/bloomfilter/bloom_filter.o
+src/gausskernel/cbb/utils/debug/distribute_test.o
+src/gausskernel/cbb/utils/gssignal/gs_signal.o
+src/gausskernel/cbb/utils/hll/hll_mpp.o
+src/gausskernel/cbb/utils/partition/partitionkey.o src/gausskernel/cbb/utils/partition/partitionmap.o
+src/gausskernel/cbb/utils/ssl/gs_openssl_client.o
+src/gausskernel/cbb/utils/zfiles/zip_file.o src/gausskernel/cbb/utils/zfiles/gz_file.o
+

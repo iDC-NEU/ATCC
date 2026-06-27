@@ -1,0 +1,1 @@
+src/lib/gstrace/common/../../../../src/common/port/libpgport.a src/lib/gstrace/common/gstrace_infra.o

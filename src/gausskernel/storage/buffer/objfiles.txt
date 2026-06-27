@@ -1,0 +1,1 @@
+src/gausskernel/storage/buffer/buf_table.o src/gausskernel/storage/buffer/buf_init.o src/gausskernel/storage/buffer/bufmgr.o src/gausskernel/storage/buffer/freelist.o src/gausskernel/storage/buffer/localbuf.o

@@ -1,0 +1,1 @@
+src/gausskernel/runtime/codegen/vecexecutor/vecexprcodegen.o src/gausskernel/runtime/codegen/vecexecutor/vechashaggcodegen.o src/gausskernel/runtime/codegen/vecexecutor/vechashjoincodegen.o src/gausskernel/runtime/codegen/vecexecutor/vecsortcodegen.o

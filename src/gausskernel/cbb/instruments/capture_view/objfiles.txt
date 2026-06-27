@@ -1,0 +1,1 @@
+src/gausskernel/cbb/instruments/capture_view/capture_view.o

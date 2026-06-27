@@ -1,0 +1,139 @@
+# ---------------------------------
+# Configuration for HybridCC RL
+# ---------------------------------
+
+# 1. File Paths
+# ----------------
+data_paths:
+  # Directory where real transaction logs are stored (relative to project root)
+  raw_log_dir: "input"
+  
+  # Path to save the final trained LDT policy (relative to project root)
+#  output_ldt_path: "output/ldt.json"
+  output_ldt_path: "../mot_ldt.json"
+
+
+# 2. Feature Engineering Parameters
+# ---------------------------------
+feature_engineering:
+  # List of features that will be combined to create the unique 'state_key'.
+  # The Python script will automatically look for the discretized 'tier' version
+  # of any feature listed in the 'tiers' section below.
+  # For example, 'exec_time' here will use the 'exec_time_tier' column.
+  state_key_features:
+    - "txn_type"
+    - "contention_tier"
+    - "workload_tier"
+    - "retry_count_tier"
+    - "exec_time_tier"
+    - "query_interval_tier"
+    - "priority_score_tier"  # Transaction priority score (higher = more priority) 
+
+  # Defines how continuous features are discretized into categorical 'tiers'.
+  # Each key is the column name from the raw log (原始数据列名).
+  # The list contains the upper bounds for each tier.
+  # E.g., [50, 200] creates 3 bins: (-inf, 50], (50, 200], (200, +inf)
+  tiers:
+    exec_time: [47.98, 115.92]
+    query_interval: [3.59, 8.95]
+    # Priority score: higher value = higher priority (retry_cnt + age)
+    # Thresholds need to be tuned based on actual workload
+    priority_score: [7.68272993029698e+16, 3.625334712990902e+17]  # Low, Medium, High priority
+    # 原始特征的离散化配置
+    contention: [1.52, 4.67]       # 0-2: low contention, 3-5: medium, >5: high
+    workload: [8.41, 9.5]        # 0-5: small workload, 6-15: medium, >15: large
+    retry_count: [1, 3]      # 0: no retry, 1-2: few retries, 3+: many retries
+    abort_rate_bins: [0.05, 0.2, 0.4, 1.0]
+    tps_bins: [500, 1000, 2000, 4000, 10000]
+
+# 3. Reward Function Weights
+# ---------------------------
+reward_function:
+  # Transaction-Local Reward (rt) weights
+  # rt = β*Commit - α*Latency - ε*Retry - C_abort
+  alpha: 0.01   # Penalty for latency (should be small relative to commit/abort)
+  beta: 100.0   # Reward for commit
+  epsilon: 10.0 # Penalty for retry count
+  
+  # 🆕 动态中止成本函数 (Dynamic Abort Cost Function)
+  # C_abort = c1 * (T_base + T_exec) + c2 * (T_base + T_exec)^2
+  # 这个非线性成本函数能更好地反映长时间运行事务中止的真实代价
+  c1: 0.5       # 线性中止成本权重 (linear abort cost weight)
+  c2: 0.01      # 二次中止成本权重 (quadratic abort cost weight) - 体现"成本加速"
+  t_base: 1.0   # 基础执行成本/ms (base execution cost) - 防止T_exec为0时成本也为0
+
+  # System-Global Reward (rs) weights
+  # rs = λ1*ΔTPS - λ2*ΔLatency - λ3*ΔAbortRate
+  lambda1: 0.1  # Reward for TPS increase
+  lambda2: 0.05 # Penalty for global latency increase
+  lambda3: 50.0  # Penalty for global abort rate increase
+
+  # Final reward composition weight
+  # r = μ * rt + (1 - μ) * rs
+  mu: 0.7  # Weight for local reward (rt) vs global reward (rs)
+
+
+# 4. Optimizer (Evolutionary Algorithm) Parameters
+# ------------------------------------------------
+optimizer:
+  population_size: 30   # Number of candidate policies in each generation
+  generations: 50       # Total number of training generations
+  mutation_rate: 0.3    # Probability of a gene (state-action pair) mutating
+  crossover_rate: 0.8   # Probability of swapping genes during crossover
+  elite_ratio: 0.2      # Percentage of top performers to carry over to the next generation
+#  num_actions: 6        # Number of available actions (包括新增的 "Prioritize Transaction Only")
+  num_actions: 5        # Number of available actions (包括新增的 "Prioritize Transaction Only")
+
+
+# ============ PPO ==============
+training:
+  min_samples: 1      # 至少多少条数据才触发训练
+  interval_sec: 180       # 最小训练间隔（秒）
+  max_samples: 10000     # （可选）最多使用多少条数据（防止无限增长）
+
+features:
+  state_columns:
+    - c_tier
+    - w_tier
+    - r_tier
+    - ga_tier
+    - gt_tier
+  next_state_columns:
+    - ns_c_tier
+    - ns_w_tier
+    - ns_r_tier
+    - ns_ga_tier
+    - ns_gt_tier
+
+reward:
+  w_commit: 1.0
+  w_abort: 1.5
+  w_latency: 0.8
+  w_tps: 0.3
+  w_abort_rate: 1.2
+  normalize: true
+
+ppo:
+  clip_eps: 0.2          # PPO clipping
+  epochs: 5              # 每轮训练epoch数
+  batch_size: 256        # mini-batch大小
+  learning_rate: 0.001   # 学习率
+  gamma: 0.99
+  lambda: 0.95
+
+ldt:
+  output_path: "output/ldt.json"
+  min_prob: 0.001       # 是否对概率做截断（防止极端0/1）
+
+notification:
+  enabled: true
+  host: "127.0.0.1"
+  port: 6556
+
+logging:
+  verbose: true
+  print_stats: true
+
+data:
+  path: "input/"
+  type: "csv"

@@ -1,0 +1,1 @@
+src/gausskernel/storage/access/dfs/parquet/parquet_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_file_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_column_reader.o src/gausskernel/storage/access/dfs/parquet/parquet_input_stream_adapter.o

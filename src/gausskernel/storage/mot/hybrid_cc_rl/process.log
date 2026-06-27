@@ -1,0 +1,3449 @@
+2025-12-18 18:24:37 - 激活虚拟环境
+2025-12-18 18:24:37 - 开始分级分析
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: action1-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1996086 条记录
+
+📂 正在处理文件: action0-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 382925 条记录
+
+📂 正在处理文件: action3-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 116477 条记录
+
+📂 正在处理文件: action1-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 344744 条记录
+
+📂 正在处理文件: action0-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 10823445 条记录
+
+📂 正在处理文件: action1-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1650643 条记录
+
+📂 正在处理文件: action2-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1842873 条记录
+
+📂 正在处理文件: action3-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1740301 条记录
+
+📂 正在处理文件: action4-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1928768 条记录
+
+📂 正在处理文件: action4-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1728800 条记录
+
+📂 正在处理文件: action2-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 348368 条记录
+
+📂 正在处理文件: action0-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 5727210 条记录
+
+📂 正在处理文件: action3-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 2077028 条记录
+
+📂 正在处理文件: action4-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 128182 条记录
+
+📂 正在处理文件: action2-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1930083 条记录
+
+📂 正在处理文件: rl_version_1.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 5636597 条记录
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 51886895 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 17
+  - 总记录数: 90289425
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 90289425 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.49', '1430.92', '4008.47']
+  - 推荐的划分阈值: [715.71, 2719.7]
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 171, in analyze_and_recommend_tiers
+    kmeans.fit(scaled_data)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/cluster/_kmeans.py", line 1499, in fit
+    centers_init = self._init_centroids(
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/cluster/_kmeans.py", line 1014, in _init_centroids
+    centers, _ = _kmeans_plusplus(
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/cluster/_kmeans.py", line 260, in _kmeans_plusplus
+    best_candidate = np.argmin(candidates_pot)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/numpy/core/fromnumeric.py", line 1232, in _argmin_dispatcher
+    def _argmin_dispatcher(a, axis=None, out=None, *, keepdims=np._NoValue):
+    
+KeyboardInterrupt
+2025-12-18 20:58:10 - 激活虚拟环境
+2025-12-18 20:58:10 - 开始分级分析
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: action1-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1996086 条记录
+
+📂 正在处理文件: action0-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 382925 条记录
+
+📂 正在处理文件: action3-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 116477 条记录
+
+📂 正在处理文件: action1-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 344744 条记录
+
+📂 正在处理文件: action0-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 10823445 条记录
+
+📂 正在处理文件: action1-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1650643 条记录
+
+📂 正在处理文件: action2-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1842873 条记录
+
+📂 正在处理文件: action3-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1740301 条记录
+
+📂 正在处理文件: action4-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1928768 条记录
+
+📂 正在处理文件: action4-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1728800 条记录
+
+📂 正在处理文件: action2-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 348368 条记录
+
+📂 正在处理文件: action0-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 5727210 条记录
+
+📂 正在处理文件: action3-low.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 2077028 条记录
+
+📂 正在处理文件: action4-high.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 128182 条记录
+
+📂 正在处理文件: action2-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 1930083 条记录
+
+📂 正在处理文件: rl_version_1.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 5636597 条记录
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 51886895 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 17
+  - 总记录数: 90289425
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 90289425 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.49', '1430.92', '4008.47']
+  - 推荐的划分阈值: [715.71, 2719.7]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.03', '235.85', '659.66']
+  - 推荐的划分阈值: [117.94, 447.75]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['216700.08', '148678669068919904.00', '567083672718256192.00']
+  - 推荐的划分阈值: [7.43393345345683e+16, 3.5788117089358803e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.21', '2.78', '5.93']
+  - 推荐的划分阈值: [1.49, 4.35]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.04', '472728.83', '978261.86']
+  - 推荐的划分阈值: [236367.94, 725495.35]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [715.71, 2719.7]
+    query_interval: [117.94, 447.75]
+    priority_score: [7.43393345345683e+16, 3.5788117089358803e+17]
+    contention: [1.49, 4.35]
+    workload: [236367.94, 725495.35]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [715.71, 2719.7]
+  ✓ 更新 query_interval: [117.94, 447.75]
+  ✓ 更新 priority_score: [7.43393345345683e+16, 3.5788117089358803e+17]
+  ✓ 更新 contention: [1.49, 4.35]
+  ✓ 更新 workload: [236367.94, 725495.35]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-18 21:23:33 - 分级分析完成
+2025-12-18 21:23:33 - 开始训练
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+2025-12-20 12:49:33 - 激活虚拟环境
+2025-12-20 12:49:33 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 3270142 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 3270142
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 3270142 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.54', '90.89', '122.14']
+  - 推荐的划分阈值: [45.71, 106.51]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.94', '10.77']
+  - 推荐的划分阈值: [3.99, 9.35]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['16884.72', '142348982677222416.00', '286464170757532768.00']
+  - 推荐的划分阈值: [7.117449133861965e+16, 2.1440657671737763e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.62', '2.00', '3.38']
+  - 推荐的划分阈值: [1.31, 2.69]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['8.00', '9.00', '10.00']
+  - 推荐的划分阈值: [8.5, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [45.71, 106.51]
+    query_interval: [3.99, 9.35]
+    priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+    contention: [1.31, 2.69]
+    workload: [8.5, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [45.71, 106.51]
+  ✓ 更新 query_interval: [3.99, 9.35]
+  ✓ 更新 priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+  ✓ 更新 contention: [1.31, 2.69]
+  ✓ 更新 workload: [8.5, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-20 12:50:39 - 分级分析完成
+2025-12-20 12:50:39 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 3270142 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 3270142
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [45.71, 106.51]
+  Loaded tier config: query_interval = [3.99, 9.35]
+  Loaded tier config: priority_score = [7.117449133861965e+16, 2.1440657671737763e+17]
+  Loaded tier config: contention_tier = [1.31, 2.69]
+  Loaded tier config: workload_tier = [8.5, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 60.2542, Overall Best: 60.2542
+Generation 2/50, Best Fitness in Gen: 60.2542, Overall Best: 60.2542
+Generation 3/50, Best Fitness in Gen: 60.2749, Overall Best: 60.2749
+Generation 4/50, Best Fitness in Gen: 69.4114, Overall Best: 69.4114
+Generation 5/50, Best Fitness in Gen: 69.4114, Overall Best: 69.4114
+Generation 6/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 7/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 8/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 9/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 10/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 11/50, Best Fitness in Gen: 69.5090, Overall Best: 69.5090
+Generation 12/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 13/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 14/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 15/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 16/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 17/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 18/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 19/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 20/50, Best Fitness in Gen: 69.6250, Overall Best: 69.6250
+Generation 21/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 22/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 23/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 24/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 25/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 26/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 27/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 28/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 29/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 30/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 31/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 32/50, Best Fitness in Gen: 69.7173, Overall Best: 69.7173
+Generation 33/50, Best Fitness in Gen: 69.7214, Overall Best: 69.7214
+Generation 34/50, Best Fitness in Gen: 69.7214, Overall Best: 69.7214
+Generation 35/50, Best Fitness in Gen: 69.7214, Overall Best: 69.7214
+Generation 36/50, Best Fitness in Gen: 69.7214, Overall Best: 69.7214
+Generation 37/50, Best Fitness in Gen: 69.7214, Overall Best: 69.7214
+Generation 38/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 39/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 40/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 41/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 42/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 43/50, Best Fitness in Gen: 69.7384, Overall Best: 69.7384
+Generation 44/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 45/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 46/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 47/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 48/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 49/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+Generation 50/50, Best Fitness in Gen: 69.7385, Overall Best: 69.7385
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 44
+  - Unique states covered: 44
+
+Tier Thresholds:
+  - exec_time: [45.71, 106.51]
+  - query_interval: [3.99, 9.35]
+  - priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+  - contention_tier: [1.31, 2.69]
+  - workload_tier: [8.5, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 13 (29.5%)
+  - Action 1 (Lock Hot Write Set): 6 (13.6%)
+  - Action 2 (Lock All Hot Sets): 11 (25.0%)
+  - Action 3 (Lock All Writes & Hot Reads): 3 (6.8%)
+  - Action 4 (Lock Entire Access Set): 7 (15.9%)
+  - Action 5 (Prioritize Transaction Only): 4 (9.1%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-20 12:51:36 - 模型训练完成
+2025-12-20 12:51:36 - train_process.sh 执行完成
+2025-12-20 12:54:30 - 激活虚拟环境
+2025-12-20 12:54:30 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2053, in pandas._libs.parsers.raise_parser_error
+  File "<frozen codecs>", line 331, in getstate
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 142, in analyze_and_recommend_tiers
+    df = data_loader.load_data()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py", line 142, in load_data
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 625, in _read
+    with parser:
+         ^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1990, in __exit__
+    def __exit__(
+
+KeyboardInterrupt
+2025-12-20 12:55:17 - 激活虚拟环境
+2025-12-20 12:55:17 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 3270142 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 3270142
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 3270142 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 171, in analyze_and_recommend_tiers
+    kmeans.fit(scaled_data)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/base.py", line 1365, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/cluster/_kmeans.py", line 1510, in fit
+    labels, inertia, centers, n_iter_ = kmeans_single(
+                                        ^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/utils/parallel.py", line 173, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/cluster/_kmeans.py", line 700, in _kmeans_single_lloyd
+    lloyd_iter(
+  File "sklearn/cluster/_k_means_lloyd.pyx", line 160, in sklearn.cluster._k_means_lloyd.lloyd_iter_chunked_dense
+  File "sklearn/cluster/_k_means_common.pyx", line 177, in sklearn.cluster._k_means_common._relocate_empty_clusters_dense
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/numpy/core/multiarray.py", line 346, in where
+    @array_function_from_c_func_and_dispatcher(_multiarray_umath.where)
+    
+KeyboardInterrupt
+2025-12-20 13:03:37 - 激活虚拟环境
+2025-12-20 13:03:37 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 142, in analyze_and_recommend_tiers
+    df = data_loader.load_data()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py", line 142, in load_data
+    df = pd.read_csv(file)
+         ^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2053, in pandas._libs.parsers.raise_parser_error
+  File "<frozen codecs>", line 331, in getstate
+KeyboardInterrupt
+2025-12-20 13:04:35 - 激活虚拟环境
+2025-12-20 13:04:35 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2053, in pandas._libs.parsers.raise_parser_error
+  File "<frozen codecs>", line 331, in getstate
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 142, in analyze_and_recommend_tiers
+    df = data_loader.load_data()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py", line 142, in load_data
+    df = pd.read_csv(file)
+         ^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 625, in _read
+    with parser:
+         ^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1990, in __exit__
+    def __exit__(
+
+KeyboardInterrupt
+2025-12-20 13:06:12 - 激活虚拟环境
+2025-12-20 13:06:12 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 626, in _read
+    return parser.read(nrows)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "parsers.pyx", line 2053, in pandas._libs.parsers.raise_parser_error
+  File "<frozen codecs>", line 331, in getstate
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 287, in <module>
+    analyze_and_recommend_tiers(auto_update=auto_update, config_path=args.config)
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/tools/analyze_tiers.py", line 142, in analyze_and_recommend_tiers
+    df = data_loader.load_data()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py", line 142, in load_data
+    df = pd.read_csv(file)
+         ^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 625, in _read
+    with parser:
+         ^^^^^^
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/pandas/io/parsers/readers.py", line 1990, in __exit__
+    def __exit__(
+
+KeyboardInterrupt
+2025-12-20 13:06:27 - 激活虚拟环境
+2025-12-20 13:06:27 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 3270142 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 3270142
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 3270142 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.54', '90.89', '122.14']
+  - 推荐的划分阈值: [45.71, 106.51]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.94', '10.77']
+  - 推荐的划分阈值: [3.99, 9.35]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['16884.72', '142348982677222416.00', '286464170757532768.00']
+  - 推荐的划分阈值: [7.117449133861965e+16, 2.1440657671737763e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.62', '2.00', '3.38']
+  - 推荐的划分阈值: [1.31, 2.69]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['8.00', '9.00', '10.00']
+  - 推荐的划分阈值: [8.5, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [45.71, 106.51]
+    query_interval: [3.99, 9.35]
+    priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+    contention: [1.31, 2.69]
+    workload: [8.5, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [45.71, 106.51]
+  ✓ 更新 query_interval: [3.99, 9.35]
+  ✓ 更新 priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+  ✓ 更新 contention: [1.31, 2.69]
+  ✓ 更新 workload: [8.5, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-20 13:07:21 - 分级分析完成
+2025-12-20 13:07:21 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 3270142 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 3270142
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [45.71, 106.51]
+  Loaded tier config: query_interval = [3.99, 9.35]
+  Loaded tier config: priority_score = [7.117449133861965e+16, 2.1440657671737763e+17]
+  Loaded tier config: contention_tier = [1.31, 2.69]
+  Loaded tier config: workload_tier = [8.5, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 60.2534, Overall Best: 60.2534
+Generation 2/50, Best Fitness in Gen: 60.2534, Overall Best: 60.2534
+Generation 3/50, Best Fitness in Gen: 60.2751, Overall Best: 60.2751
+Generation 4/50, Best Fitness in Gen: 60.2751, Overall Best: 60.2751
+Generation 5/50, Best Fitness in Gen: 60.4302, Overall Best: 60.4302
+Generation 6/50, Best Fitness in Gen: 60.4303, Overall Best: 60.4303
+Generation 7/50, Best Fitness in Gen: 69.4171, Overall Best: 69.4171
+Generation 8/50, Best Fitness in Gen: 69.4171, Overall Best: 69.4171
+Generation 9/50, Best Fitness in Gen: 69.4629, Overall Best: 69.4629
+Generation 10/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 11/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 12/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 13/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 14/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 15/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 16/50, Best Fitness in Gen: 69.5679, Overall Best: 69.5679
+Generation 17/50, Best Fitness in Gen: 69.5687, Overall Best: 69.5687
+Generation 18/50, Best Fitness in Gen: 69.6194, Overall Best: 69.6194
+Generation 19/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 20/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 21/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 22/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 23/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 24/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 25/50, Best Fitness in Gen: 69.6853, Overall Best: 69.6853
+Generation 26/50, Best Fitness in Gen: 69.6931, Overall Best: 69.6931
+Generation 27/50, Best Fitness in Gen: 69.6931, Overall Best: 69.6931
+Generation 28/50, Best Fitness in Gen: 69.7175, Overall Best: 69.7175
+Generation 29/50, Best Fitness in Gen: 69.7175, Overall Best: 69.7175
+Generation 30/50, Best Fitness in Gen: 69.7357, Overall Best: 69.7357
+Generation 31/50, Best Fitness in Gen: 69.7357, Overall Best: 69.7357
+Generation 32/50, Best Fitness in Gen: 69.7361, Overall Best: 69.7361
+Generation 33/50, Best Fitness in Gen: 69.7400, Overall Best: 69.7400
+Generation 34/50, Best Fitness in Gen: 69.7400, Overall Best: 69.7400
+Generation 35/50, Best Fitness in Gen: 69.7400, Overall Best: 69.7400
+Generation 36/50, Best Fitness in Gen: 69.7400, Overall Best: 69.7400
+Generation 37/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 38/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 39/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 40/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 41/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 42/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 43/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 44/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 45/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 46/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 47/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 48/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 49/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+Generation 50/50, Best Fitness in Gen: 69.7446, Overall Best: 69.7446
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 44
+  - Unique states covered: 44
+
+Tier Thresholds:
+  - exec_time: [45.71, 106.51]
+  - query_interval: [3.99, 9.35]
+  - priority_score: [7.117449133861965e+16, 2.1440657671737763e+17]
+  - contention_tier: [1.31, 2.69]
+  - workload_tier: [8.5, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 13 (29.5%)
+  - Action 1 (Lock Hot Write Set): 4 (9.1%)
+  - Action 2 (Lock All Hot Sets): 5 (11.4%)
+  - Action 3 (Lock All Writes & Hot Reads): 11 (25.0%)
+  - Action 4 (Lock Entire Access Set): 5 (11.4%)
+  - Action 5 (Prioritize Transaction Only): 6 (13.6%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-20 13:08:20 - 模型训练完成
+2025-12-20 13:08:20 - train_process.sh 执行完成
+2025-12-20 13:56:56 - 激活虚拟环境
+2025-12-20 13:56:56 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 16015995 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 16015995
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 16015995 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.62', '100.88', '128.90']
+  - 推荐的划分阈值: [50.75, 114.89]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.05', '9.23', '12.23']
+  - 推荐的划分阈值: [4.64, 10.73]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['-171473.50', '144823507544241664.00', '560716815585882816.00']
+  - 推荐的划分阈值: [7.241175377203509e+16, 3.527701615650623e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.27', '2.60', '7.06']
+  - 推荐的划分阈值: [1.44, 4.83]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [50.75, 114.89]
+    query_interval: [4.64, 10.73]
+    priority_score: [7.241175377203509e+16, 3.527701615650623e+17]
+    contention: [1.44, 4.83]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [50.75, 114.89]
+  ✓ 更新 query_interval: [4.64, 10.73]
+  ✓ 更新 priority_score: [7.241175377203509e+16, 3.527701615650623e+17]
+  ✓ 更新 contention: [1.44, 4.83]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-20 14:01:10 - 分级分析完成
+2025-12-20 14:01:10 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 16015995 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 16015995
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [50.75, 114.89]
+  Loaded tier config: query_interval = [4.64, 10.73]
+  Loaded tier config: priority_score = [7.241175377203509e+16, 3.527701615650623e+17]
+  Loaded tier config: contention_tier = [1.44, 4.83]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 65.4125, Overall Best: 65.4125
+Generation 2/50, Best Fitness in Gen: 65.4125, Overall Best: 65.4125
+Generation 3/50, Best Fitness in Gen: 65.4136, Overall Best: 65.4136
+Generation 4/50, Best Fitness in Gen: 67.2929, Overall Best: 67.2929
+Generation 5/50, Best Fitness in Gen: 67.2929, Overall Best: 67.2929
+Generation 6/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 7/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 8/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 9/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 10/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 11/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 12/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 13/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 14/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 15/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 16/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 17/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 18/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 19/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 20/50, Best Fitness in Gen: 68.2620, Overall Best: 68.2620
+Generation 21/50, Best Fitness in Gen: 68.2815, Overall Best: 68.2815
+Generation 22/50, Best Fitness in Gen: 68.2949, Overall Best: 68.2949
+Generation 23/50, Best Fitness in Gen: 68.2949, Overall Best: 68.2949
+Generation 24/50, Best Fitness in Gen: 68.2949, Overall Best: 68.2949
+Generation 25/50, Best Fitness in Gen: 68.2949, Overall Best: 68.2949
+Generation 26/50, Best Fitness in Gen: 68.4001, Overall Best: 68.4001
+Generation 27/50, Best Fitness in Gen: 68.4001, Overall Best: 68.4001
+Generation 28/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 29/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 30/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 31/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 32/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 33/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 34/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 35/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 36/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 37/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 38/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 39/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 40/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 41/50, Best Fitness in Gen: 68.4585, Overall Best: 68.4585
+Generation 42/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 43/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 44/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 45/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 46/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 47/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 48/50, Best Fitness in Gen: 68.4615, Overall Best: 68.4615
+Generation 49/50, Best Fitness in Gen: 68.4642, Overall Best: 68.4642
+Generation 50/50, Best Fitness in Gen: 68.4644, Overall Best: 68.4644
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 125
+  - Unique states covered: 125
+
+Tier Thresholds:
+  - exec_time: [50.75, 114.89]
+  - query_interval: [4.64, 10.73]
+  - priority_score: [7.241175377203509e+16, 3.527701615650623e+17]
+  - contention_tier: [1.44, 4.83]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 25 (20.0%)
+  - Action 1 (Lock Hot Write Set): 26 (20.8%)
+  - Action 2 (Lock All Hot Sets): 15 (12.0%)
+  - Action 3 (Lock All Writes & Hot Reads): 22 (17.6%)
+  - Action 4 (Lock Entire Access Set): 18 (14.4%)
+  - Action 5 (Prioritize Transaction Only): 19 (15.2%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-20 14:07:04 - 模型训练完成
+2025-12-20 14:07:04 - train_process.sh 执行完成
+2025-12-21 00:30:48 - 激活虚拟环境
+2025-12-21 00:30:48 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 19839952 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 19839952
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 19839952 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.51', '75.41', '113.04']
+  - 推荐的划分阈值: [37.96, 94.22]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '6.47', '10.67']
+  - 推荐的划分阈值: [3.25, 8.57]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['-13888.69', '163966219844103584.00', '555958694477944256.00']
+  - 推荐的划分阈值: [8.198310992204485e+16, 3.5996245716102394e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.20', '2.69', '6.84']
+  - 推荐的划分阈值: [1.44, 4.76]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [37.96, 94.22]
+    query_interval: [3.25, 8.57]
+    priority_score: [8.198310992204485e+16, 3.5996245716102394e+17]
+    contention: [1.44, 4.76]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [37.96, 94.22]
+  ✓ 更新 query_interval: [3.25, 8.57]
+  ✓ 更新 priority_score: [8.198310992204485e+16, 3.5996245716102394e+17]
+  ✓ 更新 contention: [1.44, 4.76]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-21 00:35:49 - 分级分析完成
+2025-12-21 00:35:49 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 19839952 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 19839952
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [37.96, 94.22]
+  Loaded tier config: query_interval = [3.25, 8.57]
+  Loaded tier config: priority_score = [8.198310992204485e+16, 3.5996245716102394e+17]
+  Loaded tier config: contention_tier = [1.44, 4.76]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 52.5524, Overall Best: 52.5524
+Generation 2/50, Best Fitness in Gen: 52.5524, Overall Best: 52.5524
+Generation 3/50, Best Fitness in Gen: 52.5524, Overall Best: 52.5524
+Generation 4/50, Best Fitness in Gen: 52.5524, Overall Best: 52.5524
+Generation 5/50, Best Fitness in Gen: 66.4148, Overall Best: 66.4148
+Generation 6/50, Best Fitness in Gen: 66.4148, Overall Best: 66.4148
+Generation 7/50, Best Fitness in Gen: 66.4148, Overall Best: 66.4148
+Generation 8/50, Best Fitness in Gen: 66.4148, Overall Best: 66.4148
+Generation 9/50, Best Fitness in Gen: 66.4148, Overall Best: 66.4148
+Generation 10/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 11/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 12/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 13/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 14/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 15/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 16/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 17/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 18/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 19/50, Best Fitness in Gen: 68.8567, Overall Best: 68.8567
+Generation 20/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 21/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 22/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 23/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 24/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 25/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 26/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 27/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 28/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 29/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 30/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 31/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 32/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 33/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 34/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 35/50, Best Fitness in Gen: 68.8645, Overall Best: 68.8645
+Generation 36/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 37/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 38/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 39/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 40/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 41/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 42/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 43/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 44/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 45/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 46/50, Best Fitness in Gen: 69.0090, Overall Best: 69.0090
+Generation 47/50, Best Fitness in Gen: 69.0182, Overall Best: 69.0182
+Generation 48/50, Best Fitness in Gen: 69.0182, Overall Best: 69.0182
+Generation 49/50, Best Fitness in Gen: 69.0182, Overall Best: 69.0182
+Generation 50/50, Best Fitness in Gen: 69.0182, Overall Best: 69.0182
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 84
+  - Unique states covered: 84
+
+Tier Thresholds:
+  - exec_time: [37.96, 94.22]
+  - query_interval: [3.25, 8.57]
+  - priority_score: [8.198310992204485e+16, 3.5996245716102394e+17]
+  - contention_tier: [1.44, 4.76]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 24 (28.6%)
+  - Action 1 (Lock Hot Write Set): 14 (16.7%)
+  - Action 2 (Lock All Hot Sets): 18 (21.4%)
+  - Action 3 (Lock All Writes & Hot Reads): 12 (14.3%)
+  - Action 4 (Lock Entire Access Set): 9 (10.7%)
+  - Action 5 (Prioritize Transaction Only): 7 (8.3%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-21 00:42:12 - 模型训练完成
+2025-12-21 00:42:12 - train_process.sh 执行完成
+2025-12-21 01:44:18 - 激活虚拟环境
+2025-12-21 01:44:18 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 20666338 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 20666338
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 20666338 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.49', '90.53', '115.58']
+  - 推荐的划分阈值: [45.51, 103.05]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '8.52', '10.49']
+  - 推荐的划分阈值: [4.28, 9.51]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['-63572.38', '148051336898526496.00', '556349498301559936.00']
+  - 推荐的划分阈值: [7.402566844923146e+16, 3.522004176000432e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.30', '2.73', '6.67']
+  - 推荐的划分阈值: [1.52, 4.7]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [45.51, 103.05]
+    query_interval: [4.28, 9.51]
+    priority_score: [7.402566844923146e+16, 3.522004176000432e+17]
+    contention: [1.52, 4.7]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [45.51, 103.05]
+  ✓ 更新 query_interval: [4.28, 9.51]
+  ✓ 更新 priority_score: [7.402566844923146e+16, 3.522004176000432e+17]
+  ✓ 更新 contention: [1.52, 4.7]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-21 01:49:54 - 分级分析完成
+2025-12-21 01:49:54 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 20666338 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 20666338
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [45.51, 103.05]
+  Loaded tier config: query_interval = [4.28, 9.51]
+  Loaded tier config: priority_score = [7.402566844923146e+16, 3.522004176000432e+17]
+  Loaded tier config: contention_tier = [1.52, 4.7]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 65.7654, Overall Best: 65.7654
+Generation 2/50, Best Fitness in Gen: 65.7654, Overall Best: 65.7654
+Generation 3/50, Best Fitness in Gen: 65.7654, Overall Best: 65.7654
+Generation 4/50, Best Fitness in Gen: 65.7654, Overall Best: 65.7654
+Generation 5/50, Best Fitness in Gen: 68.1622, Overall Best: 68.1622
+Generation 6/50, Best Fitness in Gen: 68.1622, Overall Best: 68.1622
+Generation 7/50, Best Fitness in Gen: 68.1625, Overall Best: 68.1625
+Generation 8/50, Best Fitness in Gen: 68.1625, Overall Best: 68.1625
+Generation 9/50, Best Fitness in Gen: 68.9733, Overall Best: 68.9733
+Generation 10/50, Best Fitness in Gen: 68.9802, Overall Best: 68.9802
+Generation 11/50, Best Fitness in Gen: 68.9802, Overall Best: 68.9802
+Generation 12/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 13/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 14/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 15/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 16/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 17/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 18/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 19/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 20/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 21/50, Best Fitness in Gen: 68.9833, Overall Best: 68.9833
+Generation 22/50, Best Fitness in Gen: 69.0291, Overall Best: 69.0291
+Generation 23/50, Best Fitness in Gen: 69.0291, Overall Best: 69.0291
+Generation 24/50, Best Fitness in Gen: 69.0301, Overall Best: 69.0301
+Generation 25/50, Best Fitness in Gen: 69.0301, Overall Best: 69.0301
+Generation 26/50, Best Fitness in Gen: 69.0301, Overall Best: 69.0301
+Generation 27/50, Best Fitness in Gen: 69.0301, Overall Best: 69.0301
+Generation 28/50, Best Fitness in Gen: 69.0301, Overall Best: 69.0301
+Generation 29/50, Best Fitness in Gen: 69.0357, Overall Best: 69.0357
+Generation 30/50, Best Fitness in Gen: 69.0357, Overall Best: 69.0357
+Generation 31/50, Best Fitness in Gen: 69.0382, Overall Best: 69.0382
+Generation 32/50, Best Fitness in Gen: 69.0382, Overall Best: 69.0382
+Generation 33/50, Best Fitness in Gen: 69.0382, Overall Best: 69.0382
+Generation 34/50, Best Fitness in Gen: 69.0382, Overall Best: 69.0382
+Generation 35/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 36/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 37/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 38/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 39/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 40/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 41/50, Best Fitness in Gen: 69.0400, Overall Best: 69.0400
+Generation 42/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 43/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 44/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 45/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 46/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 47/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 48/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 49/50, Best Fitness in Gen: 69.0405, Overall Best: 69.0405
+Generation 50/50, Best Fitness in Gen: 69.0468, Overall Best: 69.0468
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 88
+  - Unique states covered: 88
+
+Tier Thresholds:
+  - exec_time: [45.51, 103.05]
+  - query_interval: [4.28, 9.51]
+  - priority_score: [7.402566844923146e+16, 3.522004176000432e+17]
+  - contention_tier: [1.52, 4.7]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 24 (27.3%)
+  - Action 1 (Lock Hot Write Set): 10 (11.4%)
+  - Action 2 (Lock All Hot Sets): 12 (13.6%)
+  - Action 3 (Lock All Writes & Hot Reads): 15 (17.0%)
+  - Action 4 (Lock Entire Access Set): 12 (13.6%)
+  - Action 5 (Prioritize Transaction Only): 15 (17.0%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-21 01:58:17 - 模型训练完成
+2025-12-21 01:58:17 - train_process.sh 执行完成
+2025-12-21 16:20:35 - 激活虚拟环境
+2025-12-21 16:20:35 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 21319387 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 21319387
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 21319387 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.48', '82.86', '106.80']
+  - 推荐的划分阈值: [41.67, 94.83]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.42', '9.86']
+  - 推荐的划分阈值: [3.73, 8.64]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['-132665.00', '142348884671899712.00', '342908569222435008.00']
+  - 推荐的划分阈值: [7.117444233588352e+16, 2.4262872694716736e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.26', '2.71', '6.89']
+  - 推荐的划分阈值: [1.48, 4.8]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.83', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [41.67, 94.83]
+    query_interval: [3.73, 8.64]
+    priority_score: [7.117444233588352e+16, 2.4262872694716736e+17]
+    contention: [1.48, 4.8]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [41.67, 94.83]
+  ✓ 更新 query_interval: [3.73, 8.64]
+  ✓ 更新 priority_score: [7.117444233588352e+16, 2.4262872694716736e+17]
+  ✓ 更新 contention: [1.48, 4.8]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-21 16:26:32 - 分级分析完成
+2025-12-21 16:26:32 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 21319387 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 21319387
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [41.67, 94.83]
+  Loaded tier config: query_interval = [3.73, 8.64]
+  Loaded tier config: priority_score = [7.117444233588352e+16, 2.4262872694716736e+17]
+  Loaded tier config: contention_tier = [1.48, 4.8]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 54.1002, Overall Best: 54.1002
+Generation 2/50, Best Fitness in Gen: 54.1002, Overall Best: 54.1002
+Generation 3/50, Best Fitness in Gen: 54.1002, Overall Best: 54.1002
+Generation 4/50, Best Fitness in Gen: 68.1100, Overall Best: 68.1100
+Generation 5/50, Best Fitness in Gen: 68.1100, Overall Best: 68.1100
+Generation 6/50, Best Fitness in Gen: 68.1100, Overall Best: 68.1100
+Generation 7/50, Best Fitness in Gen: 68.1100, Overall Best: 68.1100
+Generation 8/50, Best Fitness in Gen: 68.1100, Overall Best: 68.1100
+Generation 9/50, Best Fitness in Gen: 68.2019, Overall Best: 68.2019
+Generation 10/50, Best Fitness in Gen: 68.7673, Overall Best: 68.7673
+Generation 11/50, Best Fitness in Gen: 68.7673, Overall Best: 68.7673
+Generation 12/50, Best Fitness in Gen: 68.7673, Overall Best: 68.7673
+Generation 13/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 14/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 15/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 16/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 17/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 18/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 19/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 20/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 21/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 22/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 23/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 24/50, Best Fitness in Gen: 68.8944, Overall Best: 68.8944
+Generation 25/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 26/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 27/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 28/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 29/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 30/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 31/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 32/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 33/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 34/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 35/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 36/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 37/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 38/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 39/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 40/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 41/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 42/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 43/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 44/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 45/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 46/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 47/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 48/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 49/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+Generation 50/50, Best Fitness in Gen: 68.9348, Overall Best: 68.9348
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 114
+  - Unique states covered: 114
+
+Tier Thresholds:
+  - exec_time: [41.67, 94.83]
+  - query_interval: [3.73, 8.64]
+  - priority_score: [7.117444233588352e+16, 2.4262872694716736e+17]
+  - contention_tier: [1.48, 4.8]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 21 (18.4%)
+  - Action 1 (Lock Hot Write Set): 17 (14.9%)
+  - Action 2 (Lock All Hot Sets): 27 (23.7%)
+  - Action 3 (Lock All Writes & Hot Reads): 17 (14.9%)
+  - Action 4 (Lock Entire Access Set): 13 (11.4%)
+  - Action 5 (Prioritize Transaction Only): 19 (16.7%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-21 16:34:46 - 模型训练完成
+2025-12-21 16:34:46 - train_process.sh 执行完成
+2025-12-21 18:09:15 - 激活虚拟环境
+2025-12-21 18:09:15 - 开始分级分析
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/base.py:1365: ConvergenceWarning: Number of distinct clusters (1) found smaller than n_clusters (3). Possibly due to duplicate points in X.
+  return fit_method(estimator, *args, **kwargs)
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 29216531 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 29216531
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 29216531 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.48', '81.34', '109.97']
+  - 推荐的划分阈值: [40.91, 95.66]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '8.43', '11.71']
+  - 推荐的划分阈值: [4.23, 10.07]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['0.00', '0.00', '0.00']
+  ⚠️  警告: 特征 'priority_score' 的聚类中心过于接近，导致阈值重复
+     原始聚类中心: ['0.0000', '0.0000', '0.0000']
+     计算的阈值: [0.0, 0.0]
+  ✓ 调整后的划分阈值: [0.0, 0.02]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.42', '2.77', '6.25']
+  - 推荐的划分阈值: [1.6, 4.51]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [40.91, 95.66]
+    query_interval: [4.23, 10.07]
+    priority_score: [0.0, 0.02]
+    contention: [1.6, 4.51]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [40.91, 95.66]
+  ✓ 更新 query_interval: [4.23, 10.07]
+  ✓ 更新 priority_score: [0.0, 0.02]
+  ✓ 更新 contention: [1.6, 4.51]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-21 18:16:26 - 分级分析完成
+2025-12-21 18:16:26 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 29216531 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 29216531
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [40.91, 95.66]
+  Loaded tier config: query_interval = [4.23, 10.07]
+  Loaded tier config: priority_score = [0.0, 0.02]
+  Loaded tier config: contention_tier = [1.6, 4.51]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 46.3124, Overall Best: 46.3124
+Generation 2/50, Best Fitness in Gen: 46.3124, Overall Best: 46.3124
+Generation 3/50, Best Fitness in Gen: 63.7800, Overall Best: 63.7800
+Generation 4/50, Best Fitness in Gen: 63.7800, Overall Best: 63.7800
+Generation 5/50, Best Fitness in Gen: 63.7800, Overall Best: 63.7800
+Generation 6/50, Best Fitness in Gen: 63.7800, Overall Best: 63.7800
+Generation 7/50, Best Fitness in Gen: 68.4367, Overall Best: 68.4367
+Generation 8/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 9/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 10/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 11/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 12/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 13/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 14/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 15/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 16/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 17/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 18/50, Best Fitness in Gen: 68.4399, Overall Best: 68.4399
+Generation 19/50, Best Fitness in Gen: 68.5480, Overall Best: 68.5480
+Generation 20/50, Best Fitness in Gen: 68.5480, Overall Best: 68.5480
+Generation 21/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 22/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 23/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 24/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 25/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 26/50, Best Fitness in Gen: 68.5702, Overall Best: 68.5702
+Generation 27/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 28/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 29/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 30/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 31/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 32/50, Best Fitness in Gen: 68.6877, Overall Best: 68.6877
+Generation 33/50, Best Fitness in Gen: 68.8466, Overall Best: 68.8466
+Generation 34/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 35/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 36/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 37/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 38/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 39/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 40/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 41/50, Best Fitness in Gen: 68.8578, Overall Best: 68.8578
+Generation 42/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 43/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 44/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 45/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 46/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 47/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 48/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 49/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+Generation 50/50, Best Fitness in Gen: 68.8618, Overall Best: 68.8618
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 65
+  - Unique states covered: 65
+
+Tier Thresholds:
+  - exec_time: [40.91, 95.66]
+  - query_interval: [4.23, 10.07]
+  - priority_score: [0.0, 0.02]
+  - contention_tier: [1.6, 4.51]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 16 (24.6%)
+  - Action 1 (Lock Hot Write Set): 10 (15.4%)
+  - Action 2 (Lock All Hot Sets): 4 (6.2%)
+  - Action 3 (Lock All Writes & Hot Reads): 15 (23.1%)
+  - Action 4 (Lock Entire Access Set): 4 (6.2%)
+  - Action 5 (Prioritize Transaction Only): 16 (24.6%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-21 18:27:38 - 模型训练完成
+2025-12-21 18:27:38 - train_process.sh 执行完成
+2025-12-21 20:20:51 - 激活虚拟环境
+2025-12-21 20:20:51 - 开始分级分析
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/.venv/lib/python3.12/site-packages/sklearn/base.py:1365: ConvergenceWarning: Number of distinct clusters (1) found smaller than n_clusters (3). Possibly due to duplicate points in X.
+  return fit_method(estimator, *args, **kwargs)
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 20926165 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 20926165
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 20926165 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.49', '81.39', '110.05']
+  - 推荐的划分阈值: [40.94, 95.72]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '8.42', '11.71']
+  - 推荐的划分阈值: [4.23, 10.06]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['0.00', '0.00', '0.00']
+  ⚠️  警告: 特征 'priority_score' 的聚类中心过于接近，导致阈值重复
+     原始聚类中心: ['0.0000', '0.0000', '0.0000']
+     计算的阈值: [0.0, 0.0]
+  ✓ 调整后的划分阈值: [0.0, 0.02]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.98', '3.83', '7.04']
+  - 推荐的划分阈值: [2.41, 5.44]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [40.94, 95.72]
+    query_interval: [4.23, 10.06]
+    priority_score: [0.0, 0.02]
+    contention: [2.41, 5.44]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [40.94, 95.72]
+  ✓ 更新 query_interval: [4.23, 10.06]
+  ✓ 更新 priority_score: [0.0, 0.02]
+  ✓ 更新 contention: [2.41, 5.44]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-21 20:26:13 - 分级分析完成
+2025-12-21 20:26:13 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 20926165 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 20926165
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [40.94, 95.72]
+  Loaded tier config: query_interval = [4.23, 10.06]
+  Loaded tier config: priority_score = [0.0, 0.02]
+  Loaded tier config: contention_tier = [2.41, 5.44]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 62.1841, Overall Best: 62.1841
+Generation 2/50, Best Fitness in Gen: 62.2236, Overall Best: 62.2236
+Generation 3/50, Best Fitness in Gen: 62.2306, Overall Best: 62.2306
+Generation 4/50, Best Fitness in Gen: 62.3283, Overall Best: 62.3283
+Generation 5/50, Best Fitness in Gen: 62.9603, Overall Best: 62.9603
+Generation 6/50, Best Fitness in Gen: 62.9603, Overall Best: 62.9603
+Generation 7/50, Best Fitness in Gen: 62.9603, Overall Best: 62.9603
+Generation 8/50, Best Fitness in Gen: 67.7073, Overall Best: 67.7073
+Generation 9/50, Best Fitness in Gen: 67.8872, Overall Best: 67.8872
+Generation 10/50, Best Fitness in Gen: 67.8872, Overall Best: 67.8872
+Generation 11/50, Best Fitness in Gen: 67.8872, Overall Best: 67.8872
+Generation 12/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 13/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 14/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 15/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 16/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 17/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 18/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 19/50, Best Fitness in Gen: 68.4570, Overall Best: 68.4570
+Generation 20/50, Best Fitness in Gen: 68.4980, Overall Best: 68.4980
+Generation 21/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 22/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 23/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 24/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 25/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 26/50, Best Fitness in Gen: 68.5099, Overall Best: 68.5099
+Generation 27/50, Best Fitness in Gen: 68.6140, Overall Best: 68.6140
+Generation 28/50, Best Fitness in Gen: 68.6140, Overall Best: 68.6140
+Generation 29/50, Best Fitness in Gen: 68.6140, Overall Best: 68.6140
+Generation 30/50, Best Fitness in Gen: 68.6140, Overall Best: 68.6140
+Generation 31/50, Best Fitness in Gen: 68.6474, Overall Best: 68.6474
+Generation 32/50, Best Fitness in Gen: 68.6474, Overall Best: 68.6474
+Generation 33/50, Best Fitness in Gen: 68.6474, Overall Best: 68.6474
+Generation 34/50, Best Fitness in Gen: 68.6474, Overall Best: 68.6474
+Generation 35/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 36/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 37/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 38/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 39/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 40/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 41/50, Best Fitness in Gen: 68.7825, Overall Best: 68.7825
+Generation 42/50, Best Fitness in Gen: 68.9032, Overall Best: 68.9032
+Generation 43/50, Best Fitness in Gen: 68.9032, Overall Best: 68.9032
+Generation 44/50, Best Fitness in Gen: 68.9032, Overall Best: 68.9032
+Generation 45/50, Best Fitness in Gen: 68.9032, Overall Best: 68.9032
+Generation 46/50, Best Fitness in Gen: 68.9193, Overall Best: 68.9193
+Generation 47/50, Best Fitness in Gen: 68.9193, Overall Best: 68.9193
+Generation 48/50, Best Fitness in Gen: 68.9193, Overall Best: 68.9193
+Generation 49/50, Best Fitness in Gen: 68.9193, Overall Best: 68.9193
+Generation 50/50, Best Fitness in Gen: 68.9263, Overall Best: 68.9263
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 61
+  - Unique states covered: 61
+
+Tier Thresholds:
+  - exec_time: [40.94, 95.72]
+  - query_interval: [4.23, 10.06]
+  - priority_score: [0.0, 0.02]
+  - contention_tier: [2.41, 5.44]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 15 (24.6%)
+  - Action 1 (Lock Hot Write Set): 12 (19.7%)
+  - Action 2 (Lock All Hot Sets): 7 (11.5%)
+  - Action 3 (Lock All Writes & Hot Reads): 10 (16.4%)
+  - Action 4 (Lock Entire Access Set): 7 (11.5%)
+  - Action 5 (Prioritize Transaction Only): 10 (16.4%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-21 20:32:41 - 模型训练完成
+2025-12-21 20:32:41 - train_process.sh 执行完成
+2025-12-22 18:49:40 - 激活虚拟环境
+2025-12-22 18:49:40 - 开始分级分析
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 26687646 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 26687646
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 26687646 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.51', '94.98', '130.95']
+  - 推荐的划分阈值: [47.74, 112.96]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.93', '11.24']
+  - 推荐的划分阈值: [3.98, 9.58]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['116607.25', '142348789061075920.00', '313632358616895872.00']
+  - 推荐的划分阈值: [7.117439453059626e+16, 2.2799057383898586e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.27', '2.70', '6.44']
+  - 推荐的划分阈值: [1.48, 4.57]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['1.00', '8.68', '10.00']
+  - 推荐的划分阈值: [4.84, 9.34]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [47.74, 112.96]
+    query_interval: [3.98, 9.58]
+    priority_score: [7.117439453059626e+16, 2.2799057383898586e+17]
+    contention: [1.48, 4.57]
+    workload: [4.84, 9.34]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [47.74, 112.96]
+  ✓ 更新 query_interval: [3.98, 9.58]
+  ✓ 更新 priority_score: [7.117439453059626e+16, 2.2799057383898586e+17]
+  ✓ 更新 contention: [1.48, 4.57]
+  ✓ 更新 workload: [4.84, 9.34]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-22 18:55:54 - 分级分析完成
+2025-12-22 18:55:54 - 开始训练
+/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/data_loader.py:142: DtypeWarning: Columns (15,16) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(file)
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 26687646 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 26687646
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [47.74, 112.96]
+  Loaded tier config: query_interval = [3.98, 9.58]
+  Loaded tier config: priority_score = [7.117439453059626e+16, 2.2799057383898586e+17]
+  Loaded tier config: contention_tier = [1.48, 4.57]
+  Loaded tier config: workload_tier = [4.84, 9.34]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 62.8695, Overall Best: 62.8695
+Generation 2/50, Best Fitness in Gen: 62.8695, Overall Best: 62.8695
+Generation 3/50, Best Fitness in Gen: 64.9762, Overall Best: 64.9762
+Generation 4/50, Best Fitness in Gen: 64.9762, Overall Best: 64.9762
+Generation 5/50, Best Fitness in Gen: 65.1506, Overall Best: 65.1506
+Generation 6/50, Best Fitness in Gen: 65.1506, Overall Best: 65.1506
+Generation 7/50, Best Fitness in Gen: 65.1506, Overall Best: 65.1506
+Generation 8/50, Best Fitness in Gen: 65.1506, Overall Best: 65.1506
+Generation 9/50, Best Fitness in Gen: 65.4956, Overall Best: 65.4956
+Generation 10/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 11/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 12/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 13/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 14/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 15/50, Best Fitness in Gen: 66.9747, Overall Best: 66.9747
+Generation 16/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 17/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 18/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 19/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 20/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 21/50, Best Fitness in Gen: 67.5280, Overall Best: 67.5280
+Generation 22/50, Best Fitness in Gen: 67.5291, Overall Best: 67.5291
+Generation 23/50, Best Fitness in Gen: 67.5621, Overall Best: 67.5621
+Generation 24/50, Best Fitness in Gen: 67.5621, Overall Best: 67.5621
+Generation 25/50, Best Fitness in Gen: 67.5621, Overall Best: 67.5621
+Generation 26/50, Best Fitness in Gen: 67.5621, Overall Best: 67.5621
+Generation 27/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 28/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 29/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 30/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 31/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 32/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 33/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 34/50, Best Fitness in Gen: 67.5751, Overall Best: 67.5751
+Generation 35/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 36/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 37/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 38/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 39/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 40/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 41/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 42/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 43/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 44/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 45/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 46/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 47/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 48/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 49/50, Best Fitness in Gen: 67.5850, Overall Best: 67.5850
+Generation 50/50, Best Fitness in Gen: 67.5926, Overall Best: 67.5926
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 120
+  - Unique states covered: 120
+
+Tier Thresholds:
+  - exec_time: [47.74, 112.96]
+  - query_interval: [3.98, 9.58]
+  - priority_score: [7.117439453059626e+16, 2.2799057383898586e+17]
+  - contention_tier: [1.48, 4.57]
+  - workload_tier: [4.84, 9.34]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 28 (23.3%)
+  - Action 1 (Lock Hot Write Set): 17 (14.2%)
+  - Action 2 (Lock All Hot Sets): 23 (19.2%)
+  - Action 3 (Lock All Writes & Hot Reads): 23 (19.2%)
+  - Action 4 (Lock Entire Access Set): 14 (11.7%)
+  - Action 5 (Prioritize Transaction Only): 15 (12.5%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-22 19:04:06 - 模型训练完成
+2025-12-22 19:04:06 - train_process.sh 执行完成
+2025-12-23 01:20:52 - 激活虚拟环境
+2025-12-23 01:20:52 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 19569875 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 19569875
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 19569875 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.47', '95.81', '130.12']
+  - 推荐的划分阈值: [48.14, 112.97]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.82', '10.93']
+  - 推荐的划分阈值: [3.93, 9.37]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['919442.25', '142348765491418880.00', '308500874910122240.00']
+  - 推荐的划分阈值: [7.117438274616916e+16, 2.2542482020077056e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.28', '2.71', '6.24']
+  - 推荐的划分阈值: [1.49, 4.47]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.78', '9.00', '10.00']
+  - 推荐的划分阈值: [8.39, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [48.14, 112.97]
+    query_interval: [3.93, 9.37]
+    priority_score: [7.117438274616916e+16, 2.2542482020077056e+17]
+    contention: [1.49, 4.47]
+    workload: [8.39, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [48.14, 112.97]
+  ✓ 更新 query_interval: [3.93, 9.37]
+  ✓ 更新 priority_score: [7.117438274616916e+16, 2.2542482020077056e+17]
+  ✓ 更新 contention: [1.49, 4.47]
+  ✓ 更新 workload: [8.39, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-23 01:25:34 - 分级分析完成
+2025-12-23 01:25:34 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 19569875 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 19569875
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [48.14, 112.97]
+  Loaded tier config: query_interval = [3.93, 9.37]
+  Loaded tier config: priority_score = [7.117438274616916e+16, 2.2542482020077056e+17]
+  Loaded tier config: contention_tier = [1.49, 4.47]
+  Loaded tier config: workload_tier = [8.39, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 52.0939, Overall Best: 52.0939
+Generation 2/50, Best Fitness in Gen: 66.6835, Overall Best: 66.6835
+Generation 3/50, Best Fitness in Gen: 66.7948, Overall Best: 66.7948
+Generation 4/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 5/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 6/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 7/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 8/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 9/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 10/50, Best Fitness in Gen: 68.2803, Overall Best: 68.2803
+Generation 11/50, Best Fitness in Gen: 68.3756, Overall Best: 68.3756
+Generation 12/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 13/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 14/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 15/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 16/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 17/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 18/50, Best Fitness in Gen: 68.4862, Overall Best: 68.4862
+Generation 19/50, Best Fitness in Gen: 68.5690, Overall Best: 68.5690
+Generation 20/50, Best Fitness in Gen: 68.5690, Overall Best: 68.5690
+Generation 21/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 22/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 23/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 24/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 25/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 26/50, Best Fitness in Gen: 68.5694, Overall Best: 68.5694
+Generation 27/50, Best Fitness in Gen: 68.5809, Overall Best: 68.5809
+Generation 28/50, Best Fitness in Gen: 68.5809, Overall Best: 68.5809
+Generation 29/50, Best Fitness in Gen: 68.5984, Overall Best: 68.5984
+Generation 30/50, Best Fitness in Gen: 68.5984, Overall Best: 68.5984
+Generation 31/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 32/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 33/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 34/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 35/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 36/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 37/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 38/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 39/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 40/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 41/50, Best Fitness in Gen: 68.6183, Overall Best: 68.6183
+Generation 42/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 43/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 44/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 45/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 46/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 47/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 48/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 49/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+Generation 50/50, Best Fitness in Gen: 68.6296, Overall Best: 68.6296
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 119
+  - Unique states covered: 119
+
+Tier Thresholds:
+  - exec_time: [48.14, 112.97]
+  - query_interval: [3.93, 9.37]
+  - priority_score: [7.117438274616916e+16, 2.2542482020077056e+17]
+  - contention_tier: [1.49, 4.47]
+  - workload_tier: [8.39, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 30 (25.2%)
+  - Action 1 (Lock Hot Write Set): 19 (16.0%)
+  - Action 2 (Lock All Hot Sets): 14 (11.8%)
+  - Action 3 (Lock All Writes & Hot Reads): 21 (17.6%)
+  - Action 4 (Lock Entire Access Set): 19 (16.0%)
+  - Action 5 (Prioritize Transaction Only): 16 (13.4%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-23 01:31:36 - 模型训练完成
+2025-12-23 01:31:36 - train_process.sh 执行完成
+2025-12-23 02:55:39 - 激活虚拟环境
+2025-12-23 02:55:39 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 21167011 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 21167011
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 21167011 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.48', '88.77', '114.97']
+  - 推荐的划分阈值: [44.63, 101.87]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '8.00', '10.63']
+  - 推荐的划分阈值: [4.02, 9.32]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['96424.00', '145032532079990432.00', '549578143501067200.00']
+  - 推荐的划分阈值: [7.251626604004342e+16, 3.4730533779052883e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.26', '2.71', '6.78']
+  - 推荐的划分阈值: [1.49, 4.75]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.82', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [44.63, 101.87]
+    query_interval: [4.02, 9.32]
+    priority_score: [7.251626604004342e+16, 3.4730533779052883e+17]
+    contention: [1.49, 4.75]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [44.63, 101.87]
+  ✓ 更新 query_interval: [4.02, 9.32]
+  ✓ 更新 priority_score: [7.251626604004342e+16, 3.4730533779052883e+17]
+  ✓ 更新 contention: [1.49, 4.75]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-23 03:00:46 - 分级分析完成
+2025-12-23 03:00:46 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 21167022 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 21167022
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [44.63, 101.87]
+  Loaded tier config: query_interval = [4.02, 9.32]
+  Loaded tier config: priority_score = [7.251626604004342e+16, 3.4730533779052883e+17]
+  Loaded tier config: contention_tier = [1.49, 4.75]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 65.9191, Overall Best: 65.9191
+Generation 2/50, Best Fitness in Gen: 65.9191, Overall Best: 65.9191
+Generation 3/50, Best Fitness in Gen: 65.9191, Overall Best: 65.9191
+Generation 4/50, Best Fitness in Gen: 65.9191, Overall Best: 65.9191
+Generation 5/50, Best Fitness in Gen: 65.9191, Overall Best: 65.9191
+Generation 6/50, Best Fitness in Gen: 65.9935, Overall Best: 65.9935
+Generation 7/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 8/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 9/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 10/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 11/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 12/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 13/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 14/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 15/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 16/50, Best Fitness in Gen: 68.6172, Overall Best: 68.6172
+Generation 17/50, Best Fitness in Gen: 68.6626, Overall Best: 68.6626
+Generation 18/50, Best Fitness in Gen: 68.6626, Overall Best: 68.6626
+Generation 19/50, Best Fitness in Gen: 68.7318, Overall Best: 68.7318
+Generation 20/50, Best Fitness in Gen: 68.7318, Overall Best: 68.7318
+Generation 21/50, Best Fitness in Gen: 68.7318, Overall Best: 68.7318
+Generation 22/50, Best Fitness in Gen: 68.7630, Overall Best: 68.7630
+Generation 23/50, Best Fitness in Gen: 68.7632, Overall Best: 68.7632
+Generation 24/50, Best Fitness in Gen: 68.8600, Overall Best: 68.8600
+Generation 25/50, Best Fitness in Gen: 68.8600, Overall Best: 68.8600
+Generation 26/50, Best Fitness in Gen: 68.8600, Overall Best: 68.8600
+Generation 27/50, Best Fitness in Gen: 68.8600, Overall Best: 68.8600
+Generation 28/50, Best Fitness in Gen: 68.8600, Overall Best: 68.8600
+Generation 29/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 30/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 31/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 32/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 33/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 34/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 35/50, Best Fitness in Gen: 68.8968, Overall Best: 68.8968
+Generation 36/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 37/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 38/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 39/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 40/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 41/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 42/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 43/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 44/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 45/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 46/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 47/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 48/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 49/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+Generation 50/50, Best Fitness in Gen: 69.0516, Overall Best: 69.0516
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 117
+  - Unique states covered: 117
+
+Tier Thresholds:
+  - exec_time: [44.63, 101.87]
+  - query_interval: [4.02, 9.32]
+  - priority_score: [7.251626604004342e+16, 3.4730533779052883e+17]
+  - contention_tier: [1.49, 4.75]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 26 (22.2%)
+  - Action 1 (Lock Hot Write Set): 17 (14.5%)
+  - Action 2 (Lock All Hot Sets): 16 (13.7%)
+  - Action 3 (Lock All Writes & Hot Reads): 19 (16.2%)
+  - Action 4 (Lock Entire Access Set): 27 (23.1%)
+  - Action 5 (Prioritize Transaction Only): 12 (10.3%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-23 03:09:18 - 模型训练完成
+2025-12-23 03:09:18 - train_process.sh 执行完成
+2025-12-23 23:38:57 - 激活虚拟环境
+2025-12-23 23:38:57 - 开始分级分析
+--- 开始运行 Tiers 自动分析脚本 ---
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 4344448 条记录
+
+📂 正在处理文件: action1-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 258729 条记录
+
+📂 正在处理文件: action0-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 258442 条记录
+
+📂 正在处理文件: action3-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 246673 条记录
+
+📂 正在处理文件: action4-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 98612 条记录
+
+📂 正在处理文件: action2-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 257730 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 6
+  - 总记录数: 5464634
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+✅ 成功加载 5464634 条记录用于分析。
+
+--- 开始为每个特征进行K-Means聚类分析 ---
+
+✅ 特征 'exec_time' 分析完成:
+  - 聚类中心 (原始值): ['0.57', '95.39', '136.45']
+  - 推荐的划分阈值: [47.98, 115.92]
+
+✅ 特征 'query_interval' 分析完成:
+  - 聚类中心 (原始值): ['0.04', '7.13', '10.78']
+  - 推荐的划分阈值: [3.59, 8.95]
+
+✅ 特征 'priority_score' 分析完成:
+  - 聚类中心 (原始值): ['28479.50', '153654598605911104.00', '571412343992269184.00']
+  - 推荐的划分阈值: [7.68272993029698e+16, 3.625334712990902e+17]
+
+✅ 特征 'contention' 分析完成:
+  - 聚类中心 (原始值): ['0.25', '2.79', '6.55']
+  - 推荐的划分阈值: [1.52, 4.67]
+
+✅ 特征 'workload' 分析完成:
+  - 聚类中心 (原始值): ['7.81', '9.00', '10.00']
+  - 推荐的划分阈值: [8.41, 9.5]
+
+
+--- 推荐的 `tiers` 配置 ---
+feature_engineering:
+  tiers:
+    exec_time: [47.98, 115.92]
+    query_interval: [3.59, 8.95]
+    priority_score: [7.68272993029698e+16, 3.625334712990902e+17]
+    contention: [1.52, 4.67]
+    workload: [8.41, 9.5]
+
+============================================================
+正在自动更新配置文件...
+============================================================
+  ✓ 更新 exec_time: [47.98, 115.92]
+  ✓ 更新 query_interval: [3.59, 8.95]
+  ✓ 更新 priority_score: [7.68272993029698e+16, 3.625334712990902e+17]
+  ✓ 更新 contention: [1.52, 4.67]
+  ✓ 更新 workload: [8.41, 9.5]
+
+✅ 成功更新配置文件: config/default.yaml
+   格式和注释已保留
+
+🎉 配置文件已成功更新！你可以直接运行训练脚本了。
+
+--- 脚本结束 ---
+2025-12-23 23:40:32 - 分级分析完成
+2025-12-23 23:40:32 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 6 个日志文件: mot_hybrid_cc.csv, action1-medium.csv, action0-medium.csv, action3-medium.csv, action4-medium.csv, action2-medium.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 4344448 条记录
+
+📂 正在处理文件: action1-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 258729 条记录
+
+📂 正在处理文件: action0-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 258442 条记录
+
+📂 正在处理文件: action3-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 246673 条记录
+
+📂 正在处理文件: action4-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 98612 条记录
+
+📂 正在处理文件: action2-medium.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 257730 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 6
+  - 总记录数: 5464634
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [47.98, 115.92]
+  Loaded tier config: query_interval = [3.59, 8.95]
+  Loaded tier config: priority_score = [7.68272993029698e+16, 3.625334712990902e+17]
+  Loaded tier config: contention_tier = [1.52, 4.67]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 50.1748, Overall Best: 50.1748
+Generation 2/50, Best Fitness in Gen: 50.1748, Overall Best: 50.1748
+Generation 3/50, Best Fitness in Gen: 50.1748, Overall Best: 50.1748
+Generation 4/50, Best Fitness in Gen: 50.1748, Overall Best: 50.1748
+Generation 5/50, Best Fitness in Gen: 50.4890, Overall Best: 50.4890
+Generation 6/50, Best Fitness in Gen: 56.9112, Overall Best: 56.9112
+Generation 7/50, Best Fitness in Gen: 56.9112, Overall Best: 56.9112
+Generation 8/50, Best Fitness in Gen: 62.9837, Overall Best: 62.9837
+Generation 9/50, Best Fitness in Gen: 62.9837, Overall Best: 62.9837
+Generation 10/50, Best Fitness in Gen: 62.9837, Overall Best: 62.9837
+Generation 11/50, Best Fitness in Gen: 63.4709, Overall Best: 63.4709
+Generation 12/50, Best Fitness in Gen: 63.4709, Overall Best: 63.4709
+Generation 13/50, Best Fitness in Gen: 63.4709, Overall Best: 63.4709
+Generation 14/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 15/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 16/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 17/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 18/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 19/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 20/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 21/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 22/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 23/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 24/50, Best Fitness in Gen: 65.4778, Overall Best: 65.4778
+Generation 25/50, Best Fitness in Gen: 65.5379, Overall Best: 65.5379
+Generation 26/50, Best Fitness in Gen: 65.5524, Overall Best: 65.5524
+Generation 27/50, Best Fitness in Gen: 65.5524, Overall Best: 65.5524
+Generation 28/50, Best Fitness in Gen: 65.6042, Overall Best: 65.6042
+Generation 29/50, Best Fitness in Gen: 65.6042, Overall Best: 65.6042
+Generation 30/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 31/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 32/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 33/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 34/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 35/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 36/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 37/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 38/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 39/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 40/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 41/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 42/50, Best Fitness in Gen: 65.6134, Overall Best: 65.6134
+Generation 43/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 44/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 45/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 46/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 47/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 48/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 49/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+Generation 50/50, Best Fitness in Gen: 65.6333, Overall Best: 65.6333
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 147
+  - Unique states covered: 147
+
+Tier Thresholds:
+  - exec_time: [47.98, 115.92]
+  - query_interval: [3.59, 8.95]
+  - priority_score: [7.68272993029698e+16, 3.625334712990902e+17]
+  - contention_tier: [1.52, 4.67]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 26 (17.7%)
+  - Action 1 (Lock Hot Write Set): 27 (18.4%)
+  - Action 2 (Lock All Hot Sets): 28 (19.0%)
+  - Action 3 (Lock All Writes & Hot Reads): 24 (16.3%)
+  - Action 4 (Lock Entire Access Set): 23 (15.6%)
+  - Action 5 (Prioritize Transaction Only): 19 (12.9%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2025-12-23 23:42:07 - 模型训练完成
+2025-12-23 23:42:07 - train_process.sh 执行完成
+2026-05-17 19:05:01 - 激活虚拟环境
+2026-05-17 19:05:01 - 开始分级分析
+2026-05-17 19:05:01 - 分级分析完成
+2026-05-17 19:05:01 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 137464 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 137464
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+[WARNING] Column 'abort_rate_bins' for discretization not found in data.
+[WARNING] Column 'tps_bins' for discretization not found in data.
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [47.98, 115.92]
+  Loaded tier config: query_interval = [3.59, 8.95]
+  Loaded tier config: priority_score = [7.68272993029698e+16, 3.625334712990902e+17]
+  Loaded tier config: contention_tier = [1.52, 4.67]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 2/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 3/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 4/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 5/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 6/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 7/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 8/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 9/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 10/50, Best Fitness in Gen: 38.7589, Overall Best: 38.7589
+Generation 11/50, Best Fitness in Gen: 39.4989, Overall Best: 39.4989
+Generation 12/50, Best Fitness in Gen: 39.4989, Overall Best: 39.4989
+Generation 13/50, Best Fitness in Gen: 39.4989, Overall Best: 39.4989
+Generation 14/50, Best Fitness in Gen: 43.6479, Overall Best: 43.6479
+Generation 15/50, Best Fitness in Gen: 43.6479, Overall Best: 43.6479
+Generation 16/50, Best Fitness in Gen: 43.6479, Overall Best: 43.6479
+Generation 17/50, Best Fitness in Gen: 43.6479, Overall Best: 43.6479
+Generation 18/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 19/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 20/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 21/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 22/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 23/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 24/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 25/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 26/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 27/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 28/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 29/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 30/50, Best Fitness in Gen: 44.1997, Overall Best: 44.1997
+Generation 31/50, Best Fitness in Gen: 44.9112, Overall Best: 44.9112
+Generation 32/50, Best Fitness in Gen: 44.9112, Overall Best: 44.9112
+Generation 33/50, Best Fitness in Gen: 44.9112, Overall Best: 44.9112
+Generation 34/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 35/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 36/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 37/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 38/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 39/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 40/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 41/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 42/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 43/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 44/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 45/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 46/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 47/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 48/50, Best Fitness in Gen: 44.9792, Overall Best: 44.9792
+Generation 49/50, Best Fitness in Gen: 46.6410, Overall Best: 46.6410
+Generation 50/50, Best Fitness in Gen: 46.6410, Overall Best: 46.6410
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 82
+  - Unique states covered: 82
+
+Tier Thresholds:
+  - exec_time: [47.98, 115.92]
+  - query_interval: [3.59, 8.95]
+  - priority_score: [7.68272993029698e+16, 3.625334712990902e+17]
+  - contention_tier: [1.52, 4.67]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 16 (19.5%)
+  - Action 1 (Lock Hot Write Set): 18 (22.0%)
+  - Action 2 (Lock All Hot Sets): 17 (20.7%)
+  - Action 3 (Lock All Writes & Hot Reads): 15 (18.3%)
+  - Action 4 (Lock Entire Access Set): 16 (19.5%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2026-05-17 19:05:03 - 模型训练完成
+2026-05-17 19:05:03 - train_ppo_process.sh 执行完成
+2026-05-17 19:05:20 - 激活虚拟环境
+2026-05-17 19:05:20 - 开始分级分析
+2026-05-17 19:05:20 - 分级分析完成
+2026-05-17 19:05:20 - 开始训练
+============================================================
+HybridCC RL 训练脚本
+============================================================
+找到 1 个日志文件: mot_hybrid_cc.csv
+使用配置文件: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml
+数据目录: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/input
+------------------------------------------------------------
+--- Starting HybridCC Offline Training Pipeline ---
+Loading configuration from '/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/config/default.yaml'...
+
+Step 1: Loading data...
+
+📂 正在处理文件: mot_hybrid_cc.csv
+  ✓ 列名映射: {'contention_tier': 'contention', 'workload_tier': 'workload', 'retry_tier': 'retry_count'}
+  ℹ️  忽略额外的列: {'pre_csn'}
+  ✅ 成功加载 137464 条记录
+
+============================================================
+✅ 数据加载完成
+============================================================
+  - 成功加载的文件数: 1
+  - 总记录数: 137464
+  - 数据列: ['timestamp', 'txn_id', 'txn_type', 'contention', 'workload', 'retry_count', 'exec_time', 'query_interval', 'priority_score', 'action', 'is_commit', 'latency', 'global_tps', 'global_abort_rate', 'read_set', 'write_set']
+============================================================
+
+
+Step 2: Calculating rewards...
+✅ Reward calculation complete with dynamic abort cost model.
+   - Applied non-linear abort penalty: C_abort = 0.5*(T_base+T_exec) + 0.01*(T_base+T_exec)^2
+
+Step 3: Performing feature engineering...
+[OK] Discretized 'exec_time' -> 'exec_time_tier' with 3 tiers
+[OK] Discretized 'query_interval' -> 'query_interval_tier' with 3 tiers
+[OK] Discretized 'priority_score' -> 'priority_score_tier' with 3 tiers
+[OK] Discretized 'contention' -> 'contention_tier' with 3 tiers
+[OK] Discretized 'workload' -> 'workload_tier' with 3 tiers
+[OK] Discretized 'retry_count' -> 'retry_count_tier' with 3 tiers
+[WARNING] Column 'abort_rate_bins' for discretization not found in data.
+[WARNING] Column 'tps_bins' for discretization not found in data.
+Feature engineering complete. Added discretized tiers, 'state_key', and pre-processed sets.
+
+Step 4: Optimizing LDT policy...
+  Loaded tier config: exec_time = [47.98, 115.92]
+  Loaded tier config: query_interval = [3.59, 8.95]
+  Loaded tier config: priority_score = [7.68272993029698e+16, 3.625334712990902e+17]
+  Loaded tier config: contention_tier = [1.52, 4.67]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+Generation 1/50, Best Fitness in Gen: 28.3310, Overall Best: 28.3310
+Generation 2/50, Best Fitness in Gen: 28.3310, Overall Best: 28.3310
+Generation 3/50, Best Fitness in Gen: 28.3310, Overall Best: 28.3310
+Generation 4/50, Best Fitness in Gen: 28.3310, Overall Best: 28.3310
+Generation 5/50, Best Fitness in Gen: 32.2923, Overall Best: 32.2923
+Generation 6/50, Best Fitness in Gen: 32.3194, Overall Best: 32.3194
+Generation 7/50, Best Fitness in Gen: 32.7656, Overall Best: 32.7656
+Generation 8/50, Best Fitness in Gen: 32.7656, Overall Best: 32.7656
+Generation 9/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 10/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 11/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 12/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 13/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 14/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 15/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 16/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 17/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 18/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 19/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 20/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 21/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 22/50, Best Fitness in Gen: 35.4766, Overall Best: 35.4766
+Generation 23/50, Best Fitness in Gen: 39.7026, Overall Best: 39.7026
+Generation 24/50, Best Fitness in Gen: 39.7026, Overall Best: 39.7026
+Generation 25/50, Best Fitness in Gen: 39.7026, Overall Best: 39.7026
+Generation 26/50, Best Fitness in Gen: 39.7026, Overall Best: 39.7026
+Generation 27/50, Best Fitness in Gen: 39.7026, Overall Best: 39.7026
+Generation 28/50, Best Fitness in Gen: 39.7455, Overall Best: 39.7455
+Generation 29/50, Best Fitness in Gen: 39.7455, Overall Best: 39.7455
+Generation 30/50, Best Fitness in Gen: 39.7455, Overall Best: 39.7455
+Generation 31/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 32/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 33/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 34/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 35/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 36/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 37/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 38/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 39/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 40/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 41/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 42/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 43/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 44/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 45/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 46/50, Best Fitness in Gen: 45.3852, Overall Best: 45.3852
+Generation 47/50, Best Fitness in Gen: 45.4128, Overall Best: 45.4128
+Generation 48/50, Best Fitness in Gen: 45.4128, Overall Best: 45.4128
+Generation 49/50, Best Fitness in Gen: 45.4128, Overall Best: 45.4128
+Generation 50/50, Best Fitness in Gen: 45.4128, Overall Best: 45.4128
+
+Optimization finished.
+
+Step 5: Saving the best LDT found...
+
+============================================================
+Successfully saved LDT to: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+============================================================
+LDT Statistics:
+  - Tier configurations: 6
+  - Decision table entries: 82
+  - Unique states covered: 82
+
+Tier Thresholds:
+  - exec_time: [47.98, 115.92]
+  - query_interval: [3.59, 8.95]
+  - priority_score: [7.68272993029698e+16, 3.625334712990902e+17]
+  - contention_tier: [1.52, 4.67]
+  - workload_tier: [8.41, 9.5]
+  - retry_tier: [1, 3]
+
+Action Distribution:
+  - Action 0 (Stay Optimistic): 18 (22.0%)
+  - Action 1 (Lock Hot Write Set): 10 (12.2%)
+  - Action 2 (Lock All Hot Sets): 19 (23.2%)
+  - Action 3 (Lock All Writes & Hot Reads): 16 (19.5%)
+  - Action 4 (Lock Entire Access Set): 19 (23.2%)
+============================================================
+
+
+--- Pipeline Finished ---
+
+============================================================
+训练完成！
+============================================================
+2026-05-17 19:05:21 - 模型训练完成
+2026-05-17 19:05:21 - train_ppo_process.sh 执行完成
+2026-05-17 19:06:18 - 激活虚拟环境
+2026-05-17 19:06:18 - 开始分级分析
+2026-05-17 19:06:18 - 分级分析完成
+2026-05-17 19:06:18 - 开始训练
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/ppo_pipeline.py", line 191, in <module>
+    run_training_pipeline('config/default.yaml')
+  File "/home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/src/ppo_pipeline.py", line 75, in run_training_pipeline
+    time.sleep(2)
+KeyboardInterrupt
+  Loaded tier config: exec_time = [47.98, 115.92]
+  Loaded tier config: query_interval = [3.59, 8.95]
+  Loaded tier config: priority_score = [7.68272993029698e+16, 3.625334712990902e+17]
+  Loaded tier config: contention_tier = [1.52, 4.67]
+  Loaded tier config: workload_tier = [8.41, 9.5]
+  Loaded tier config: retry_tier = [1, 3]
+LdtManager initialized with 6 tier configurations
+=== Model loaded from : models/ppo.pt ===
+
+[LDT] Get file: /home/zwx/openGauss-server/src/gausskernel/storage/mot/hybrid_cc_rl/output/ldt.json
+[Pipeline] Generating full Cartesian product LDT for all states...
+=== PPO Training Service Started===
+=== Current Latest version : 0 =========
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...
+
+[Step 1] Loading data...
+[DataLoader] Loaded input/mot_hybrid_cc.csv_traj, rows=11498
+[DataLoader] ERROR loading input/mot_hybrid_cc.csv_0_traj: No columns to parse from file
+[DataLoader] Total rows: 11498
+
+[Step 2] Filtering by policy_version (On-Policy)...
+[DataFilter] Latest version: 0
+[DataFilter] Rows after filter: 0
+[DataFilter] WARNING: Not enough samples (0 < 1)
+[Pipeline] Not enough data, waiting...

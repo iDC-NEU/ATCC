@@ -1,0 +1,1 @@
+src/gausskernel/cbb/utils/partition/partitionkey.o src/gausskernel/cbb/utils/partition/partitionmap.o

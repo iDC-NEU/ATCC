@@ -1,0 +1,1 @@
+src/gausskernel/cbb/extension/foreign/foreign.o src/gausskernel/cbb/extension/foreign/dummyserver.o src/gausskernel/cbb/extension/foreign/metainformation.o src/gausskernel/cbb/extension/foreign/regioninfo.o

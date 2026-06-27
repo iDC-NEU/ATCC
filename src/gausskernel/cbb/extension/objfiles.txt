@@ -1,0 +1,3 @@
+src/gausskernel/cbb/extension/connector/connector.o src/gausskernel/cbb/extension/connector/odbc_connector.o src/gausskernel/cbb/extension/connector/odbc.o
+src/gausskernel/cbb/extension/foreign/foreign.o src/gausskernel/cbb/extension/foreign/dummyserver.o src/gausskernel/cbb/extension/foreign/metainformation.o src/gausskernel/cbb/extension/foreign/regioninfo.o
+

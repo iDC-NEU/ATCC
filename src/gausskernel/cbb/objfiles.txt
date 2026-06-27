@@ -1,0 +1,32 @@
+src/gausskernel/cbb/extension/connector/connector.o src/gausskernel/cbb/extension/connector/odbc_connector.o src/gausskernel/cbb/extension/connector/odbc.o
+src/gausskernel/cbb/extension/foreign/foreign.o src/gausskernel/cbb/extension/foreign/dummyserver.o src/gausskernel/cbb/extension/foreign/metainformation.o src/gausskernel/cbb/extension/foreign/regioninfo.o
+
+src/gausskernel/cbb/grpc/remote_read.pb.o src/gausskernel/cbb/grpc/remote_read.grpc.pb.o src/gausskernel/cbb/grpc/rpc_server.o src/gausskernel/cbb/grpc/rpc_client.o
+src/gausskernel/cbb/instruments/utils/unique_query.o src/gausskernel/cbb/instruments/utils/list.o
+src/gausskernel/cbb/instruments/unique_sql/instr_unique_sql.o
+src/gausskernel/cbb/instruments/workload/instr_workload.o
+src/gausskernel/cbb/instruments/event/instr_waitevent.o
+src/gausskernel/cbb/instruments/user/instr_user.o
+src/gausskernel/cbb/instruments/percentile/percentile.o
+src/gausskernel/cbb/instruments/wdr/dblink_query.o src/gausskernel/cbb/instruments/wdr/generate_report.o src/gausskernel/cbb/instruments/wdr/snapshot.o
+src/gausskernel/cbb/instruments/slow_query/instr_slow_query.o src/gausskernel/cbb/instruments/slow_query/instr_slow_query_log.o src/gausskernel/cbb/instruments/slow_query/gs_stat.o
+src/gausskernel/cbb/instruments/ash/ash.o src/gausskernel/cbb/instruments/ash/wait_event_info.o
+src/gausskernel/cbb/instruments/capture_view/capture_view.o
+src/gausskernel/cbb/instruments/statement/instr_statement.o src/gausskernel/cbb/instruments/statement/instr_handle_mgr.o
+
+src/gausskernel/cbb/communication/libcomm_core/mc_tcp.o src/gausskernel/cbb/communication/libcomm_core/mc_poller_epoll.o
+src/gausskernel/cbb/communication/libcomm_utils/libcomm_util.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_err.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_list.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_thread.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_lqueue.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_queue.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_perf.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_adapter.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_interface.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_shakehands.o src/gausskernel/cbb/communication/libcomm_utils/libcomm_memory.o
+src/gausskernel/cbb/communication/libcomm.o src/gausskernel/cbb/communication/libcomm_common.o
+src/gausskernel/cbb/workload/workload.o src/gausskernel/cbb/workload/parctl.o src/gausskernel/cbb/workload/statctl.o src/gausskernel/cbb/workload/gscgroup.o src/gausskernel/cbb/workload/gsutil.o src/gausskernel/cbb/workload/gsconfig.o src/gausskernel/cbb/workload/memctl.o src/gausskernel/cbb/workload/spmgr.o src/gausskernel/cbb/workload/ioschdl.o src/gausskernel/cbb/workload/dywlm_client.o src/gausskernel/cbb/workload/dywlm_server.o src/gausskernel/cbb/workload/commgr.o src/gausskernel/cbb/workload/cpwlm.o
+src/gausskernel/cbb/utils/aes/aes.o src/gausskernel/cbb/utils/aes/cipherfn.o src/gausskernel/cbb/utils/aes/evp_cipher.o
+src/gausskernel/cbb/utils/biginteger/biginteger.o
+src/gausskernel/cbb/utils/bloomfilter/bloom_filter.o
+src/gausskernel/cbb/utils/debug/distribute_test.o
+src/gausskernel/cbb/utils/gssignal/gs_signal.o
+src/gausskernel/cbb/utils/hll/hll_mpp.o
+src/gausskernel/cbb/utils/partition/partitionkey.o src/gausskernel/cbb/utils/partition/partitionmap.o
+src/gausskernel/cbb/utils/ssl/gs_openssl_client.o
+src/gausskernel/cbb/utils/zfiles/zip_file.o src/gausskernel/cbb/utils/zfiles/gz_file.o
+
+src/gausskernel/cbb/bbox/bbox_create.o src/gausskernel/cbb/bbox/bbox_elf_dump.o src/gausskernel/cbb/bbox/bbox_lib.o src/gausskernel/cbb/bbox/bbox_print.o src/gausskernel/cbb/bbox/bbox_syscall_support.o src/gausskernel/cbb/bbox/bbox_threads.o src/gausskernel/cbb/bbox/bbox_elf_dump_base.o src/gausskernel/cbb/bbox/gs_bbox.o
+

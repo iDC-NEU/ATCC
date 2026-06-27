@@ -1,0 +1,1 @@
+src/common/backend/pgxc_single/locator/locator.o src/common/backend/pgxc_single/locator/redistrib.o

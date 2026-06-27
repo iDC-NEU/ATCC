@@ -1,0 +1,1 @@
+src/gausskernel/cbb/utils/debug/distribute_test.o

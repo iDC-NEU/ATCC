@@ -1,0 +1,1 @@
+timestamp,txn_id,txn_type,contention_tier,workload_tier,retry_tier,exec_time,query_interval,action,is_commit,latency,global_tps,global_abort_rate,priority_score,pre_csn,read_set,write_set

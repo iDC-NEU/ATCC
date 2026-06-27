@@ -1,0 +1,1 @@
+src/gausskernel/storage/remote/remote_adapter.o src/gausskernel/storage/remote/remote_read.o

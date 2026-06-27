@@ -1,0 +1,1 @@
+src/gausskernel/storage/file/fd.o src/gausskernel/storage/file/buffile.o src/gausskernel/storage/file/copydir.o src/gausskernel/storage/file/reinit.o src/gausskernel/storage/file/lz4_file.o

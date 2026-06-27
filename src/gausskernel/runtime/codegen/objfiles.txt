@@ -1,0 +1,4 @@
+src/gausskernel/runtime/codegen/executor/foreignscancodegen.o
+src/gausskernel/runtime/codegen/vecexecutor/vecexprcodegen.o src/gausskernel/runtime/codegen/vecexecutor/vechashaggcodegen.o src/gausskernel/runtime/codegen/vecexecutor/vechashjoincodegen.o src/gausskernel/runtime/codegen/vecexecutor/vecsortcodegen.o
+src/gausskernel/runtime/codegen/codegenutil/codegendebuger.o src/gausskernel/runtime/codegen/codegenutil/boolcodegen.o src/gausskernel/runtime/codegen/codegenutil/intcodegen.o src/gausskernel/runtime/codegen/codegenutil/floatcodegen.o src/gausskernel/runtime/codegen/codegenutil/varcharcodegen.o src/gausskernel/runtime/codegen/codegenutil/varlenacodegen.o src/gausskernel/runtime/codegen/codegenutil/datecodegen.o src/gausskernel/runtime/codegen/codegenutil/timestampcodegen.o src/gausskernel/runtime/codegen/codegenutil/numericcodegen.o src/gausskernel/runtime/codegen/codegenutil/bigintegercodegen.o
+src/gausskernel/runtime/codegen/gscodegen.o

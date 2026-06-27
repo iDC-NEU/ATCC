@@ -1,0 +1,1 @@
+src/gausskernel/storage/smgr/md.o src/gausskernel/storage/smgr/smgr.o src/gausskernel/storage/smgr/smgrtype.o

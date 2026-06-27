@@ -1,0 +1,1 @@
+src/gausskernel/process/stream/streamCore.o src/gausskernel/process/stream/streamConsumer.o src/gausskernel/process/stream/streamMain.o src/gausskernel/process/stream/streamProducer.o src/gausskernel/process/stream/streamTransportComm.o src/gausskernel/process/stream/execStream.o src/gausskernel/process/stream/stream_cost.o

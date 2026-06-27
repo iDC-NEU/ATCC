@@ -1,0 +1,1 @@
+src/gausskernel/process/tcop/stmt_retry.o src/gausskernel/process/tcop/dest.o src/gausskernel/process/tcop/fastpath.o src/gausskernel/process/tcop/postgres.o src/gausskernel/process/tcop/pquery.o src/gausskernel/process/tcop/utility.o src/gausskernel/process/tcop/auditfuncs.o src/gausskernel/process/tcop/autonomoustransaction.o

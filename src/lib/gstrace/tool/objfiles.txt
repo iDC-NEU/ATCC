@@ -1,0 +1,1 @@
+src/gstrace/tool//gstrace_tool.o src/gstrace/tool//../../../../src/lib/gstrace/common/libgstrace.a

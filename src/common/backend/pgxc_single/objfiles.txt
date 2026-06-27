@@ -1,0 +1,6 @@
+src/common/backend/pgxc_single/barrier/barrier.o
+src/common/backend/pgxc_single/locator/locator.o src/common/backend/pgxc_single/locator/redistrib.o
+src/common/backend/pgxc_single/copy/copyops.o src/common/backend/pgxc_single/copy/remotecopy.o
+src/common/backend/pgxc_single/nodemgr/nodemgr.o src/common/backend/pgxc_single/nodemgr/groupmgr.o
+src/common/backend/pgxc_single/pool/pgxcnode.o src/common/backend/pgxc_single/pool/execRemote.o src/common/backend/pgxc_single/pool/poolmgr.o src/common/backend/pgxc_single/pool/poolcomm.o src/common/backend/pgxc_single/pool/poolutils.o
+

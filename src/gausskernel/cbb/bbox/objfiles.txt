@@ -1,0 +1,1 @@
+src/gausskernel/cbb/bbox/bbox_create.o src/gausskernel/cbb/bbox/bbox_elf_dump.o src/gausskernel/cbb/bbox/bbox_lib.o src/gausskernel/cbb/bbox/bbox_print.o src/gausskernel/cbb/bbox/bbox_syscall_support.o src/gausskernel/cbb/bbox/bbox_threads.o src/gausskernel/cbb/bbox/bbox_elf_dump_base.o src/gausskernel/cbb/bbox/gs_bbox.o

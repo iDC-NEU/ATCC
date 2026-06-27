@@ -1,0 +1,69 @@
+{
+  "tiers": {
+    "exec_time": [
+      50.78,
+      971.98
+    ],
+    "query_interval": [
+      3.45,
+      8.84
+    ],
+    "priority_score": [
+      7.995356352952821e+16,
+      3.555724702795783e+17
+    ],
+    "contention_tier": [
+      1.29,
+      3.66
+    ],
+    "workload_tier": [
+      237213.62,
+      720231.14
+    ],
+    "retry_tier": [
+      1,
+      3
+    ]
+  },
+  "table": {
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_0": 4,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_1": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_1": 3,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_1": 5,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_0": 0,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 1,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_2": 5,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_2": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_1": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 1,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_1": 5,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_2": 2,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_1": 4,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_2": 3,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_0": 5,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_1,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_0": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 3,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 4,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 4,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 5,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_1": 3,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_2,priority_score_TIER_2": 5,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_2": 4,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_2": 0,
+    "YCSB,contention_TIER_2,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_0,query_interval_TIER_0,priority_score_TIER_2": 1,
+    "YCSB,contention_TIER_1,workload_TIER_0,retry_count_TIER_1,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_2": 5,
+    "YCSB,contention_TIER_0,workload_TIER_1,retry_count_TIER_0,exec_time_TIER_2,query_interval_TIER_0,priority_score_TIER_0": 2,
+    "YCSB,contention_TIER_0,workload_TIER_2,retry_count_TIER_0,exec_time_TIER_2,query_interval_TIER_0,priority_score_TIER_0": 1,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_1,query_interval_TIER_0,priority_score_TIER_0": 3,
+    "YCSB,contention_TIER_0,workload_TIER_0,retry_count_TIER_0,exec_time_TIER_0,query_interval_TIER_1,priority_score_TIER_0": 5
+  }
+}

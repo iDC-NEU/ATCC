@@ -1,0 +1,1 @@
+src/common/backend/libpq/be-fsstubs.o src/common/backend/libpq/be-secure.o src/common/backend/libpq/auth.o src/common/backend/libpq/crypt.o src/common/backend/libpq/hba.o src/common/backend/libpq/ip.o src/common/backend/libpq/md5.o src/common/backend/libpq/sha2.o src/common/backend/libpq/pqcomm.o src/common/backend/libpq/pqformat.o src/common/backend/libpq/pqsignal.o

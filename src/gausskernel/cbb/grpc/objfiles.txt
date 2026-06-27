@@ -1,0 +1,1 @@
+src/gausskernel/cbb/grpc/remote_read.pb.o src/gausskernel/cbb/grpc/remote_read.grpc.pb.o src/gausskernel/cbb/grpc/rpc_server.o src/gausskernel/cbb/grpc/rpc_client.o

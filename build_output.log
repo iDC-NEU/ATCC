@@ -1,0 +1,2051 @@
+ROOT_DIR : /home/zwx/openGauss-server
+mpp_package.sh -m release -3rd /home/zwx/binarylibs -pkg server -mc off -nopkg -pm opengauss
+[makemppdb] 25-10-28 16:20:50: script dir : /home/zwx/openGauss-server/build/script
+[makemppdb] 25-10-28 16:20:50: Work root dir : /home/zwx/openGauss-server
+/home/zwx/openGauss-server/src/lib/gstrace/./script/trc_gen.py:48: SyntaxWarning: invalid escape sequence '\s'
+  pattern = '<(.*)>\s*(.*)'
+Generate trace header begin.
+Generate trace header done.
+Writing fmgroids.h
+Writing fmgrtab.cpp
+Writing pg_builtin_proc.h
+Writing fmgroids.h
+Writing fmgrtab.cpp
+Writing pg_builtin_proc.h
+-I../../../../src/include -I../../../../src/lib/gstrace -D_GNU_SOURCE  -fPIE -I/home/zwx/binarylibs/dependency/install_tools_centos7.6_x86_64/unixodbc/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libobs/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libcgroup/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/openssl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/liborc/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libparquet/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/protobuf/comm/include  -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/grpc/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/zeromq/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/onnxruntime/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/boost/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/llvm/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/kerberos/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/postgresql-hll/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/cjson/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libedit/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/numactl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/zlib1.2.11/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/lz4/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libcurl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/masstree/comm/include
+Makefile.local:181: warning: overriding recipe for target `objfiles.txt'
+../../../../../..//src/gausskernel/common.mk:34: warning: ignoring old recipe for target `objfiles.txt'
+tinyxml2.cpp: In function ‘int TIXML_VSCPRINTF(const char*, __va_list_tag*)’:
+tinyxml2.cpp:96:41: warning: function ‘int TIXML_VSCPRINTF(const char*, __va_list_tag*)’ might be a candidate for ‘gnu_printf’ format attribute [-Wsuggest-attribute=format]
+   int len = vsnprintf( 0, 0, format, va );
+                                         ^
+tinyxml2.cpp: In member function ‘void tinyxml2::XMLDocument::SetError(tinyxml2::XMLError, int, const char*, ...)’:
+tinyxml2.cpp:2485:62: warning: function ‘void tinyxml2::XMLDocument::SetError(tinyxml2::XMLError, int, const char*, ...)’ might be a candidate for ‘gnu_printf’ format attribute [-Wsuggest-attribute=format]
+   TIXML_VSNPRINTF(buffer + len, BUFFER_SIZE - len, format, va);
+                                                              ^
+tinyxml2.cpp: In member function ‘virtual void tinyxml2::XMLPrinter::Print(const char*, ...)’:
+tinyxml2.cpp:2581:35: warning: function ‘virtual void tinyxml2::XMLPrinter::Print(const char*, ...)’ might be a candidate for ‘gnu_printf’ format attribute [-Wsuggest-attribute=format]
+         vfprintf( _fp, format, va );
+                                   ^
+tinyxml2.cpp:2591:41: warning: function ‘virtual void tinyxml2::XMLPrinter::Print(const char*, ...)’ might be a candidate for ‘gnu_printf’ format attribute [-Wsuggest-attribute=format]
+   TIXML_VSNPRINTF( p, len+1, format, va );
+                                         ^
+syncrep.cpp: In function ‘bool check_synchronous_standby_names(char**, void**, GucSource)’:
+syncrep.cpp:1485:16: warning: unused variable ‘idx’ [-Wunused-variable]
+         uint32 idx;
+                ^~~
+postmaster.cpp: In function ‘void CkeckEpochThreadsI()’:
+postmaster.cpp:11446:46: warning: value computed is not used [-Wunused-value]
+                     epoch_send_thread_ids[i] == g_instance.pid_cxt.EpochSendPIDS[i];
+In file included from ../../../../src/include/postgres.h:53:0,
+                 from postmaster.cpp:67:
+postmaster.cpp: In function ‘void GetServerInfo()’:
+postmaster.cpp:11775:103: warning: format ‘%llu’ expects argument of type ‘long long unsigned int’, but argument 2 has type ‘uint64_t {aka long unsigned int}’ [-Wformat=]
+     ereport(LOG, (errmsg("local ip_index %llu ip %s",local_ip_index, kServerIp[local_ip_index].c_str())));
+                                                                                                       ^
+../../../../src/include/utils/elog.h:124:83: note: in definition of macro ‘ereport_domain’
+     (errstart(elevel, __FILE__, __LINE__, PG_FUNCNAME_MACRO, domain) ? (errfinish rest) : (void)0)
+                                                                                   ^~~~
+postmaster.cpp:11775:5: note: in expansion of macro ‘ereport’
+     ereport(LOG, (errmsg("local ip_index %llu ip %s",local_ip_index, kServerIp[local_ip_index].c_str())));
+     ^~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source_pool.h:28,
+                 from jit_source_pool.cpp:29:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source_pool.h:28,
+                 from jit_source_pool.cpp:29:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source_map.h:28,
+                 from jit_source_map.cpp:26:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source_map.h:28,
+                 from jit_source_map.cpp:26:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source.cpp:26:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_source.h:30,
+                 from jit_source.cpp:26:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_tvm.cpp:27:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_tvm.cpp:27:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_util.h:29,
+                 from jit_tvm_util.cpp:26:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_util.h:29,
+                 from jit_tvm_util.cpp:26:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_fdw_xlog.cpp:33:
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_fdw_xlog.cpp:33:
+../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan.h:28,
+                 from jit_explain.cpp:26:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan.h:28,
+                 from jit_explain.cpp:26:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan_expr.cpp:30:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan_expr.cpp:30:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_query.h:32,
+                 from jit_tvm_query_codegen.cpp:29:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_query.h:32,
+                 from jit_tvm_query_codegen.cpp:29:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_context_pool.h:30,
+                 from jit_context_pool.cpp:29:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_context_pool.h:30,
+                 from jit_context_pool.cpp:29:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_query.h:32,
+                 from jit_tvm_blocks.h:32,
+                 from jit_tvm_blocks.cpp:30:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_tvm_query.h:32,
+                 from jit_tvm_blocks.h:32,
+                 from jit_tvm_blocks.cpp:30:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan.h:28,
+                 from jit_plan.cpp:30:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_plan_expr.h:32,
+                 from jit_plan.h:28,
+                 from jit_plan.cpp:30:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_fdw.cpp:74:
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_fdw.cpp:74:
+../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_match_index.cpp:26:
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_match_index.cpp:26:
+../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_llvm.cpp:34:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_llvm.cpp:34:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_common.cpp:35:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_common.cpp:35:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from mot_fdw.cpp:74:0:
+mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+cat: snowball/objfiles.txt: No such file or directory
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_query.h:40,
+                 from jit_llvm_blocks.h:32,
+                 from jit_llvm_blocks.cpp:30:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_query.h:40,
+                 from jit_llvm_blocks.h:32,
+                 from jit_llvm_blocks.cpp:30:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_util.h:35,
+                 from jit_llvm_util.cpp:25:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_util.h:35,
+                 from jit_llvm_util.cpp:25:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_query.h:40,
+                 from jit_llvm_query_codegen.cpp:29:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_common.h:28,
+                 from jit_llvm_query.h:40,
+                 from jit_llvm_query_codegen.cpp:29:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+In file included from mot_match_index.cpp:26:0:
+mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_fdw.cpp: In function ‘void MOTXactCallback(XactEvent, void*)’:
+mot_fdw.cpp:1608:22: warning: unused variable ‘cnt’ [-Wunused-variable]
+             uint64_t cnt = 0;
+                      ^~~
+mot_fdw.cpp:1591:9: warning: label ‘add_num’ defined but not used [-Wunused-label]
+         add_num:
+         ^~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_context.cpp:36:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_llvm.h:33,
+                 from jit_context.h:29,
+                 from jit_context.cpp:36:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_internal.cpp:46:
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from ../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:40,
+                 from jit_exec.cpp:45:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from ../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:40,
+                 from jit_exec.cpp:45:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction/txn_access.h:36:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/mot_engine.h:37,
+                 from mot_internal.h:40,
+                 from mot_internal.cpp:46:
+../../../../../..//src/gausskernel/storage/mot/core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+In file included from ../../core/src/storage/row.h:36:0,
+                 from ../../core/src/system/transaction/txn_access.h:36,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_helpers.cpp:36:
+../../core/src/concurrency_control/row_header.h:482:22: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<MOT::Row*> MOT::RowHeader::version_’
+      std::list<Row*> version_;
+                      ^~~~~~~~
+../../core/src/concurrency_control/row_header.h:483:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::version_mutex’
+      std::mutex version_mutex;
+                 ^~~~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:485:31: warning: ignoring packed attribute because of unpacked non-POD field ‘std::list<long unsigned int> MOT::RowHeader::active_tid_’
+      std::list<TransactionId> active_tid_;  // 正在访问row的活跃事务id，垃圾回收
+                               ^~~~~~~~~~~
+../../core/src/concurrency_control/row_header.h:486:17: warning: ignoring packed attribute because of unpacked non-POD field ‘std::mutex MOT::RowHeader::active_tid_mutex’
+      std::mutex active_tid_mutex;
+                 ^~~~~~~~~~~~~~~~
+In file included from ../../core/src/system/transaction/txn_access.h:36:0,
+                 from ../../core/src/system/checkpoint/checkpoint_manager.h:34,
+                 from ../../core/src/system/mot_engine.h:37,
+                 from jit_helpers.h:29,
+                 from jit_helpers.cpp:36:
+../../core/src/storage/row.h:575:15: warning: ignoring packed attribute because of unpacked non-POD field ‘MOT::RowHeader MOT::Row::m_rowHeader’
+     RowHeader m_rowHeader;
+               ^~~~~~~~~~~
+In file included from jit_exec.cpp:45:0:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+In file included from mot_internal.cpp:46:0:
+mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+In file included from jit_context.cpp:40:0:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+In file included from jit_helpers.cpp:38:0:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static bool MOTAdaptor::IsAllActiveLockListExced()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1109:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In static member function ‘static void MOTAdaptor::ClearMergeEpochState()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1663:28: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+          for (int i = 0; i < lock_thread_num; i++) {
+                          ~~^~~~~~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(uint64_t, uint64_t, uint64_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1943:19: warning: ‘MOTAdaptor::LockRequest::csn_’ will be initialized after [-Wreorder]
+          uint64_t csn_;
+                   ^~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1942:19: warning:   ‘uint64_t MOTAdaptor::LockRequest::server_id_’ [-Wreorder]
+          uint64_t server_id_;
+                   ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1953:10: warning:   when initialized here [-Wreorder]
+          LockRequest(uint64_t csn, uint64_t server_id, uint64_t start_epoch)
+          ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In constructor ‘MOTAdaptor::LockRequest::LockRequest(MOT::TxnManager*, uint32_t)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:1983:23: warning: unused variable ‘f’ [-Wunused-variable]
+              uint64_t f = UINT64_MAX - csn_;
+                       ^
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::LockRequestQueue::DebugMessage()’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3383:19: warning: unused variable ‘temp_excl’ [-Wunused-variable]
+              bool temp_excl = excl_sig.load();
+                   ^~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3384:23: warning: unused variable ‘temp_writer’ [-Wunused-variable]
+              uint64_t temp_writer = writer_.load();
+                       ^~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3385:23: warning: unused variable ‘temp_score’ [-Wunused-variable]
+              uint64_t temp_score = writer_score_.load();
+                       ^~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3386:23: warning: unused variable ‘temp_m_writer’ [-Wunused-variable]
+              uint64_t temp_m_writer = m_writer_.load();
+                       ^~~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:3387:23: warning: unused variable ‘temp_m_score’ [-Wunused-variable]
+              uint64_t temp_m_score = m_writer_score_.load();
+                       ^~~~~~~~~~~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘void MOTAdaptor::ActionEngine::loadModel(int, const char*)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4133:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(status);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h: In member function ‘int MOTAdaptor::ActionEngine::computeAction(MOT::TxnManager*, uint64_t&)’:
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4173:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+../../../../../..//src/gausskernel/storage/mot/fdw_adapter/src/mot_internal.h:4188:30: warning: unused variable ‘msg’ [-Wunused-variable]
+                  const char* msg = api_->GetErrorMessage(st);
+                              ^~~
+mot_internal.cpp: In function ‘bool EnqueueTraj(std::unique_ptr<pack_params>&&, std::unique_ptr<pack_params>&&)’:
+mot_internal.cpp:2985:1: warning: no return statement in function returning non-void [-Wreturn-type]
+ }
+ ^
+mot_internal.cpp: In static member function ‘static bool MOTAdaptor::InsertTxntoLocalLockInfo(MOT::TxnManager*, const uint64_t&, const uint64_t&, const bool&, MOT::Row*)’:
+mot_internal.cpp:3300:18: warning: unused variable ‘fieldCnt’ [-Wunused-variable]
+         uint64_t fieldCnt;
+                  ^~~~~~~~
+mot_internal.cpp:3301:28: warning: unused variable ‘access’ [-Wunused-variable]
+         const MOT::Access* access = nullptr;
+                            ^~~~~~
+mot_internal.cpp:3302:31: warning: unused variable ‘orderedSet’ [-Wunused-variable]
+         MOT::TxnOrderedSet_t& orderedSet = txMan->m_accessMgr->GetOrderedRowSet();
+                               ^~~~~~~~~~
+mot_internal.cpp: In function ‘void OUTPUTLOG(std::string)’:
+mot_internal.cpp:3721:112: warning: unused variable ‘txn_temp_avg_lockCnt’ [-Wunused-variable]
+     double txn_temp_avg_time = 0, txn_temp_avg_epoch = 0, txn_temp_avg_readCnt = 0, txn_temp_avg_writeCnt = 0, txn_temp_avg_lockCnt = 0, txn_temp_avg_hotCnt = 0;
+                                                                                                                ^~~~~~~~~~~~~~~~~~~~
+mot_internal.cpp: In function ‘void EpochLogicalTimerManagerThreadMain(uint64_t)’:
+mot_internal.cpp:4268:18: warning: unused variable ‘temp_record_committed’ [-Wunused-variable]
+             auto temp_record_committed = MOTAdaptor::GetRecordCommittedTxnCounters(epoch_mod);
+                  ^~~~~~~~~~~~~~~~~~~~~
+mot_internal.cpp:4269:18: warning: unused variable ‘temp_record_commit’ [-Wunused-variable]
+             auto temp_record_commit = MOTAdaptor::GetRecordCommitTxnCounters(epoch_mod);
+                  ^~~~~~~~~~~~~~~~~~
+mot_internal.cpp: In function ‘void EpochPhysicalTimerManagerThreadMain(uint64_t)’:
+mot_internal.cpp:4368:9: warning: unused variable ‘n’ [-Wunused-variable]
+     int n = 0;
+         ^
+mot_internal.cpp: In function ‘void EpochPackThreadMain(uint64_t)’:
+mot_internal.cpp:4481:61: warning: unused variable ‘cnt’ [-Wunused-variable]
+     uint64_t current_epoch = 0, send_index = 0, index = id, cnt = 0, send_epoch = 1;
+                                                             ^~~
+mot_internal.cpp:4485:18: warning: unused variable ‘serialized_txn_str_ptr’ [-Wunused-variable]
+     std::string *serialized_txn_str_ptr;
+                  ^~~~~~~~~~~~~~~~~~~~~~
+mot_internal.cpp: In function ‘void EpochMergeThreadMain(uint64_t)’:
+mot_internal.cpp:5083:26: warning: unused variable ‘session_context’ [-Wunused-variable]
+     MOT::SessionContext* session_context = MOT::GetSessionManager()->
+                          ^~~~~~~~~~~~~~~
+mot_internal.cpp:5097:101: warning: unused variable ‘loop_server_id’ [-Wunused-variable]
+     uint64_t csn = 0, index_pack = id % kPackageNum, epoch_mod = 0, server_id = 0, clear_epoch = 0, loop_server_id = 0, epoch = 0, received_pack_num = 0;
+                                                                                                     ^~~~~~~~~~~~~~
+mot_internal.cpp: In function ‘void EpochCommitThreadMain(uint64_t)’:
+mot_internal.cpp:5353:14: warning: unused variable ‘rowId’ [-Wunused-variable]
+     uint64_t rowId = 0;
+              ^~~~~
+mot_internal.cpp: In static member function ‘static uint64_t MultiRaftState::SetServerState(uint64_t, uint64_t, uint64_t)’:
+mot_internal.cpp:6055:1: warning: no return statement in function returning non-void [-Wreturn-type]
+ }
+ ^
+mot_internal.cpp: In function ‘void MultiRaftThreadMain(uint64_t)’:
+mot_internal.cpp:6081:10: warning: unused variable ‘sleep_flag’ [-Wunused-variable]
+     bool sleep_flag = false;
+          ^~~~~~~~~~
+mot_internal.cpp:6082:14: warning: unused variable ‘last_ping_time’ [-Wunused-variable]
+     uint64_t last_ping_time = 0;
+              ^~~~~~~~~~~~~~
+mot_internal.cpp: In function ‘void* ListenThread(void*)’:
+mot_internal.cpp:6473:1: warning: no return statement in function returning non-void [-Wreturn-type]
+ }
+ ^
+mot_internal.cpp: In function ‘void* MergeThread(void*)’:
+mot_internal.cpp:6520:1: warning: no return statement in function returning non-void [-Wreturn-type]
+ }
+ ^
+In file included from mot_internal.cpp:46:0:
+mot_internal.h: In constructor ‘MOTAdaptor::ActionEngine::ActionEngine()’:
+mot_internal.h:4103:40: warning: ignoring return value of function declared with attribute warn_unused_result [-Wunused-result]
+              api_->SetIntraOpNumThreads(session_opts_, 1);
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+mot_internal.h:4104:40: warning: ignoring return value of function declared with attribute warn_unused_result [-Wunused-result]
+              api_->SetInterOpNumThreads(session_opts_, 1);
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+mot_internal.h:4105:52: warning: ignoring return value of function declared with attribute warn_unused_result [-Wunused-result]
+              api_->SetSessionGraphOptimizationLevel(session_opts_, ORT_ENABLE_ALL);
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from ../../../../../..//src/gausskernel/storage/mot/core/src/utils/utilities.h:33:0,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction_logger/redo_log_writer.h:35,
+                 from ../../../../../..//src/gausskernel/storage/mot/core/src/system/transaction_logger/ilogger.h:28,
+                 from mot_fdw_xlog.h:28,
+                 from mot_internal.h:39,
+                 from mot_internal.cpp:46:
+../../../../../..//src/gausskernel/storage/mot/core/src/utils/mot_log.h: In static member function ‘static void MultiRaftState::HandleRaftResponse(std::unique_ptr<merge::Message>&&)’:
+../../../../../..//src/gausskernel/storage/mot/core/src/utils/mot_log.h:225:20: warning: ‘epoch_id’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+         MOT::MOTLog(logLevel, MOT_LOGGER_FULL_NAME, format, ##__VA_ARGS__); \
+                    ^
+mot_internal.cpp:6200:37: note: ‘epoch_id’ was declared here
+                 uint64_t server_id, epoch_id, state;
+                                     ^~~~~~~~
+cat: ../../src/common/interfaces/libpq/objfiles.txt: No such file or directory
+cat: ../../contrib/test_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/mppdb_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/postgres_fdw/objfiles.txt: No such file or directory
+cat: ../../src/common/interfaces/libpq/objfiles.txt: No such file or directory
+cat: ../../contrib/test_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/mppdb_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/postgres_fdw/objfiles.txt: No such file or directory
+Makefile:71: warning: overriding recipe for target `../../../src/lib/elog/elog.a'
+Makefile:65: warning: ignoring old recipe for target `../../../src/lib/elog/elog.a'
+cluster_guc.cpp: In function ‘char* get_AZ_value(const char*, const char*)’:
+cluster_guc.cpp:1781:9: warning: unused variable ‘resultStatus’ [-Wunused-variable]
+     int resultStatus = 0;
+         ^~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from configure.cpp:11:
+configure.cpp: In function ‘void init_config(InstanceConfig*, const char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+configure.cpp:320:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+configure.cpp:320:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+configure.cpp:320:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres.h:53:0,
+                 from xlogreader.cpp:19:
+../../../src/include/bulkload/utils.h: In function ‘void U64ToString(uint64, char*, int)’:
+../../../src/include/utils/elog.h:339:62: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                              ^
+../../../src/include/bulkload/utils.h:194:5: note: in expansion of macro ‘securec_check_ss’
+     securec_check_ss(rc, "\0", "\0");
+     ^~~~~~~~~~~~~~~~
+In file included from ../../../src/include/utils/elog.h:28:0,
+                 from ../../../src/include/postgres.h:53,
+                 from xlogreader.cpp:19:
+xlogreader.cpp: In function ‘void prepare_invalid_report(XLogReaderState*, char*, size_t, XLogSegNo)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:55:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:55:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:55:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+xlogreader.cpp: In function ‘XLogReaderState* XLogReaderAllocate(XLogPageReadCB, void*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:101:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:101:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:101:5: note: in expansion of macro ‘securec_check’
+     securec_check(errorno, "", "");
+     ^~~~~~~~~~~~~
+xlogreader.cpp: In function ‘bool DecodeXLogRecord(XLogReaderState*, XLogRecord*, char**, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1306:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1306:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1306:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1346:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+In file included from ../../../src/include/utils/elog.h:28:0,
+                 from ../../../src/include/postgres.h:53,
+                 from receivelog.cpp:21:
+receivelog.cpp: In function ‘bool ReceiveXlogStream(PGconn*, XLogRecPtr, uint32, const char*, const char*, stream_stop_callback, int, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+receivelog.cpp:784:13: note: in expansion of macro ‘securec_check’
+             securec_check(ret, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1346:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+receivelog.cpp:784:13: note: in expansion of macro ‘securec_check’
+             securec_check(ret, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1346:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+receivelog.cpp:784:13: note: in expansion of macro ‘securec_check’
+             securec_check(ret, "\0", "\0");
+             ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from catalog.cpp:12:
+catalog.cpp: In function ‘timelineInfo* timelineInfoNew(TimeLineID)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+catalog.cpp:38:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1420:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1420:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1420:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+catalog.cpp:38:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1437:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1437:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1437:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+catalog.cpp:38:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+xlogreader.cpp: In function ‘bool RestoreBlockImage(XLogReaderState*, uint8, char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1511:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1511:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1511:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1514:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1514:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1514:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1517:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1517:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1517:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+xlogreader.cpp:1525:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+xlogreader.cpp:1525:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+xlogreader.cpp:1525:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "", "");
+         ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from file.cpp:11:
+file.cpp: In function ‘PageState* fio_get_checksum_map(const char*, uint32, int, XLogRecPtr, BlockNumber, fio_location)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+file.cpp:1956:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+file.cpp:1956:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+file.cpp:1956:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+file.cpp: In function ‘datapagemap_t* fio_get_lsn_map(const char*, uint32, int, XLogRecPtr, BlockNumber, fio_location)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+file.cpp:2025:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+file.cpp:2025:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+file.cpp:2025:13: note: in expansion of macro ‘securec_check’
+             securec_check(rc, "\0", "\0");
+             ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from dir.cpp:12:
+dir.cpp: In function ‘pgFile* pgFileInit(const char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+dir.cpp:208:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+dir.cpp:208:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+dir.cpp:208:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+dir.cpp: In function ‘void opt_path_map(ConfigOption*, const char*, TablespaceList*, const char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+dir.cpp:963:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+dir.cpp:963:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+dir.cpp:963:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+dir.cpp: In function ‘void read_tablespace_map(parray*, const char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+dir.cpp:1215:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+dir.cpp:1215:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+dir.cpp:1215:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from pgut.cpp:12:
+pgut.cpp: In function ‘PQconninfoOption* conninfo_init(PQExpBuffer)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+pgut.cpp:252:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+pgut.cpp:252:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+pgut.cpp:252:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from data.cpp:12:
+data.cpp: In function ‘PageState* get_checksum_map(const char*, uint32, int, XLogRecPtr, BlockNumber)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+data.cpp:1772:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+data.cpp:1772:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+data.cpp:1772:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+data.cpp: In function ‘datapagemap_t* get_lsn_map(const char*, uint32, int, XLogRecPtr, BlockNumber)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+data.cpp:1842:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+data.cpp:1842:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+data.cpp:1842:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+data.cpp: In function ‘BackupPageHeader2* get_data_file_headers(HeaderMap*, pgFile*, uint32, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+data.cpp:2133:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+data.cpp:2133:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+data.cpp:2133:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+data.cpp:2145:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+data.cpp:2145:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+data.cpp:2145:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+data.cpp: In function ‘void write_page_headers(BackupPageHeader2*, pgFile*, HeaderMap*, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+data.cpp:2220:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+data.cpp:2220:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+data.cpp:2220:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from file_gz.cpp:11:
+file_gz.cpp: In function ‘gzFile_s* fio_gzopen(const char*, const char*, int, fio_location)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+file_gz.cpp:46:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+file_gz.cpp:46:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+file_gz.cpp:46:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+file_gz.cpp: In function ‘int fio_send_file_gz(const char*, const char*, FILE*, char**)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+file_gz.cpp:365:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+file_gz.cpp:365:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+file_gz.cpp:365:17: note: in expansion of macro ‘securec_check’
+                 securec_check(rc, "\0", "\0");
+                 ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from restore.cpp:12:
+restore.cpp: In function ‘pgRecoveryTarget* parseRecoveryTargetOptions(const char*, const char*, const char*, TimeLineID, const char*, const char*, const char*, const char*)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+restore.cpp:1785:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+restore.cpp:1785:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+restore.cpp:1785:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from configuration.cpp:12:
+configuration.cpp: In function ‘bool parse_time(const char*, time_t*, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+configuration.cpp:1236:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+configuration.cpp:1236:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+configuration.cpp:1236:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from util.cpp:12:
+util.cpp: In function ‘bool datapagemap_is_set(datapagemap_t*, BlockNumber)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+util.cpp:523:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+util.cpp:523:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+util.cpp:523:9: note: in expansion of macro ‘securec_check’
+         securec_check(rc, "\0", "\0");
+         ^~~~~~~~~~~~~
+In file included from ../../../src/include/postgres.h:53:0,
+                 from ../../../src/include/fmgr.h:24,
+                 from ../../../src/include/access/xlog_internal.h:24,
+                 from pg_probackupa.h:18,
+                 from pg_probackup.h:14,
+                 from parsexlog.cpp:14:
+../../../src/include/bulkload/utils.h: In function ‘void U64ToString(uint64, char*, int)’:
+../../../src/include/utils/elog.h:339:62: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                              ^
+../../../src/include/bulkload/utils.h:194:5: note: in expansion of macro ‘securec_check_ss’
+     securec_check_ss(rc, "\0", "\0");
+     ^~~~~~~~~~~~~~~~
+In file included from ../../../src/include/postgres_fe.h:27:0,
+                 from pg_probackupa.h:14,
+                 from pg_probackup.h:14,
+                 from parsexlog.cpp:14:
+parsexlog.cpp: In function ‘XLogReaderState* InitXLogPageRead(XLogReaderData*, const char*, TimeLineID, uint32, bool, bool, bool)’:
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:13: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+             ^~~~
+parsexlog.cpp:1168:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:33:36: note: in definition of macro ‘freeSecurityFuncSpace_c’
+         if (str1 != NULL && strlen(str1) > 0) \
+                                    ^~~~
+parsexlog.cpp:1168:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+../../../src/include/utils/elog.h:324:64: warning: ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+             freeSecurityFuncSpace_c(static_cast<char*>(charList), ##__VA_ARGS__);                                    \
+                                                                ^
+../../../src/include/securec_check.h:34:25: note: in definition of macro ‘freeSecurityFuncSpace_c’
+             free((char*)str1);                \
+                         ^~~~
+parsexlog.cpp:1168:5: note: in expansion of macro ‘securec_check’
+     securec_check(rc, "\0", "\0");
+     ^~~~~~~~~~~~~
+gram.y:165.1-13: warning: deprecated directive, use ‘%name-prefix’ [-Wdeprecated]
+ %name-prefix="base_yy"
+ ^^^^^^^^^^^^^
+gram.y:10599.27-45: warning: type clash on default action: <keyword> != <> [-Wother]
+ 			| BEGIN_NON_ANOYBLOCK
+                           ^^^^^^^^^^^^^^^^^^^
+All of openGauss successfully made. Ready to install.
+-I../../../../src/include -I../../../../src/lib/gstrace -D_GNU_SOURCE  -fPIE -I/home/zwx/binarylibs/dependency/install_tools_centos7.6_x86_64/unixodbc/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libobs/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libcgroup/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/openssl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/liborc/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libparquet/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/protobuf/comm/include  -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/grpc/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/zeromq/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/onnxruntime/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/boost/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/llvm/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/kerberos/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/postgresql-hll/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/cjson/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libedit/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/numactl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/zlib1.2.11/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/lz4/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/libcurl/comm/include -I/home/zwx/binarylibs/dependency/centos7.6_x86_64/masstree/comm/include
+Makefile.local:181: warning: overriding recipe for target `objfiles.txt'
+../../../../../..//src/gausskernel/common.mk:34: warning: ignoring old recipe for target `objfiles.txt'
+cat: snowball/objfiles.txt: No such file or directory
+cat: ../../src/common/interfaces/libpq/objfiles.txt: No such file or directory
+cat: ../../contrib/test_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/mppdb_decoding/objfiles.txt: No such file or directory
+cat: ../../contrib/postgres_fdw/objfiles.txt: No such file or directory
+Makefile:71: warning: overriding recipe for target `../../../src/lib/elog/elog.a'
+Makefile:65: warning: ignoring old recipe for target `../../../src/lib/elog/elog.a'
+openGauss installation complete.
+The option 'nopkg' is on, no package will be zipped.

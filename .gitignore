@@ -9,3 +9,4 @@
 *.dylib
 *.o
 
+build/script/makemppdb_pkg.log
